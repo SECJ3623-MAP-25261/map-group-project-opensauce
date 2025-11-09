@@ -1,4 +1,5 @@
 import 'package:easyrent/views/pages/onboarding_page.dart';
+import 'package:easyrent/views/pages/resetPassword/resetPassword_page.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -24,7 +25,7 @@ class _MyAppState extends State<MyApp> {
           brightness: Brightness.light
           )
       ),
-      home: OnboardingPage(),
+      home: ResetpasswordPage(),
     );
   }
 }
