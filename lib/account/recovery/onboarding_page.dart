@@ -1,4 +1,5 @@
-import 'package:easyrent/views/pages/authentication/auth/login_page.dart';
+
+import '../auth/login_page.dart';
 import 'package:flutter/material.dart';
 
 // onboarding page (Jia Long)

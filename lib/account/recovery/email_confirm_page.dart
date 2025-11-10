@@ -1,4 +1,4 @@
-import 'package:easyrent/views/pages/authentication/resetPassword/verification_page.dart';
+import 'package:easyrent/account/recovery/verification_page.dart';
 import 'package:flutter/material.dart';
 
 // reset password page (Lee Hom)
