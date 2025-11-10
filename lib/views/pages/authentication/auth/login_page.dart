@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-// login + register page (Kai Bin)
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -11,10 +10,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Text("This is Login Page"),
-      ),
-    );
+    return Container();
   }
 }
