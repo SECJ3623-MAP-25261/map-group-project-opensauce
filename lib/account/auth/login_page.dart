@@ -16,7 +16,7 @@ class _LoginPageState extends State<LoginPage> {
         padding: EdgeInsets.all(20.0),
         child: Column(
           children: [
-            Text("Reset Password",style: TextStyle(fontWeight: FontWeight.bold),)
+            Text("Login Page",style: TextStyle(fontWeight: FontWeight.bold),)
           ],
         ),
       )

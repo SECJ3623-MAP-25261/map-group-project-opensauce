@@ -1,4 +1,4 @@
-import 'package:easyrent/views/widgets/resetPassword/pinput_example.dart';
+import 'package:easyrent/account/recovery/email_confirm_page.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -24,7 +24,7 @@ class _MyAppState extends State<MyApp> {
           brightness: Brightness.light
           )
       ),
-      home: PinputExample(),
+      home: EmailConfirmPage(),
     );
   }
 }
