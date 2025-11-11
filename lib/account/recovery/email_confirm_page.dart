@@ -1,4 +1,6 @@
+import 'package:easyrent/account/auth/login_page.dart';
 import 'package:easyrent/account/recovery/verification_page.dart';
+import 'package:easyrent/views/widgets/resetPassword/reset_password_title.dart';
 import 'package:flutter/material.dart';
 
 // reset password page (Lee Hom)
@@ -10,6 +12,37 @@ class EmailConfirmPage extends StatefulWidget {
 }
 
 class _EmailConfirmPageState extends State<EmailConfirmPage> {
+  final TextEditingController _emailController = TextEditingController();
+  bool completeEmail = false;
+
+  @override
+  void dispose() {
+    // Dispose controllers to free resources
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Listen for text changes
+    _emailController.addListener(() {
+      final text = _emailController.text;
+      final isValid = _isValidEmail(text);
+      if (isValid == true) {
+        setState(() {
+          completeEmail = true;
+        });
+      }
+    });
+  }
+
+  bool _isValidEmail(String email) {
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    return emailRegex.hasMatch(email);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,31 +54,14 @@ class _EmailConfirmPageState extends State<EmailConfirmPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // Wrap up
+              // Wrap up Reset Password Please enter the email that you register with. We will send you a 6-digit code
               SizedBox(
                 width: double.infinity,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Reset Password",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 30.0,
-                      ),
-                    ),
-                    SizedBox(height: 20.0),
-                    Text(
-                      "Please enter the email that you register with. We will send you a 6-digit code",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w300,
-                        fontSize: 15.0,
-                      ),
-                    ),
-                  ],
-                ),
+                child: ResetPasswordTitle(title: "Reset Password", description: "Please enter the email that you register with. We will send you a 6-digit code"),
               ),
               TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   hintText: "Email",
                   border: OutlineInputBorder(
@@ -53,9 +69,15 @@ class _EmailConfirmPageState extends State<EmailConfirmPage> {
                   ),
                   labelText: "Email",
                 ),
-                obscureText: true,
-                onEditingComplete: () {
-                  setState(() {});
+                obscureText: false,
+                onChanged: (value) {
+                  setState(() {
+                    if (_isValidEmail(_emailController.text)) {
+                      completeEmail = true;
+                    } else {
+                      completeEmail = false;
+                    }
+                  });
                 },
               ),
               Column(
@@ -64,20 +86,25 @@ class _EmailConfirmPageState extends State<EmailConfirmPage> {
                     width: double.infinity,
                     child: FilledButton(
                       // Color become gold after user finish enter their email, or else it will become gray
+                      
                       onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) {
-                              return VerificationPage();
-                            },
-                          ),
-                        );
+                          completeEmail == true ? Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) {
+                                return VerificationPage();
+                              },
+                            ),
+                          ) : null ;
+                     
                       },
                       style: ButtonStyle(
                         backgroundColor: WidgetStatePropertyAll(
-                          const Color(0xFFF8BE17),
+                          completeEmail == true
+                              ? const Color(0xFFF8BE17)
+                              : Colors.grey,
                         ),
+
                         // fixedSize: WidgetStatePropertyAll(Size(double.infinity, 10)),
                         textStyle: WidgetStatePropertyAll(
                           TextStyle(fontSize: 20.0),
@@ -97,7 +124,15 @@ class _EmailConfirmPageState extends State<EmailConfirmPage> {
                   SizedBox(height: 20.0),
                   TextButton(
                     onPressed: () {
-                      // Navigator.pop()
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) {
+                            return LoginPage();
+                          },
+                        ),
+                        (route) => false,
+                      );
                     },
                     child: const Text(
                       "Back to Login Page",
