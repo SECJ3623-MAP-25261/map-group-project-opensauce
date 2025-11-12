@@ -78,7 +78,7 @@ class _RenteeprofilePageState extends State<RenteeprofilePage> {
                   ),
                   child: const Text(
                     "Switch to Renter",
-                    style: TextStyle(color: Colors.black),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ),

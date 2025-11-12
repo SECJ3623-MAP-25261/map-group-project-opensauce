@@ -86,7 +86,7 @@ class MyProfilePage extends StatelessWidget {
                 ),
                 child: const Text(
                   "Edit",
-                  style: TextStyle(color: Colors.black, fontSize: 18),
+                  style: TextStyle(color: Colors.white, fontSize: 18),
                 ),
               ),
             ),
