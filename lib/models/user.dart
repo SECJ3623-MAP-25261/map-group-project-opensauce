@@ -1,5 +1,6 @@
 class User {
-  String name;
+  String fname;
+  String lname;
   String email;
   String phone;
   String address;
@@ -10,7 +11,8 @@ class User {
 
 
   User({
-    required this.name,
+    required this.fname,
+    required this.lname,
     required this.email,
     required this.phone,
     required this.address,

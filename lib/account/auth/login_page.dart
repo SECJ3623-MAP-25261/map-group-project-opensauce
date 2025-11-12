@@ -1,4 +1,6 @@
+import 'package:easyrent/pages/rentee/complete_profile.dart';
 import 'package:flutter/material.dart';
+import '../../pages/rentee/profile_page.dart';
 import '../registration/registration.dart';
 import 'package:lottie/lottie.dart';
 
@@ -23,6 +25,10 @@ class _LoginPageState extends State<LoginPage> {
         const SnackBar(content: Text("Login successful")),
       );
     }
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const CompleteProfilePage()),
+    );
   }
 
   @override

@@ -20,7 +20,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   void initState() {
     super.initState();
     // Initialize controllers with current user info
-    _nameController = TextEditingController(text: user1.name);
+    _nameController = TextEditingController(text: user1.fname);
+    _nameController = TextEditingController(text: user1.lname);
     _emailController = TextEditingController(text: user1.email);
     _phoneController = TextEditingController(text: user1.phone);
     _addressController = TextEditingController(text: user1.address);
@@ -40,7 +41,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   void _saveChanges() {
     // Update dummy user data
     setState(() {
-      user1.name = _nameController.text;
+      user1.fname = _nameController.text;
+      user1.lname = _nameController.text;
       user1.email = _emailController.text;
       user1.phone = _phoneController.text;
       user1.address = _addressController.text;

@@ -48,7 +48,7 @@ class MyProfilePage extends StatelessWidget {
             ),
             const SizedBox(height: 15),
             Text(
-              user1.name,
+              user1.fname + user1.lname,
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             Text(
@@ -58,7 +58,8 @@ class MyProfilePage extends StatelessWidget {
             const SizedBox(height: 20),
 
             // INFO PLACEHOLDERS
-            InfoRow(label: "Name", value: user1.name),
+            InfoRow(label: "First Name", value: user1.fname),
+            InfoRow(label: "Last Name", value: user1.lname),
             InfoRow(label: "Email", value: user1.email),
             InfoRow(label: "Phone", value: user1.phone),
             InfoRow(label: "Address", value: user1.address),

@@ -1,5 +1,5 @@
+import 'package:easyrent/account/auth/login_page.dart';
 import 'package:easyrent/account/registration/renter_registration.dart';
-import 'package:easyrent/pages/rentee/complete_profile.dart';
 import '../../dbase/dummy.dart';
 import '../../views/widgets/rentee/rentee_bottom_navbar.dart';
 import 'my_profile_page.dart';
@@ -52,7 +52,7 @@ class _RenteeprofilePageState extends State<RenteeprofilePage> {
               ),
               const SizedBox(height: 10),
               Text(
-                user1.name,
+                user1.fname + user1.lname,
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               Text(user1.role, style: TextStyle(color: Colors.grey)),
@@ -99,13 +99,9 @@ class _RenteeprofilePageState extends State<RenteeprofilePage> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(
-                      0xFF5C001F,
-                    ),
+                    backgroundColor: const Color(0xFF5C001F),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        16,
-                      ),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 6,
                     shadowColor: Colors.grey.withOpacity(0.5),
@@ -165,6 +161,14 @@ class _RenteeprofilePageState extends State<RenteeprofilePage> {
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text("Logged out")),
+                                );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) =>
+                                            const LoginPage(),
+                                  ),
                                 );
                               },
                               style: ElevatedButton.styleFrom(

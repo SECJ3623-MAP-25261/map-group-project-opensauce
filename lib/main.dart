@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import '../account/registration/renter_registration.dart';
+import 'account/recovery/onboarding_page.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
