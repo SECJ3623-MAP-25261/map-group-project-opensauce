@@ -1,30 +1,23 @@
-import 'package:easyrent/views/widgets/resetPassword/pinput_example.dart';
 import 'package:flutter/material.dart';
+import 'account/auth/login_page.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  // This widget is the root of your application.
-  @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
+      title: 'EasyRent App',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal, 
-          brightness: Brightness.light
-          )
+        primarySwatch: Colors.blue,
+        fontFamily: 'Poppins',
       ),
-      home: PinputExample(),
+      debugShowCheckedModeBanner: false,
+      home: const LoginPage(),
     );
   }
 }
