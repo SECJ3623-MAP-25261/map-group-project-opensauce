@@ -82,7 +82,7 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
             ),
             const SizedBox(height: 15),
             Text(
-              user1.fname,
+              user1.fname + user1.lname,
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             Text(
