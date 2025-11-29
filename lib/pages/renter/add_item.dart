@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class RenterAddItem extends StatefulWidget {
   const RenterAddItem({super.key});
@@ -8,23 +10,113 @@ class RenterAddItem extends StatefulWidget {
 }
 
 class _RenterAddItemState extends State<RenterAddItem> {
-  // 1. CONTROLLERS (To capture user input)
+  // --- CONTROLLERS ---
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _depositController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
 
-  // 2. STATE VARIABLES
   String? _selectedCategory;
-  final List<String> _categories = ['Electronic', 'Outdoor', 'Clothing', 'Furniture', 'Vehicles'];
+  final List<String> _categories = ['Electronic', 'Stationary', 'Clothing', 'Sports', 'Other'];
+
+  // --- IMAGE STATE ---
+  final List<File> _selectedImages = [];
+  final ImagePicker _picker = ImagePicker();
+  
+  int _currentImageIndex = 0; 
+
+  // --- IMAGE LOGIC ---
+  Future<void> _pickImage(ImageSource source) async {
+    if (_selectedImages.length >= 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You can only upload up to 5 images.")),
+      );
+      return;
+    }
+
+    try {
+      final XFile? pickedFile = await _picker.pickImage(source: source);
+      if (pickedFile != null) {
+        setState(() {
+          _selectedImages.add(File(pickedFile.path));
+          _currentImageIndex = _selectedImages.length - 1;
+        });
+      }
+    } catch (e) {
+      print("Error picking image: $e");
+    }
+  }
+
+  // --- NEW: DELETE LOGIC ---
+  void _confirmDelete() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Image"),
+        content: const Text("Are you sure you want to remove this image?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deleteImage();
+            },
+            child: const Text("Delete", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteImage() {
+    setState(() {
+      _selectedImages.removeAt(_currentImageIndex);
+      
+      if (_currentImageIndex >= _selectedImages.length && _currentImageIndex > 0) {
+        _currentImageIndex = _selectedImages.length - 1;
+      }
+    });
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Gallery'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('Camera'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      
-      // APP BAR
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -32,20 +124,16 @@ class _RenterAddItemState extends State<RenterAddItem> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Edit Details", // Or "Add Item"
-          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18),
-        ),
+        title: const Text("Add Item", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
-
-      // BODY
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- 1. IMAGE SECTION ---
+            
+            // --- 1. IMAGE CAROUSEL SECTION ---
             Center(
               child: Stack(
                 children: [
@@ -53,108 +141,145 @@ class _RenterAddItemState extends State<RenterAddItem> {
                     height: 250,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      color: Colors.grey[50], // Very light grey placeholder
+                      color: Colors.grey[50],
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      // Placeholder Image
-                      child: Image.network(
-                        'https://m.media-amazon.com/images/I/41-aM730pFL._AC_UF894,1000_QL80_.jpg',
-                        fit: BoxFit.contain,
-                      ),
+                      child: _selectedImages.isEmpty
+                          ? const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.image_outlined, size: 50, color: Colors.grey),
+                                  SizedBox(height: 10),
+                                  Text("No image uploaded", style: TextStyle(color: Colors.grey)),
+                                ],
+                              ),
+                            )
+                          : PageView.builder(
+                              itemCount: _selectedImages.length,
+                              controller: PageController(initialPage: _currentImageIndex), 
+                              onPageChanged: (index) {
+                                setState(() {
+                                  _currentImageIndex = index;
+                                });
+                              },
+                              itemBuilder: (context, index) {
+                                return Image.file(
+                                  _selectedImages[index],
+                                  fit: BoxFit.cover,
+                                );
+                              },
+                            ),
                     ),
                   ),
-                  // "1/5" Indicator
-                  Positioned(
-                    bottom: 16,
-                    left: 16,
-                    child: Text(
-                      "1 / 5",
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.bold,
+
+                  if (_selectedImages.isNotEmpty)
+                    Positioned(
+                      bottom: 16,
+                      left: 16,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          "${_currentImageIndex + 1} / ${_selectedImages.length}",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                  // Edit Pencil Button
+
                   Positioned(
                     bottom: 16,
                     right: 16,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF5D1049), // Burgundy
-                        borderRadius: BorderRadius.circular(12),
+                    child: InkWell(
+                      onTap: _showImagePickerOptions,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF5C001F),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.edit, color: Colors.white, size: 20),
                       ),
-                      child: const Icon(Icons.edit, color: Colors.white, size: 20),
                     ),
                   ),
+
+                  // --- DELETE BUTTON ---
+                  if (_selectedImages.isNotEmpty)
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: InkWell(
+                        onTap: _confirmDelete, 
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9), 
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                            ]
+                          ),
+                          child: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
+                        ),
+                      ),
+                    ),
+
                 ],
               ),
             ),
+            
             const SizedBox(height: 24),
 
-            // --- 2. FORM FIELDS ---
+            // --- FORM FIELDS ---
             _buildLabel("Name"),
             _buildTextField(controller: _nameController, hint: "Insert here"),
-
             _buildLabel("Category"),
             _buildDropdown(),
-
             _buildLabel("Price"),
-            _buildTextField(controller: _priceController, hint: "10", suffix: "RM/day"),
-
+            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day"),
             _buildLabel("Deposit"),
-            _buildTextField(controller: _depositController, hint: "20"),
-
+            _buildTextField(controller: _depositController, hint: "e.g: 20"),
             _buildLabel("Description"),
             _buildTextField(controller: _descriptionController, hint: "Insert here", maxLines: 5),
-
             _buildLabel("Location"),
             _buildTextField(controller: _locationController, hint: "Location"),
-
             const SizedBox(height: 30),
 
-            // --- 3. BUTTONS (Save & Cancel) ---
+            // --- BUTTONS ---
             Row(
               children: [
-                // SAVE BUTTON (Outlined)
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () {
-                      print("Save Clicked");
-                      // TODO: Add Logic to Save to Firebase/Dummy
-                    },
+                    onPressed: () {},
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Color(0xFF5D1049)), // Burgundy Border
+                      side: const BorderSide(color: Color(0xFF5C001F)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text(
-                      "SAVE",
-                      style: TextStyle(color: Color(0xFF5D1049), fontWeight: FontWeight.bold),
-                    ),
+                    child: const Text("SAVE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 16),
-                
-                // CANCEL BUTTON (Filled)
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
+                    onPressed: () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF5D1049), // Burgundy Fill
+                      backgroundColor: const Color(0xFF5C001F),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      "CANCEL",
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
+                    child: const Text("CANCEL", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -167,25 +292,14 @@ class _RenterAddItemState extends State<RenterAddItem> {
   }
 
   // --- HELPER WIDGETS ---
-  
-  // 1. Label Helper
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, top: 12.0),
-      child: Text(
-        text,
-        style: const TextStyle(fontSize: 16, color: Colors.black87),
-      ),
+      child: Text(text, style: const TextStyle(fontSize: 16, color: Colors.black87)),
     );
   }
 
-  // 2. TextField Helper
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String hint,
-    String? suffix,
-    int maxLines = 1,
-  }) {
+  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -195,43 +309,24 @@ class _RenterAddItemState extends State<RenterAddItem> {
         suffixText: suffix,
         suffixStyle: const TextStyle(color: Colors.grey),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF5D1049)),
-        ),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF5C001F))),
       ),
     );
   }
 
-  // 3. Dropdown Helper
   Widget _buildDropdown() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCategory,
-          hint: const Text("electronic", style: TextStyle(color: Colors.grey)),
+          hint: const Text("Select Category", style: TextStyle(color: Colors.grey)),
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down),
-          items: _categories.map((String value) {
-            return DropdownMenuItem<String>(
-              value: value,
-              child: Text(value),
-            );
-          }).toList(),
-          onChanged: (newValue) {
-            setState(() {
-              _selectedCategory = newValue;
-            });
-          },
+          items: _categories.map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
+          onChanged: (newValue) => setState(() => _selectedCategory = newValue),
         ),
       ),
     );

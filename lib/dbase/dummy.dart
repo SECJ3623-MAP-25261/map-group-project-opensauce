@@ -25,7 +25,7 @@ final List<RentalItem> dummyRentalItems = [
     pricePerDay: 10.00,
     deposit: 20.00,
     description: 'High definition wireless headphones with superior sound quality. Modular design.',
-    location: 'Johor Bahru',
+    location: 'KTDI',
     rating: 4.6,
   ),
 
@@ -40,7 +40,7 @@ final List<RentalItem> dummyRentalItems = [
     pricePerDay: 45.00,
     deposit: 100.00,
     description: 'Great DSLR for photography enthusiasts. Lens included.',
-    location: 'Skudai, Johor',
+    location: 'KDOJ',
     rating: 4.8,
   ),
 
@@ -55,7 +55,7 @@ final List<RentalItem> dummyRentalItems = [
     pricePerDay: 15.00,
     deposit: 50.00,
     description: 'Waterproof tent, easy to set up. Perfect for weekend getaways.',
-    location: 'Mount Austin',
+    location: 'KDSE',
     rating: 4.2,
   ),
 ];

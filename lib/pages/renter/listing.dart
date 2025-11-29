@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/renter_item.dart';
 import '../../dbase/dummy.dart';
 import '../../views/widgets/renter/renter_navbar.dart';
+import 'add_item.dart';
 
 class RenterListingPage extends StatefulWidget {
   const RenterListingPage({super.key});
@@ -12,30 +13,25 @@ class RenterListingPage extends StatefulWidget {
 }
 
 class _RenterListingPageState extends State<RenterListingPage> {
-  // 1. STATE VARIABLES
+  //  STATE VARIABLES
   int _selectedIndex = 1;
 
-  // List to hold the results of the search
   List<RentalItem> _foundItems = [];
 
-  // Controller to handle the search text
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // At the start, all items are shown
     _foundItems = dummyRentalItems;
   }
 
-  // 2. SEARCH LOGIC
+  //  SEARCH LOGIC
   void _runFilter(String enteredKeyword) {
     List<RentalItem> results = [];
     if (enteredKeyword.isEmpty) {
-      // If the search field is empty, show all items
       results = dummyRentalItems;
     } else {
-      // Filter based on item name (Case insensitive)
       results =
           dummyRentalItems
               .where(
@@ -46,7 +42,6 @@ class _RenterListingPageState extends State<RenterListingPage> {
               .toList();
     }
 
-    // Refresh the UI
     setState(() {
       _foundItems = results;
     });
@@ -66,7 +61,7 @@ class _RenterListingPageState extends State<RenterListingPage> {
                 (context, animation, secondaryAnimation) =>
                     const RenteeprofilePage(),
             transitionDuration:
-                Duration.zero, // Remove animation for a "tab switch" feel
+                Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
         );
@@ -147,7 +142,7 @@ class _RenterListingPageState extends State<RenterListingPage> {
                     _foundItems.isEmpty
                         ? const Center(
                           child: Text("No items found"),
-                        ) // Handle empty results
+                        )
                         : GridView.builder(
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
@@ -177,9 +172,12 @@ class _RenterListingPageState extends State<RenterListingPage> {
 
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          print("Navigate to Add Page");
+          Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const RenterAddItem()),
+          );
         },
-        backgroundColor: const Color(0xFF5D1049),
+        backgroundColor: const Color(0xFF5C001F),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: const Icon(Icons.add, color: Colors.white),
       ),
