@@ -51,7 +51,7 @@ final List<RentalItem> dummyRentalItems = [
     imageUrls: [
       'https://m.media-amazon.com/images/I/61+M35-3cWL._AC_SL1500_.jpg',
     ],
-    category: 'Outdoor',
+    category: 'Sports',
     pricePerDay: 15.00,
     deposit: 50.00,
     description: 'Waterproof tent, easy to set up. Perfect for weekend getaways.',

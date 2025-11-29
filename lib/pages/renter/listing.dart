@@ -4,6 +4,7 @@ import '../../models/renter_item.dart';
 import '../../dbase/dummy.dart';
 import '../../views/widgets/renter/renter_navbar.dart';
 import 'add_item.dart';
+import 'renter_item_detail.dart';
 
 class RenterListingPage extends StatefulWidget {
   const RenterListingPage({super.key});
@@ -32,14 +33,13 @@ class _RenterListingPageState extends State<RenterListingPage> {
     if (enteredKeyword.isEmpty) {
       results = dummyRentalItems;
     } else {
-      results =
-          dummyRentalItems
-              .where(
-                (item) => item.name.toLowerCase().contains(
-                  enteredKeyword.toLowerCase(),
-                ),
-              )
-              .toList();
+      results = dummyRentalItems
+          .where(
+            (item) => item.name.toLowerCase().contains(
+              enteredKeyword.toLowerCase(),
+            ),
+          )
+          .toList();
     }
 
     setState(() {
@@ -57,11 +57,9 @@ class _RenterListingPageState extends State<RenterListingPage> {
         Navigator.push(
           context,
           PageRouteBuilder(
-            pageBuilder:
-                (context, animation, secondaryAnimation) =>
-                    const RenteeprofilePage(),
-            transitionDuration:
-                Duration.zero,
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                const RenteeprofilePage(),
+            transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
         );
@@ -138,26 +136,25 @@ class _RenterListingPageState extends State<RenterListingPage> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child:
-                    _foundItems.isEmpty
-                        ? const Center(
-                          child: Text("No items found"),
-                        )
-                        : GridView.builder(
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.75,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                              ),
-                          // USE _foundItems INSTEAD OF dummyRentalItems
-                          itemCount: _foundItems.length,
-                          itemBuilder: (context, index) {
-                            final item = _foundItems[index];
-                            return _buildItemCard(item);
-                          },
+                child: _foundItems.isEmpty
+                    ? const Center(
+                        child: Text("No items found"),
+                      )
+                    : GridView.builder(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.75,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
                         ),
+                        // USE _foundItems INSTEAD OF dummyRentalItems
+                        itemCount: _foundItems.length,
+                        itemBuilder: (context, index) {
+                          final item = _foundItems[index];
+                          return _buildItemCard(item);
+                        },
+                      ),
               ),
             ),
           ],
@@ -173,8 +170,8 @@ class _RenterListingPageState extends State<RenterListingPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const RenterAddItem()),
+            context,
+            MaterialPageRoute(builder: (context) => const RenterAddItem()),
           );
         },
         backgroundColor: const Color(0xFF5C001F),
@@ -186,76 +183,86 @@ class _RenterListingPageState extends State<RenterListingPage> {
 
   // HELPER WIDGET
   Widget _buildItemCard(RentalItem item) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
+    // GESTURE DETECTOR
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RenterItemDetail(item: item),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(12),
-              ),
-              child: Image.network(
-                item.imageUrls[0],
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (ctx, error, stack) => const Center(
-                      child: Icon(Icons.broken_image, color: Colors.grey),
-                    ),
-              ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 2),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(12),
+                ),
+                child: Image.network(
+                  item.imageUrls[0],
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (ctx, error, stack) => const Center(
+                    child: Icon(Icons.broken_image, color: Colors.grey),
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  "RM ${item.pricePerDay.toStringAsFixed(0)} per day",
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    const Icon(Icons.star, size: 14, color: Colors.amber),
-                    const SizedBox(width: 4),
-                    Text(
-                      item.rating.toString(),
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    "RM ${item.pricePerDay.toStringAsFixed(0)} per day",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, size: 14, color: Colors.amber),
+                      const SizedBox(width: 4),
+                      Text(
+                        item.rating.toString(),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
