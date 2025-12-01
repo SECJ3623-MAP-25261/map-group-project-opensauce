@@ -12,7 +12,13 @@ const List<Map<String, dynamic>> userOrdering = [
     "quantity": 1,
     "totalPrice": 100.0,
     "deliveryMethods": 'Self-Pickup',
-    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715"
+    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715",
+    "status": "cancelled", // pending_payment, processing, cancelled || ready_for_pickup, in_transit, delivered || returned, issues_report 
+    "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
 
   {
@@ -25,7 +31,14 @@ const List<Map<String, dynamic>> userOrdering = [
     "quantity": 1,
     "totalPrice": 20.0,
     "deliveryMethods": 'Self-Pickup',
-    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715"
+    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715",
+    "status": "pending_payment", // pending_payment, processing, cancelled || ready_for_pickup, in_transit, delivered || returned, issues_report 
+    "report": "false",
+    "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
 
   {
@@ -38,7 +51,14 @@ const List<Map<String, dynamic>> userOrdering = [
     "quantity": 1,
     "totalPrice": 315.0,
     "deliveryMethods": 'Self-Pickup',
-    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715"
+    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715",
+    "status": "pending_payment", // pending_payment, processing, cancelled || ready_for_pickup, in_transit, delivered || returned, issues_report 
+    "report": "false",
+    "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
 
   {
@@ -51,7 +71,14 @@ const List<Map<String, dynamic>> userOrdering = [
     "quantity": 1,
     "totalPrice": 60.0,
     "deliveryMethods": 'Self-Pickup',
-    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715"
+    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715",
+    "status": "pending_payment", // pending_payment, processing, cancelled || ready_for_pickup, in_transit, delivered || returned, issues_report 
+    "report": "false",
+    "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
 
   {
@@ -64,7 +91,14 @@ const List<Map<String, dynamic>> userOrdering = [
     "quantity": 1,
     "totalPrice": 150.0,
     "deliveryMethods": 'Self-Pickup',
-    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715"
+    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715",
+    "status": "pending_payment", // pending_payment, processing, cancelled || ready_for_pickup, in_transit, delivered || returned, issues_report 
+    "report": "false",
+    "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
 
   {
@@ -77,7 +111,14 @@ const List<Map<String, dynamic>> userOrdering = [
     "quantity": 1,
     "totalPrice": 40.0,
     "deliveryMethods": 'Self-Pickup',
-    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715"
+    "imageUrl": "https://store.sony.com.my/cdn/shop/files/PS5PRO_PR_01_CMYK_1200x.jpg?v=1727246715",
+    "status": "pending_payment", // pending_payment, processing, cancelled || ready_for_pickup, in_transit, delivered || returned, issues_report 
+    "report": "false",
+    "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
 ];
 
@@ -91,12 +132,17 @@ const List<Map<String, dynamic>> userInRenting = [
     "imageUrl": "https://hnsgsfp.imgix.net/9/images/detailed/25/Canon_EOS_1500D_Digital_Camera___EF-S_18-55mm_III_Lens_-_Black.png?fit=fill&bg=0FFF&w=1600&h=900&auto=format,compress",
     "totalPrice": 150.0,
     "startDate": "15/11/2025 10:00am",
-    "dueDate": "20/12/2025 10:00am",
+    "returnDate": "20/12/2025 10:00am",
     "daysRemaining": 21,
     "currentStatus": "In Use",
     "deliveryMethods": 'Self-Pickup',
-    "returnMethod": "Prepaid Courier Pickup",
+    "returnMethod": "Courier Pickup",
     "dropoffLocation": "N/A (Pickup scheduled)",
+        "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
   {
     "id": "RNT_002",
@@ -108,11 +154,16 @@ const List<Map<String, dynamic>> userInRenting = [
 
     "totalPrice": 315.0,
     "startDate": "01/11/2025 08:00pm",
-    "dueDate": "15/11/2025 08:00pm",
+    "returnDate": "15/11/2025 08:00pm",
     "daysRemaining": 0,
     "currentStatus": "Overdue (3 Days)",
     "returnMethod": "Self Drop-off",
     "dropoffLocation": "Kuala Lumpur Central Hub, Lot 10",
+        "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
   
   // --- Dummy Data Entry 3: Camping Tent (Short-term rental) ---
@@ -126,11 +177,16 @@ const List<Map<String, dynamic>> userInRenting = [
     "deliveryMethods": 'Self-Pickup',
     
     "startDate": "25/11/2025 09:00am",
-    "dueDate": "29/11/2025 09:00am",
+    "returnDate": "29/11/2025 09:00am",
     "daysRemaining": 0, // Due today!
     "currentStatus": "Due Today",
     "returnMethod": "Self Drop-off",
     "dropoffLocation": "Petaling Jaya Collection Point",
+        "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
   
   // --- Dummy Data Entry 4: Gaming Console (Long-term rental, awaiting user action) ---
@@ -144,11 +200,16 @@ const List<Map<String, dynamic>> userInRenting = [
     "totalPrice": 525.0,
     
     "startDate": "01/10/2025 03:00pm",
-    "dueDate": "20/12/2025 03:00pm",
+    "returnDate": "20/12/2025 03:00pm",
     "daysRemaining": 21,
     "currentStatus": "In Use",
     "returnMethod": "Self Drop-off",
     "dropoffLocation": "TBD (User needs to schedule drop-off)",
+        "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
   
   // --- Dummy Data Entry 5: Projector (Rental extension scenario) ---
@@ -162,11 +223,16 @@ const List<Map<String, dynamic>> userInRenting = [
     "totalPrice": 120.0,
     
     "startDate": "10/11/2025 05:00pm",
-    "dueDate": "10/12/2025 05:00pm",
+    "returnDate": "10/12/2025 05:00pm",
     "daysRemaining": 11,
     "currentStatus": "In Use (Extended)", // Status reflecting a change
-    "returnMethod": "Prepaid Courier Pickup",
+    "returnMethod": "Courier Pickup",
     "dropoffLocation": "N/A (Pickup scheduled for 10/12)",
+        "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
 ];
 
@@ -184,10 +250,15 @@ const List<Map<String, dynamic>> userOrderHistory = [
     "rentalDurationDays": 7,
     "finalStatus": "Completed with Late Fee",
     "paymentMethod": "Credit Card",
-
+    "quantity" : 10,
     "hasReviewed": true,
     "userRating": 4.0,
     "reviewText": "Great camera, slightly confusing return process.",
+        "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
   {
     "id": "HST_002",
@@ -195,7 +266,7 @@ const List<Map<String, dynamic>> userOrderHistory = [
     "price_per_day": 10.00,
     "imageUrl": "https://m.media-amazon.com/images/I/81pSTzxLxlL._AC_UF894,1000_QL80_.jpg",
     "finalTotalPrice": 40.00,
-    
+    "quantity" : 10,
     "startDate": "20/07/2025 09:00am",
     "returnDate": "24/07/2025 09:00am",
     "rentalDurationDays": 4,
@@ -205,6 +276,11 @@ const List<Map<String, dynamic>> userOrderHistory = [
     "hasReviewed": false, // User needs to review this item
     "userRating": null,
     "reviewText": null,
+        "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
   
   // --- Dummy Data Entry 3: Successfully Completed Rental ---
@@ -214,7 +290,7 @@ const List<Map<String, dynamic>> userOrderHistory = [
     "price_per_day": 20.00,
     "imageUrl": "https://m.media-amazon.com/images/I/61pKMIi0AfL._AC_SL1500_.jpg",
     "finalTotalPrice": 60.00, // Total price = 3 days * 20.00
-    
+    "quantity" : 10,
     "startDate": "01/09/2025 05:00pm",
     "returnDate": "04/09/2025 04:00pm",
     "rentalDurationDays": 3,
@@ -224,6 +300,11 @@ const List<Map<String, dynamic>> userOrderHistory = [
     "hasReviewed": false, // Prompt to review
     "userRating": null,
     "reviewText": null,
+        "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
   
   // --- Dummy Data Entry 4: Cancelled Order (No rental occurred) ---
@@ -233,17 +314,22 @@ const List<Map<String, dynamic>> userOrderHistory = [
     "price_per_day": 45.00,
     "imageUrl": "https://m.media-amazon.com/images/I/61pKMIi0AfL._AC_SL1500_.jpg",
     "finalTotalPrice": 0.00, // Full refund processed
-    
+    "quantity" : 10,
     // Dates reflect when the transaction was originally set up/cancelled
     "startDate": "20/11/2025 08:00pm",
     "returnDate": "21/11/2025 10:00am", // Date of cancellation
     "rentalDurationDays": 0,
-    "finalStatus": "Cancelled (Before Pickup)",
-    "paymentMethod": "E-Wallet (Refunded)",
+    "finalStatus": "Cancelled",
+    "paymentMethod": "E-Wallet",
 
     "hasReviewed": false, // No review needed for cancelled item
     "userRating": null,
     "reviewText": null,
+        "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
   
   // --- Dummy Data Entry 5: Reviewed Item, Long Rental ---
@@ -253,7 +339,7 @@ const List<Map<String, dynamic>> userOrderHistory = [
     "price_per_day": 30.00,
     "imageUrl": "https://m.media-amazon.com/images/I/61pKMIi0AfL._AC_SL1500_.jpg",
     "finalTotalPrice": 300.00,
-    
+    "quantity" : 10,
     "startDate": "01/10/2025 10:00am",
     "returnDate": "11/10/2025 10:00am",
     "rentalDurationDays": 10,
@@ -263,5 +349,10 @@ const List<Map<String, dynamic>> userOrderHistory = [
     "hasReviewed": true,
     "userRating": 5.0,
     "reviewText": "Flawless lens, highly recommend!",
+        "hasReport": false,
+    "reportDetails" : {
+      "reason":"",
+      "dateFilled":""
+    }
   },
 ];
