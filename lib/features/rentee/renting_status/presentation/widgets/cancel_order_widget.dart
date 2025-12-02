@@ -23,10 +23,10 @@ class CancelOrderWidget extends StatefulWidget {
   final Future<void> Function(Map<String,dynamic> item) onConfirm;
 
   const CancelOrderWidget({
-    Key? key,
+    super.key,
     required this.item,
     required this.onConfirm,
-  }) : super(key: key);
+  });
 
   @override
   State<CancelOrderWidget> createState() =>

@@ -1,8 +1,5 @@
 import 'package:easyrent/core/constants/constants.dart';
-import 'package:easyrent/features/rentee/wishlist/data/dummy_data/wishlist_dummy.dart';
-import 'package:easyrent/features/rentee/application/notifiers.dart';
 import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
-import 'package:easyrent/features/rentee/wishlist/presentation/widgets/delivery_options.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/widgets/total_summary_widget.dart';
 import 'package:easyrent/features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/widgets/wishlist_card.dart';

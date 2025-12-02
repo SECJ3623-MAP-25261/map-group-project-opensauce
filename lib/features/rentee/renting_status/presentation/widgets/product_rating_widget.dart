@@ -16,14 +16,14 @@ class ProductRatingWidget extends ConsumerStatefulWidget {
   final Map<String,dynamic> item;
 
   const ProductRatingWidget({
-    Key? key,
+    super.key,
     required this.item,
     required this.onSubmitRating,
     this.initialRating = 0,
     this.title = 'Rate this Product',
     this.reviewHintText = 'Share your detailed experience...',
     this.isReviewRequired = false,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<ProductRatingWidget> createState() => _ProductRatingWidgetState();

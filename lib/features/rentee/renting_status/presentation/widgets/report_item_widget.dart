@@ -10,10 +10,10 @@ class ReportItemWidget extends StatefulWidget {
   final Map<String,dynamic> item;
 
   const ReportItemWidget({
-    Key? key,
+    super.key,
     required this.onSubmitReport,
     required this.item ,
-  }) : super(key: key);
+  });
 
   @override
   State<ReportItemWidget> createState() => _ReportItemWidgetState();

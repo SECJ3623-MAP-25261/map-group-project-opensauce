@@ -40,6 +40,7 @@ dependencies:
   pinput: ^5.0.2
   build_runner: ^2.9.0
   flutter_riverpod: ^3.0.3
+  google_fonts: ^6.3.2
   
 
 dev_dependencies:

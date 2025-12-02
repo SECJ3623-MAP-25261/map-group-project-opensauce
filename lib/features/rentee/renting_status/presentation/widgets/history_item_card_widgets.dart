@@ -4,7 +4,6 @@ import 'package:easyrent/features/rentee/renting_status/presentation/pages/produ
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/report_item_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart';
 
 class HistoryItemCardWidgets extends ConsumerStatefulWidget {
   final Map<String,dynamic> item;

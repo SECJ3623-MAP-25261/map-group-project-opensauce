@@ -1,23 +1,29 @@
-import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
+import 'package:easyrent/features/rentee/checkout/application/checkout_notifier.dart';
+import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-// 1. Change to ConsumerWidget (Less boilerplate, no internal state needed)
-class DeliveryOptions extends ConsumerWidget {
-  const DeliveryOptions({super.key});
+// 1. Change to ConsumerWidget (Stateful is not needed here)
+class DeliveryOptionsWidget extends ConsumerWidget { 
+  const DeliveryOptionsWidget({super.key});
+
+  final List<String> _deliveryOptions = const [
+    'Delivery',
+    'Self Pickup',
+  ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) { // Access ref directly
     
-    // 2. Efficiently watch ONLY the deliveryOption string
-    final selectedOption = ref.watch(
-      shoppingCartProvider.select((state) => state.deliveryOption)
-    );
-    final shoppingCartMethods = ref.read(shoppingCartProvider.notifier);
-    
-    // 3. Keep a reference to the Notifier class (using read for non-listening access)
-    // We use ref.read directly in the onChanged callback below for max cleanliness.
-    // final cartNotifier = ref.read(shoppingCartProvider.notifier); // Optional line
+    // 2. WATCH the current delivery option for automatic rebuilds.
+    // Use select for efficiency: only rebuilds if deliveryOption changes.
+    final selectedOption = ref.watch(checkoutProvider.select(
+      (state) => state.deliveryOption,
+    ));
+
+    // 3. READ the Notifier to call methods in the onPressed/onChanged callback.
+    final checkoutNotifier = ref.read(checkoutProvider.notifier);
 
     return Container(
       // Removed unnecessary outer Padding/Container, added Padding to Row
@@ -68,8 +74,8 @@ class DeliveryOptions extends ConsumerWidget {
                 onChanged: (String? newValue) {
                   if (newValue != null) {
                     // 5. Use ref.read().notifier to call the method directly
-                    shoppingCartMethods.setDeliveryOption(newValue);
-                    shoppingCartMethods.setTotalFee();
+                    checkoutNotifier.setDeliveryOption(newValue);
+                    checkoutNotifier.setTotalFee();
                     // You can remove the print statement after debugging
                     // print("Delivery methods: $newValue"); 
                   }
@@ -82,3 +88,10 @@ class DeliveryOptions extends ConsumerWidget {
     );
   }
 }
+
+// 4. (Optional) Remove the State class since the widget is now StatelessWidget
+// If you had local state, you would keep it, but here it's all global.
+
+// class DeliveryOptionsWidget extends ConsumerStatefulWidget { ... } 
+// class _DeliveryOptionsWidgetState extends ConsumerState<DeliveryOptionsWidget> { ... } 
+// These two are replaced by the single ConsumerWidget.
