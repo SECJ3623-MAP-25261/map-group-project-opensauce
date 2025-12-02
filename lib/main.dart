@@ -1,4 +1,4 @@
-import 'package:easyrent/pages/renter/listing.dart';
+import 'package:easyrent/features/renter/listing_management/presentation/pages/listing.dart';
 import 'package:flutter/material.dart';
 import 'features/renter/renter_management/presentation/pages/dummy_select_role.dart';
 

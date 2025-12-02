@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../models/renter_item.dart';
+import '../../../renter_management/domain/entities/item_entity.dart';
 
 class RenterEditItem extends StatefulWidget {
-  final RentalItem item;
+  final ItemEntity item;
 
   const RenterEditItem({super.key, required this.item});
 
@@ -34,16 +34,23 @@ class _RenterEditItemState extends State<RenterEditItem> {
     super.initState();
 
     _nameController = TextEditingController(text: widget.item.name);
-    _priceController = TextEditingController(text: widget.item.pricePerDay.toStringAsFixed(0));
-    _depositController = TextEditingController(text: widget.item.deposit.toStringAsFixed(0));
+    _priceController = TextEditingController(text: widget.item.price);
+
+    _depositController = TextEditingController(text: "20");
+    
     _descriptionController = TextEditingController(text: widget.item.description);
     _locationController = TextEditingController(text: widget.item.location);
     
     if (_categories.contains(widget.item.category)) {
       _selectedCategory = widget.item.category;
+    } else {
+      _selectedCategory = _categories.first; 
     }
 
-    _itemImages.addAll(widget.item.imageUrls);
+    if (widget.item.imageUrl.isNotEmpty) {
+      _itemImages.add(widget.item.imageUrl);
+    }
+    _itemImages.addAll(widget.item.additionalImages);
   }
 
   @override
@@ -56,7 +63,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
     super.dispose();
   }
 
-  // --- IMAGE LOGIC ---
+  // --- IMAGE LOGIC (Unchanged) ---
   Future<void> _pickImage(ImageSource source) async {
     if (_itemImages.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,7 +76,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
       final XFile? pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
         setState(() {
-          // Add as File
           _itemImages.add(File(pickedFile.path));
           _currentImageIndex = _itemImages.length - 1;
         });
@@ -105,7 +111,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
   void _deleteImage() {
     setState(() {
       _itemImages.removeAt(_currentImageIndex);
-      
       if (_currentImageIndex >= _itemImages.length && _currentImageIndex > 0) {
         _currentImageIndex = _itemImages.length - 1;
       }
@@ -154,7 +159,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        // 4. CHANGED TITLE
         title: const Text("Edit Item", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
       ),
@@ -164,7 +168,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             
-            // --- IMAGE CAROUSEL SECTION ---
+            // --- IMAGE CAROUSEL ---
             Center(
               child: Stack(
                 children: [
@@ -227,11 +231,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
                         ),
                         child: Text(
                           "${_currentImageIndex + 1} / ${_itemImages.length}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ),
                     ),
@@ -271,14 +271,13 @@ class _RenterEditItemState extends State<RenterEditItem> {
                         ),
                       ),
                     ),
-
                 ],
               ),
             ),
             
             const SizedBox(height: 24),
 
-            // --- FORM FIELDS ---
+            // --- FIELDS ---
             _buildLabel("Name"),
             _buildTextField(controller: _nameController, hint: "Insert here"),
             _buildLabel("Category"),
@@ -299,9 +298,8 @@ class _RenterEditItemState extends State<RenterEditItem> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      // TODO: Add Update Logic Here
+                      // TODO: Call Notifier.updateItem()
                       print("Updating Item: ${_nameController.text}");
-                      print("Images count: ${_itemImages.length}");
                     },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
