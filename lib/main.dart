@@ -1,4 +1,7 @@
+import 'package:easyrent/features/geolocation.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/pages/checkout_page.dart';
+import 'package:easyrent/features/rentee/renting_status/presentation/pages/renting_status_page.dart';
+import 'package:easyrent/features/rentee/wishlist/presentation/page/wishlist_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/account/registration/renter_registration.dart';
@@ -25,7 +28,7 @@ class _MyAppState extends State<MyApp> {
           seedColor: const Color(0xFF800000), // Maroon color
         ),
       ),
-      home: CheckoutPage(),
+      home: RentingStatusPage(),
     );
   }
 }

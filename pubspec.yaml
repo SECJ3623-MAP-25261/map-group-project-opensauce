@@ -41,6 +41,8 @@ dependencies:
   build_runner: ^2.9.0
   flutter_riverpod: ^3.0.3
   google_fonts: ^6.3.2
+  geolocator: ^14.0.2
+  google_maps_flutter: ^2.14.0
   
 
 dev_dependencies:

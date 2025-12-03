@@ -1,4 +1,3 @@
-import 'package:easyrent/features/rentee/checkout/data/checkout_dummy_data.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/checkout_cart_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/bottom_summary_widget.dart';
@@ -16,31 +15,6 @@ class CheckoutPage extends ConsumerStatefulWidget {
 }
 
 class _CheckoutPageState extends ConsumerState<CheckoutPage> {
-
-  // Calculate totals
-  double get _rentingFee {
-    return userWishlist.fold(0.0, (sum, item) => sum + (item['price_per_day'] * item['quantity']));
-  }
-
-  // double get _itemDeposit {
-  //   // Mock deposit calculation - typically a percentage or fixed amount per item
-  //   return userWishlist.fold(0.0, (sum, item) => sum + (item['price_per_day'] * item['quantity'] * 0.5)); // 50% deposit
-  // }
-
-  // void _onRemoveItem(String itemId) {
-  //   setState(() {
-  //     userWishlist.removeWhere((item) => item['id'] == itemId);
-  //   });
-  // }
-
-  // void _onQuantityChanged(String itemId, int newQuantity) {
-  //   setState(() {
-  //     final index = userWishlist.indexWhere((item) => item['id'] == itemId);
-  //     if (index != -1) {
-  //       userWishlist[index]['quantity'] = newQuantity;
-  //     }
-  //   });
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -65,27 +39,39 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
       backgroundColor: Colors.grey[50], // Light background for the page
       body: Column(
         children: [
+          // --- Corrected Section: Wrap the Stack with Expanded ---
           Expanded(
-            child: ref.watch(checkoutProvider).items.isEmpty
-                ? Center(
-                    child: Text(
-                      'Your cart is empty!',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.grey[600]),
+            child: Stack(
+              children: [
+                ref.watch(checkoutProvider).items.isEmpty
+                    ? Center(
+                      // We can use a SizedBox inside Center to ensure it takes up the full available Expanded space
+                      child: SizedBox.expand(
+                        child: Center(
+                          child: Text(
+                            'Your cart is empty!',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(color: Colors.grey[600]),
+                          ),
+                        ),
+                      ),
+                    )
+                    : ListView.builder(
+                      // The ListView now correctly uses the height provided by Expanded
+                      itemCount: ref.watch(checkoutProvider).items.length,
+                      itemBuilder: (context, index) {
+                        return CheckoutCartWidget(
+                          item: ref.watch(checkoutProvider).items[index],
+                          // onRemove: () => _onRemoveItem(item['id']),
+                          // onQuantityChanged: (newQuantity) => _onQuantityChanged(item['id'], newQuantity),
+                        );
+                      },
                     ),
-                  )
-                : ListView.builder(
-                    itemCount: ref.watch(checkoutProvider).items.length,
-                    itemBuilder: (context, index) {
-                      return CheckoutCartWidget(
-                        item: ref.watch(checkoutProvider).items[index],
-                        // onRemove: () => _onRemoveItem(item['id']),
-                        // onQuantityChanged: (newQuantity) => _onQuantityChanged(item['id'], newQuantity),
-                      );
-                    },
-                  ),
+              ],
+            ),
           ),
-          // --- Bottom Summary and Checkout Button ---
-          BottomSummaryWidget(),
+            BottomSummaryWidget(),
+          // --------------------------------------------------------
         ],
       ),
       // The bottom navigation bar from your design

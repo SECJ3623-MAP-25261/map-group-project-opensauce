@@ -1,4 +1,5 @@
 import 'package:easyrent/core/constants/constants.dart';
+import 'package:easyrent/features/rentee/checkout/presentation/pages/checkout_page.dart';
 import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/widgets/delivery_options.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/widgets/fee_row_widget.dart';
@@ -92,7 +93,9 @@ class _TotalSummaryWidgetState extends ConsumerState<TotalSummaryWidget> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Checkout logic
+                    Navigator.push(context, MaterialPageRoute(builder: (context) {
+                      return CheckoutPage();
+                    },));
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryRed,
