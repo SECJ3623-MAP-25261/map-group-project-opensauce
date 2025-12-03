@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../dbase/dummy_data.dart';
 import '../productDetails/product_details_page.dart';
-
+import '../data/dummy_data.dart';
 class ProductListPage extends StatelessWidget {
   final String title;
 

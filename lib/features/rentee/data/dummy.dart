@@ -1,4 +1,4 @@
-import '../../domain/user.dart';
+import '../rentee_profile/domain/user.dart';
 
 final user1 = User(
   fname: 'Zhen',

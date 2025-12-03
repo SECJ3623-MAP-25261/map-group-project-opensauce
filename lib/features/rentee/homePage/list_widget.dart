@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../dbase/dummy_data.dart';
 import '../productDetails/product_details_page.dart';
 import '../productList/product_list_page.dart';
+import '../data/dummy_data.dart';
 
 class ProductSectionWidget extends StatefulWidget {
   final String title;

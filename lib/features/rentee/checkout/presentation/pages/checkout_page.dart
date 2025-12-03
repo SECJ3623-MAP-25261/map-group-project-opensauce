@@ -2,7 +2,6 @@ import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provide
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/checkout_cart_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/bottom_summary_widget.dart';
 import 'package:easyrent/features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
-import 'package:easyrent/features/rentee/wishlist/data/dummy_data/wishlist_dummy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart'; // For nicer fonts

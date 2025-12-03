@@ -4,7 +4,6 @@ import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provide
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/delivery_options_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/summary_row_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/total_section_widget.dart';
-import 'package:easyrent/features/rentee/wishlist/presentation/widgets/delivery_options.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';

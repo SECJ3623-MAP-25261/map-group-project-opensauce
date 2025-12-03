@@ -1,8 +1,6 @@
-import 'package:easyrent/features/rentee/checkout/application/checkout_notifier.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 // 1. Change to ConsumerWidget (Stateful is not needed here)
 class DeliveryOptionsWidget extends ConsumerWidget { 

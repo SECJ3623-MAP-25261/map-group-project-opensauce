@@ -1,5 +1,5 @@
+import 'package:easyrent/features/rentee/data/dummy_data.dart';
 import 'package:flutter/material.dart';
-import '../../../dbase/dummy_data.dart';
 import '../productDetails/product_details_page.dart';
 
 class SearchPage extends StatefulWidget {

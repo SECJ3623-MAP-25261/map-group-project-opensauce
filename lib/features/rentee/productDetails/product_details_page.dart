@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../dbase/dummy_data.dart';
-import '../reviewPage/review_page.dart';
 import 'package:intl/intl.dart';
+import '../data/dummy_data.dart';
+import '../reviewPage/review_page.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final Map<String, dynamic> product;
