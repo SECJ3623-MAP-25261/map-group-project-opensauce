@@ -8,7 +8,6 @@ import 'add_item.dart';
 import 'renter_item_detail.dart';
 import '../widgets/renter_navbar.dart';
 
-
 class RenterListingPage extends StatefulWidget {
   const RenterListingPage({super.key});
 
@@ -42,8 +41,9 @@ class _RenterListingPageState extends State<RenterListingPage> {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const RenterManagementWrapper(),
+            pageBuilder:
+                (context, animation, secondaryAnimation) =>
+                    const RenterManagementWrapper(),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
@@ -101,7 +101,10 @@ class _RenterListingPageState extends State<RenterListingPage> {
                             children: [
                               Icon(Icons.search, color: Colors.black54),
                               SizedBox(width: 8),
-                              Text("Start your search", style: TextStyle(color: Colors.black54)),
+                              Text(
+                                "Start your search",
+                                style: TextStyle(color: Colors.black54),
+                              ),
                             ],
                           ),
                         ),
@@ -117,41 +120,51 @@ class _RenterListingPageState extends State<RenterListingPage> {
               ),
             ),
             Expanded(
-              child: state.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: state.myItems.isEmpty
-                          ? const Center(child: Text("No items found"))
-                          : GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.75,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                              ),
-                              itemCount: state.myItems.length,
-                              itemBuilder: (context, index) {
-                                final item = state.myItems[index];
-                                return ListingItemCard(
-                                  item: item,
-                                  onTap: () {
-                                    final existingNotifier = Provider.of<ListingNotifier>(context, listen: false);
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ChangeNotifierProvider.value(
-                                          value: existingNotifier,
-                                          child: RenterItemDetail(item: item),
-                                        ),
+              child:
+                  state.isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child:
+                            state.myItems.isEmpty
+                                ? const Center(child: Text("No items found"))
+                                : GridView.builder(
+                                  gridDelegate:
+                                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 220,
+                                        childAspectRatio: 0.75,
+                                        crossAxisSpacing: 16,
+                                        mainAxisSpacing: 16,
                                       ),
+                                  itemCount: state.myItems.length,
+                                  itemBuilder: (context, index) {
+                                    final item = state.myItems[index];
+                                    return ListingItemCard(
+                                      item: item,
+                                      onTap: () {
+                                        final existingNotifier =
+                                            Provider.of<ListingNotifier>(
+                                              context,
+                                              listen: false,
+                                            );
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (context) =>
+                                                    ChangeNotifierProvider.value(
+                                                      value: existingNotifier,
+                                                      child: RenterItemDetail(
+                                                        item: item,
+                                                      ),
+                                                    ),
+                                          ),
+                                        );
+                                      },
                                     );
                                   },
-                                );
-                              },
-                            ),
-                    ),
+                                ),
+                      ),
             ),
           ],
         ),
@@ -162,14 +175,18 @@ class _RenterListingPageState extends State<RenterListingPage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          final existingNotifier = Provider.of<ListingNotifier>(context, listen: false);
+          final existingNotifier = Provider.of<ListingNotifier>(
+            context,
+            listen: false,
+          );
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ChangeNotifierProvider.value(
-                value: existingNotifier,
-                child: const RenterAddItem(),
-              ),
+              builder:
+                  (context) => ChangeNotifierProvider.value(
+                    value: existingNotifier,
+                    child: const RenterAddItem(),
+                  ),
             ),
           );
         },
