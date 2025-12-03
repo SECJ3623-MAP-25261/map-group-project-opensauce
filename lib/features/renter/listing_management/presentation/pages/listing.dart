@@ -1,3 +1,4 @@
+import 'package:easyrent/features/message/messages.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/notifier/listing_notifier.dart';
@@ -44,6 +45,18 @@ class _RenterListingPageState extends State<RenterListingPage> {
             pageBuilder:
                 (context, animation, secondaryAnimation) =>
                     const RenterManagementWrapper(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder:
+                (context, animation, secondaryAnimation) =>
+                    const MessagesApp(),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
