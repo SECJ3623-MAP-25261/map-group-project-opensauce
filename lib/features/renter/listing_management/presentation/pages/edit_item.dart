@@ -381,9 +381,9 @@ class _RenterEditItemState extends State<RenterEditItem> {
             _buildLabel("Category"),
             _buildDropdown(),
             _buildLabel("Price"),
-            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day"),
+            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day", inputType: TextInputType.number,),
             _buildLabel("Deposit"),
-            _buildTextField(controller: _depositController, hint: "e.g: 20"),
+            _buildTextField(controller: _depositController, hint: "e.g: 20", inputType: TextInputType.number,),
             _buildLabel("Description"),
             _buildTextField(controller: _descriptionController, hint: "Insert here", maxLines: 5),
             _buildLabel("Location"),
@@ -433,10 +433,11 @@ class _RenterEditItemState extends State<RenterEditItem> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1}) {
+  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType,}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
+      keyboardType: inputType ?? TextInputType.text,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey),
