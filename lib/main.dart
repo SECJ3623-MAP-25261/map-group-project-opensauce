@@ -1,13 +1,18 @@
-import 'package:easyrent/features/rentee/application/notifiers.dart';
-import 'package:easyrent/features/rentee/checkout/presentation/pages/checkout_page.dart';
+import 'package:easyrent/features/message/messages.dart';
+import 'package:easyrent/features/rentee/services/notifiers.dart';
 import 'package:easyrent/features/rentee/my_profile_page.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/page/wishlist_page.dart';
 import 'package:flutter/material.dart';
 import 'features/rentee/homePage/home_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart'; // Generated file
 
-
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
    runApp(ProviderScope(child: const MyApp()));
   }
 
@@ -42,16 +47,16 @@ class _MyAppState extends State<MyApp> {
           seedColor: const Color(0xFF800000),
         ),
       ),
-      home: 
-      ValueListenableBuilder(valueListenable: selectedPageNotifiers, builder: (context, value, child) {
-        if(value == 0){
-            return HomePage();
-        } else if(value ==1) {
-          return WishlistPage();
-        } else {
-          return MyProfilePage();
-        }
-      },),
+      home: MessagesApp()
+      // ValueListenableBuilder(valueListenable: selectedPageNotifiers, builder: (context, value, child) {
+      //   if(value == 0){
+      //       return HomePage();
+      //   } else if(value ==1) {
+      //     return WishlistPage();
+      //   } else {
+      //     return MyProfilePage();
+      //   }
+      // },),
     );
   }
 }

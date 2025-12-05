@@ -1,7 +1,7 @@
 import 'package:easyrent/features/message/messages.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../application/notifier/listing_notifier.dart';
+import '../../services/notifier/listing_notifier.dart';
 import '../../../renter_management/presentation/pages/renter_management_wrapper.dart';
 import '../widgets/listing_item_card.dart';
 import 'add_item.dart';

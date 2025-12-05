@@ -1,5 +1,4 @@
 import 'package:easyrent/core/constants/constants.dart';
-import 'package:easyrent/features/rentee/checkout/presentation/pages/checkout_page.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/delivery_place_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/start_end_date_widget.dart';
 import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';

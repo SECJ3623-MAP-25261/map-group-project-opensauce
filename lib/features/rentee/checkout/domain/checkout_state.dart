@@ -3,6 +3,7 @@ class CheckoutState {
   final double renteeFee;
   final String deliveryOption;
   final double depositRate;
+  final bool isLoading ;
   final List<Map<String, dynamic>> items;
 
   // Constructor for the initial state
@@ -12,6 +13,7 @@ class CheckoutState {
     required this.depositRate,
     required this.deliveryOption,
     required this.items,
+    required this.isLoading,
   });
 
   // Helper method to create a new state object (used for updates)
@@ -21,6 +23,7 @@ class CheckoutState {
     String? deliveryOption,
     double? depositRate,
     List<Map<String, dynamic>>? items,
+    bool? isLoading,
   }) {
     return CheckoutState(
       totalFee: totalFee ?? this.totalFee,
@@ -28,6 +31,7 @@ class CheckoutState {
       deliveryOption: deliveryOption ?? this.deliveryOption,
       items: items ?? this.items,
       depositRate: depositRate ?? this.depositRate,
+      isLoading: isLoading ?? this.isLoading
     );
   }
 }

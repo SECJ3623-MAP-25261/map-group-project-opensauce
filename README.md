@@ -7,6 +7,6 @@ Renter = User that borrow things to others
 Folder structure:
 
 1. Domain — defines models & interfaces
-2. Application — business logic (notifiers, state)
+2. Services — business logic (notifiers, state)
 3. data — API, database, repository implementations
 4. Presentation — UI widgets & screens

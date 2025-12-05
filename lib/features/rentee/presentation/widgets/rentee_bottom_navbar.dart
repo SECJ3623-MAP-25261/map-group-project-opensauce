@@ -1,4 +1,4 @@
-import 'package:easyrent/features/rentee/application/notifiers.dart';
+import 'package:easyrent/features/rentee/services/notifiers.dart';
 import 'package:flutter/material.dart';
 
 class RenteeBottomNavBar extends StatelessWidget {

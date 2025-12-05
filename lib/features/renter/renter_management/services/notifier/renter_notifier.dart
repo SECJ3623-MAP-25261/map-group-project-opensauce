@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/entities/item_entity.dart';
 import '../../domain/repositories/renter_repository.dart';
-import 'package:easyrent/features/renter/renter_management/application/state/renter_state.dart';
+import 'package:easyrent/features/renter/renter_management/services/state/renter_state.dart';
 
 class RenterNotifier extends ChangeNotifier {
   final RenterRepository repository;

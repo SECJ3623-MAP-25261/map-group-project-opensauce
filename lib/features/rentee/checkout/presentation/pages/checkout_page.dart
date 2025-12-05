@@ -1,3 +1,4 @@
+import 'package:easyrent/core/utils/loading.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/checkout_cart_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/bottom_summary_widget.dart';
@@ -17,7 +18,8 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    // If loading is true, show the loading widget
+    return ref.watch(checkoutProvider).isLoading? Loading() : Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,

@@ -12,8 +12,15 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
       deliveryOption: 'Self-Pickup',
       items: checkoutProductList,
       depositRate: 30.0,
+      isLoading: false
     ),
   );
+
+  void setIsloading(bool isLoading) {
+    state = state.copyWith(
+      isLoading: isLoading
+    );
+  }
 
   // Business Logic: Calculates the delivery fee based on the option
   double _calculateDeliveryFee(String option) {

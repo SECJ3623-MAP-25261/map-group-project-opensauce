@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../application/notifier/listing_notifier.dart';
+import '../../services/notifier/listing_notifier.dart';
 import '../../data/repositories/listing_repository_impl.dart';
 
 import 'listing.dart';

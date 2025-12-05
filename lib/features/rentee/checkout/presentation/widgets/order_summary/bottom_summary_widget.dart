@@ -38,6 +38,7 @@ class _BottomSummaryWidgetState extends ConsumerState<BottomSummaryWidget> {
   Widget build(BuildContext context) {
     final checkoutState = ref.read(checkoutProvider.notifier);
     String? selectedPaymentMethod;
+
     return DraggableScrollableSheet(
       initialChildSize: 0.3,
       minChildSize: 0.25,
@@ -127,7 +128,11 @@ class _BottomSummaryWidgetState extends ConsumerState<BottomSummaryWidget> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
+                checkoutState.setIsloading(true);
                 _checkout(checkoutState.getDeliveryOptions(),checkoutState.getTotalFee());
+                // store the state in firestore 
+                 checkoutState.setIsloading(false);
+
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryRed, // A nice purple for checkout

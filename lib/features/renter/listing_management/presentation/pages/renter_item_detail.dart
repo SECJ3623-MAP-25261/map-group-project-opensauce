@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../renter_management/domain/entities/item_entity.dart';
-import '../../application/notifier/listing_notifier.dart';
+import '../../services/notifier/listing_notifier.dart';
 import 'edit_item.dart';
 
 class RenterItemDetail extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../application/notifier/renter_notifier.dart';
+import '../../services/notifier/renter_notifier.dart';
 import '../../data/repositories/renter_repository_impl.dart';
 import '../../data/datasources/renter_remote_api.dart';
 import 'renter_management_page.dart';
