@@ -9,15 +9,11 @@ class RenterRepositoryImpl implements RenterRepository {
 
   @override
   Future<List<ItemEntity>> getRequestedItems() async {
-    final list = await api.fetchRequestedItems();
+    return await api.fetchRequestedItems();
+  }
 
-    return list.map((e) => ItemEntity(
-      id: e["id"],          // make sure id exists
-      name: e["name"],
-      price: e["price"],
-      rentalInfo: e["rentalInfo"],
-      imageUrl: e["imageUrl"],
-      status: e["status"] ?? "pending",  // optional
-    )).toList();
+  @override
+  Future<void> updateItemStatus(String id, String status) async {
+    await api.updateItemStatus(id, status);
   }
 }

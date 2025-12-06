@@ -6,15 +6,15 @@ class ItemEntity {
   final String imageUrl;
   final String status;
 
-  ItemEntity({
+  const ItemEntity({
     required this.id,
     required this.name,
     required this.price,
     required this.rentalInfo,
     required this.imageUrl,
-    this.status = "pending",
+    required this.status,
   });
-
+  
   ItemEntity copyWith({
     String? id,
     String? name,

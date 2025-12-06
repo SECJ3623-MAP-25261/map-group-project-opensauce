@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'renter_management_wrapper.dart';   // <-- IMPORT THE WRAPPER
+import 'renter_management_wrapper.dart';
 import '../../../../rentee/rentee_profile/presentation/pages/profile_page.dart' as rentee;
 
 class DummySelectRole extends StatelessWidget {
@@ -18,7 +18,7 @@ class DummySelectRole extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const RenterManagementWrapper(),  // <-- FIXED
+                    builder: (context) => const RenterManagementWrapper(),
                   ),
                 );
               },

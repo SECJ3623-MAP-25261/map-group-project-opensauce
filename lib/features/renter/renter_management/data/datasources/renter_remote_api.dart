@@ -1,14 +1,27 @@
-class RenterRemoteApi {
-  Future<List<Map<String, dynamic>>> fetchRequestedItems() async {
-    return [
-      {
-        "id": "1",
-        "name": "TMA-2HD Wireless",
-        "price": "RM 20 / day",
-        "rentalInfo": "2 days | Total: RM 40",
-        "imageUrl": "assets/headphone.jpg",
-        "status": "pending" // optional but recommended
-      }
-    ];
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/item_model.dart';
+
+abstract class RenterRemoteApi {
+  Future<List<ItemModel>> fetchRequestedItems();
+  Future<void> updateItemStatus(String id, String status);
+}
+
+class RenterRemoteApiImpl implements RenterRemoteApi {
+  final FirebaseFirestore firestore;
+
+  RenterRemoteApiImpl({FirebaseFirestore? firestore})
+      : firestore = firestore ?? FirebaseFirestore.instance;
+
+  @override
+  Future<List<ItemModel>> fetchRequestedItems() async {
+    final snapshot = await firestore.collection('renter_items').get();
+    return snapshot.docs.map((doc) => ItemModel.fromSnapshot(doc)).toList();
+  }
+
+  @override
+  Future<void> updateItemStatus(String id, String status) async {
+    await firestore.collection('renter_items').doc(id).update({
+      'status': status,
+    });
   }
 }

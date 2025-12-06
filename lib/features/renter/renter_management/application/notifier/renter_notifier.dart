@@ -1,47 +1,36 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/item_entity.dart';
 import '../../domain/repositories/renter_repository.dart';
-import 'package:easyrent/features/renter/renter_management/application/state/renter_state.dart';
+import '../state/renter_state.dart';
 
 class RenterNotifier extends ChangeNotifier {
-  final RenterRepository repository;
+  final RenterRepository _repository;
 
-  RenterNotifier(this.repository);
+  RenterNotifier(this._repository);
 
-  RenterState state = const RenterState();
+  RenterState _state = RenterState.initial();
+  RenterState get state => _state;
 
-  // Load requested items
   Future<void> loadItems() async {
-    state = state.copyWith(loading: true);
+    _state = _state.copyWith(loading: true, errorMessage: null);
     notifyListeners();
 
-    final items = await repository.getRequestedItems();
-    state = state.copyWith(items: items, loading: false);
-
+    try {
+      final items = await _repository.getRequestedItems();
+      _state = _state.copyWith(items: items, loading: false);
+    } catch (e) {
+      _state = _state.copyWith(loading: false, errorMessage: e.toString());
+      print("Error: $e");
+    }
     notifyListeners();
   }
 
-  // Approve item
-  void approveItem(String id) {
-    final index = state.items.indexWhere((item) => item.id == id);
-    if (index != -1) {
-      final updatedItem = state.items[index].copyWith(status: "approved");
-      final updatedItems = List<ItemEntity>.from(state.items);
-      updatedItems[index] = updatedItem;
-      state = state.copyWith(items: updatedItems);
-      notifyListeners();
-    }
+  Future<void> approveItem(String id) async {
+    await _repository.updateItemStatus(id, 'approved');
+    await loadItems(); // Refresh the list
   }
 
-  // Reject item
-  void rejectItem(String id) {
-    final index = state.items.indexWhere((item) => item.id == id);
-    if (index != -1) {
-      final updatedItem = state.items[index].copyWith(status: "rejected");
-      final updatedItems = List<ItemEntity>.from(state.items);
-      updatedItems[index] = updatedItem;
-      state = state.copyWith(items: updatedItems);
-      notifyListeners();
-    }
+  Future<void> rejectItem(String id) async {
+    await _repository.updateItemStatus(id, 'rejected');
+    await loadItems(); // Refresh the list
   }
 }
