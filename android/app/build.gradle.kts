@@ -1,8 +1,12 @@
 plugins {
     id("com.android.application")
+    // START: FlutterFire Configuration
+    id("com.google.gms.google-services")
+    // END: FlutterFire Configuration
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin") version "2.0.1"
 }
 
 android {
@@ -28,6 +32,11 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // buildConfigField(
+        //     type = "String",
+        //     name = "ACCESS_FINE_LOCATION",
+        //     value = "\"${System.getenv("ACCESS_FINE_LOCATION") ?: ""}\""
+        // )
     }
 
     buildTypes {
@@ -36,6 +45,12 @@ android {
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
+    }
+
+    dependencies {
+
+        // Maps SDK for Android
+        implementation("com.google.android.gms:play-services-maps:18.2.0")
     }
 }
 
