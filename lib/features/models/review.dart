@@ -7,17 +7,17 @@ class Review {
     required this.reviewText,
   });
 
-  // factory Review.fromMap(Map<String, dynamic> map) {
-  //   return Review(
-  //     star: (map['star'] as num?)?.toDouble() ?? 0.0,
-  //     reviewText: map['reviewText'] ?? '',
-  //   );
-  // }
+  factory Review.fromMap(Map<String, dynamic> map) {
+    return Review(
+      star: (map['star'] as num?)?.toDouble() ?? 0.0,
+      reviewText: map['reviewText'] ?? '',
+    );
+  }
 
-  // Map<String, dynamic> toMap() {
-  //   return {
-  //     'star': star,
-  //     'reviewText': reviewText,
-  //   };
-  // }
+  Map<String, dynamic> toMap() {
+    return {
+      'star': star,
+      'reviewText': reviewText,
+    };
+  }
 }

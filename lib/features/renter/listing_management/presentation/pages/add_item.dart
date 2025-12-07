@@ -2,7 +2,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../renter_management/domain/entities/item_entity.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import '../../../../models/item.dart'; 
 import '../../services/notifier/listing_notifier.dart';
 
 class RenterAddItem extends StatefulWidget {
@@ -28,10 +31,12 @@ class _RenterAddItemState extends State<RenterAddItem> {
   final ImagePicker _picker = ImagePicker();
   
   int _currentImageIndex = 0; 
-  
   final PageController _pageController = PageController();
+  
+  // Loading state
+  bool _isSaving = false;
 
-  // --- IMAGE LOGIC ---
+  // --- 1. IMAGE PICKER LOGIC ---
   Future<void> _pickImage(ImageSource source) async {
     if (_selectedImages.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,7 +51,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
         setState(() {
           _selectedImages.add(File(pickedFile.path));
           _currentImageIndex = _selectedImages.length - 1;
-          // Jump to new image
+          // Wait for UI to build, then scroll
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageController.hasClients) {
               _pageController.jumpToPage(_currentImageIndex);
@@ -59,6 +64,21 @@ class _RenterAddItemState extends State<RenterAddItem> {
     }
   }
 
+  // --- 2. UPLOAD HELPER (Was Missing) ---
+  Future<String> _uploadImage(File imageFile, String folderName) async {
+    try {
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      Reference storageRef = FirebaseStorage.instance.ref().child('$folderName/$fileName.jpg');
+      UploadTask uploadTask = storageRef.putFile(imageFile);
+      TaskSnapshot snapshot = await uploadTask;
+      return await snapshot.ref.getDownloadURL();
+    } catch (e) {
+      print("Error uploading image: $e");
+      throw Exception("Image upload failed");
+    }
+  }
+
+  // --- 3. UI HELPERS (Delete, Move, Show Options) ---
   void _confirmDelete() {
     showDialog(
       context: context,
@@ -122,7 +142,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  // --- MOVE ARROW HELPER ---
   void _movePage(int delta) {
     _pageController.animateToPage(
       _currentImageIndex + delta,
@@ -131,7 +150,9 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  void _saveItem() {
+  // --- 4. REAL SAVE LOGIC ---
+  Future<void> _saveItem() async {
+    // Validation
     if (_nameController.text.isEmpty || 
         _priceController.text.isEmpty || 
         _depositController.text.isEmpty ||
@@ -150,30 +171,79 @@ class _RenterAddItemState extends State<RenterAddItem> {
       return;
     }
 
-    String mainImage = _selectedImages[0].path;
-    List<String> additionalImages = [];
-    for (int i = 1; i < _selectedImages.length; i++) {
-      additionalImages.add(_selectedImages[i].path);
+    setState(() { _isSaving = true; });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in");
+
+      // A. Fetch User Profile
+      final userDoc = await FirebaseFirestore.instance.collection('user').doc(user.uid).get();
+      String ownerName = "Unknown";
+      String ownerImage = "";
+
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
+        ownerName = "${data['fname'] ?? ''} ${data['lname'] ?? ''}".trim();
+        ownerImage = data['profile_image'] ?? "";
+      }
+
+      // B. Upload Images to Cloud
+      List<String> uploadedUrls = [];
+      for (File img in _selectedImages) {
+        String url = await _uploadImage(img, 'item_images');
+        uploadedUrls.add(url);
+      }
+
+      String mainImageUrl = uploadedUrls[0];
+      List<String> additionalImages = [];
+      if (uploadedUrls.length > 1) {
+        additionalImages = uploadedUrls.sublist(1);
+      }
+
+      // C. Create Item Object
+      final newItem = Item(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        ownerId: user.uid,
+        ownerName: ownerName,
+        ownerImage: ownerImage,
+        
+        productName: _nameController.text,
+        pricePerDay: double.tryParse(_priceController.text) ?? 0.0,
+        deposit: double.tryParse(_depositController.text) ?? 0.0, 
+        
+        description: _descriptionController.text,
+        category: _selectedCategory ?? "Other",
+        
+        imageUrl: mainImageUrl,
+        imageUrls: additionalImages,
+        
+        quantity: 1,
+        rentingDuration: "Daily",
+        deliveryMethods: "Pickup",
+        averageRating: 0.0,
+        reviews: [],
+        currentRenterId: null,
+      );
+
+      // D. Save
+      if (!mounted) return;
+      await Provider.of<ListingNotifier>(context, listen: false).addItem(newItem);
+
+      if (mounted) Navigator.pop(context);
+
+    } catch (e) {
+      print("Error saving: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving item: $e")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() { _isSaving = false; });
+      }
     }
-
-    final newItem = ItemEntity(
-      id: DateTime.now().millisecondsSinceEpoch.toString(), 
-      name: _nameController.text,
-      price: _priceController.text,
-      deposit: _depositController.text,
-      description: _descriptionController.text,
-      location: _locationController.text,
-      category: _selectedCategory ?? "Other",
-      rentalInfo: "1 day | Total RM ${_priceController.text}",
-      imageUrl: mainImage,
-      additionalImages: additionalImages,
-      rating: 0.0,
-      status: "pending",
-    );
-
-    Provider.of<ListingNotifier>(context, listen: false).addItem(newItem);
-
-    Navigator.pop(context);
   }
 
   @override
@@ -347,9 +417,9 @@ class _RenterAddItemState extends State<RenterAddItem> {
             _buildLabel("Category"),
             _buildDropdown(),
             _buildLabel("Price"),
-            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day", inputType: TextInputType.number,),
+            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day", inputType: TextInputType.number),
             _buildLabel("Deposit"),
-            _buildTextField(controller: _depositController, hint: "e.g: 20", inputType: TextInputType.number,),
+            _buildTextField(controller: _depositController, hint: "e.g: 20", inputType: TextInputType.number),
             _buildLabel("Description"),
             _buildTextField(controller: _descriptionController, hint: "Insert here", maxLines: 5),
             _buildLabel("Location"),
@@ -361,19 +431,25 @@ class _RenterAddItemState extends State<RenterAddItem> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _saveItem,
+                    onPressed: _isSaving ? null : _saveItem,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       side: const BorderSide(color: Color(0xFF5C001F)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text("SAVE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                    child: _isSaving 
+                      ? const SizedBox(
+                          height: 20, 
+                          width: 20, 
+                          child: CircularProgressIndicator(color: Color(0xFF5C001F), strokeWidth: 2)
+                        )
+                      : const Text("SAVE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5C001F),
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -400,7 +476,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType,}) {
+  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,

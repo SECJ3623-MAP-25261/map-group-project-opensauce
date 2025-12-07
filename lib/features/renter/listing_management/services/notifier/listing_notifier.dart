@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../domain/repositories/listing_repository.dart';
 import '../state/listing_state.dart';
-import '../../../renter_management/domain/entities/item_entity.dart';
+import '../../../../models/item.dart';
 
 class ListingNotifier extends ChangeNotifier {
   final ListingRepository repository;
@@ -10,9 +10,10 @@ class ListingNotifier extends ChangeNotifier {
 
   ListingState state = const ListingState();
 
-  List<ItemEntity> _fullList = []; 
+  // Hidden Memory for Search
+  List<Item> _fullList = []; 
 
-  // Load Items
+  // 1. Load Items
   Future<void> loadMyItems() async {
     state = state.copyWith(isLoading: true);
     notifyListeners();
@@ -21,26 +22,24 @@ class ListingNotifier extends ChangeNotifier {
 
     _fullList = items; 
     state = state.copyWith(myItems: items, isLoading: false);
-    
     notifyListeners();
   }
 
-  // Search Items
+  // 2. Search
   void searchItems(String query) {
     if (query.isEmpty) {
       state = state.copyWith(myItems: _fullList);
     } else {
       final filtered = _fullList.where((item) {
-        return item.name.toLowerCase().contains(query.toLowerCase());
+        return item.productName.toLowerCase().contains(query.toLowerCase());
       }).toList();
-      
       state = state.copyWith(myItems: filtered);
     }
     notifyListeners();
   }
 
-  //  Add Item
-  Future<void> addItem(ItemEntity newItem) async {
+  // 3. Add
+  Future<void> addItem(Item newItem) async {
     state = state.copyWith(isLoading: true);
     notifyListeners();
 
@@ -48,8 +47,8 @@ class ListingNotifier extends ChangeNotifier {
     await loadMyItems(); 
   }
 
-  //  Update Item
-  Future<void> updateItem(ItemEntity updatedItem) async {
+  // 4. Update
+  Future<void> updateItem(Item updatedItem) async {
     state = state.copyWith(isLoading: true);
     notifyListeners();
 
@@ -57,7 +56,7 @@ class ListingNotifier extends ChangeNotifier {
     await loadMyItems();
   }
 
-  //  Delete Item
+  // 5. Delete
   Future<void> deleteItem(String itemId) async {
     state = state.copyWith(isLoading: true);
     notifyListeners();

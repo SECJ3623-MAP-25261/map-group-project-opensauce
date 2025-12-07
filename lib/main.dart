@@ -2,6 +2,7 @@ import 'package:easyrent/features/message/messages.dart';
 import 'package:easyrent/features/rentee/services/notifiers.dart';
 import 'package:easyrent/features/rentee/my_profile_page.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/page/wishlist_page.dart';
+import 'package:easyrent/features/renter/renter_management/presentation/pages/dummy_select_role.dart';
 import 'package:flutter/material.dart';
 import 'features/rentee/homePage/home_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,7 +48,7 @@ class _MyAppState extends State<MyApp> {
           seedColor: const Color(0xFF800000),
         ),
       ),
-      home: MessagesApp()
+      home: DummySelectRole()
       // ValueListenableBuilder(valueListenable: selectedPageNotifiers, builder: (context, value, child) {
       //   if(value == 0){
       //       return HomePage();

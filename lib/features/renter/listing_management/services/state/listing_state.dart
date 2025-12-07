@@ -1,8 +1,8 @@
-import '../../../renter_management/domain/entities/item_entity.dart';
+import '../../../../models/item.dart'; 
 
 class ListingState {
-  final List<ItemEntity> myItems; 
-  final bool isLoading;           
+  final List<Item> myItems; // Change type to Item
+  final bool isLoading;
 
   const ListingState({
     this.myItems = const [],
@@ -10,7 +10,7 @@ class ListingState {
   });
 
   ListingState copyWith({
-    List<ItemEntity>? myItems,
+    List<Item>? myItems, // Change type to Item
     bool? isLoading,
   }) {
     return ListingState(

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import '../../../renter_management/domain/entities/item_entity.dart'; // Shared Entity
+import '../../../../models/item.dart'; 
 
 class ListingItemCard extends StatelessWidget {
-  final ItemEntity item;
-  final VoidCallback onTap; // We pass the function to handle clicks
+  // 2. Use Item instead of ItemEntity
+  final Item item;
+  final VoidCallback onTap;
+
   const ListingItemCard({
     super.key,
     required this.item,
@@ -12,8 +14,8 @@ class ListingItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double priceVal = double.tryParse(item.price) ?? 0.0;
-
+    // No need to parse price anymore, it is already a double in the new Model!
+    
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -37,7 +39,7 @@ class ListingItemCard extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 child: Image.network(
-                  item.imageUrl, // Shared Entity uses 'imageUrl' (singular)
+                  item.imageUrl, 
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (ctx, error, stack) => const Center(
@@ -54,14 +56,14 @@ class ListingItemCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    item.name,
+                    item.productName, // <--- Updated Field Name
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    "RM ${priceVal.toStringAsFixed(0)} per day",
+                    "RM ${item.pricePerDay.toStringAsFixed(0)} per day", // <--- Updated Field Name
                     style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                   const SizedBox(height: 6),
@@ -70,7 +72,7 @@ class ListingItemCard extends StatelessWidget {
                       const Icon(Icons.star, size: 14, color: Colors.amber),
                       const SizedBox(width: 4),
                       Text(
-                        item.rating.toString(),
+                        item.averageRating.toString(), // <--- Updated Field Name
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 12,

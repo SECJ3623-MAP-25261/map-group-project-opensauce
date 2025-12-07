@@ -1,11 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../renter_management/domain/entities/item_entity.dart';
+import '../../../../models/item.dart'; 
 import '../../services/notifier/listing_notifier.dart';
 import 'edit_item.dart';
 
 class RenterItemDetail extends StatefulWidget {
-  final ItemEntity item;
+  final Item item;
 
   const RenterItemDetail({super.key, required this.item});
 
@@ -15,10 +16,8 @@ class RenterItemDetail extends StatefulWidget {
 
 class _RenterItemDetailState extends State<RenterItemDetail> {
   int _currentImageIndex = 0;
-  
   final PageController _pageController = PageController();
 
-  // --- DELETE CONFIRMATION ---
   void _confirmDelete() {
     showDialog(
       context: context,
@@ -32,11 +31,12 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
           ),
           TextButton(
             onPressed: () {
+              // 2. Call Real Delete Logic
               Provider.of<ListingNotifier>(context, listen: false)
                   .deleteItem(widget.item.id);
               
-              Navigator.pop(ctx); 
-              Navigator.pop(context); 
+              Navigator.pop(ctx);
+              Navigator.pop(context);
             },
             child: const Text("Delete", style: TextStyle(color: Colors.red)),
           ),
@@ -55,23 +55,25 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
 
   @override
   Widget build(BuildContext context) {
+    // 3. LISTEN FOR UPDATES (Stale Data Fix)
     final state = Provider.of<ListingNotifier>(context).state;
     
-    final ItemEntity currentItem = state.myItems.firstWhere(
+    // Find the latest version of this item in the list
+    final Item currentItem = state.myItems.firstWhere(
       (element) => element.id == widget.item.id,
       orElse: () => widget.item,
     );
 
-    final double priceVal = double.tryParse(currentItem.price) ?? 0.0;
+    // 4. PREPARE DATA
+    // Note: pricePerDay is already a double in the new model! No parsing needed.
+    final String priceText = currentItem.pricePerDay.toStringAsFixed(0);
 
-    final List<String> displayImages = currentItem.additionalImages.isNotEmpty
-        ? currentItem.additionalImages
+    final List<String> displayImages = currentItem.imageUrls.isNotEmpty
+        ? currentItem.imageUrls
         : [currentItem.imageUrl];
 
     return Scaffold(
       backgroundColor: Colors.white,
-      
-      // APP BAR
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -85,8 +87,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
         ),
         centerTitle: true,
       ),
-
-      // BODY
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -115,18 +115,30 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                         });
                       },
                       itemBuilder: (context, index) {
-                        return Image.network(
-                          displayImages[index],
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => 
-                              const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                        );
+                        final String imagePath = displayImages[index];
+                        // 5. HYBRID IMAGE LOGIC (File vs URL)
+                        bool isNetworkImage = imagePath.startsWith('http') || imagePath.startsWith('https');
+
+                        if (isNetworkImage) {
+                          return Image.network(
+                            imagePath,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => 
+                                const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                          );
+                        } else {
+                          return Image.file(
+                            File(imagePath),
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => 
+                                const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+                          );
+                        }
                       },
                     ),
                   ),
                 ),
                 
-                // LEFT ARROW
                 if (_currentImageIndex > 0)
                   Positioned(
                     left: 10,
@@ -144,7 +156,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                     ),
                   ),
 
-                // RIGHT ARROW
                 if (_currentImageIndex < displayImages.length - 1)
                   Positioned(
                     right: 10,
@@ -162,7 +173,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                     ),
                   ),
                 
-                // Indicator
                 Positioned(
                   bottom: 16,
                   left: 16,
@@ -187,18 +197,18 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
             
             const SizedBox(height: 24),
 
-            // --- TITLE & PRICE SECTION ---
+            // --- INFO SECTION ---
             Center(
               child: Column(
                 children: [
                   Text(
-                    currentItem.name, // Used currentItem
+                    currentItem.productName, // <--- Fixed: productName
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF101828)),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "RM ${priceVal.toStringAsFixed(0)} per day",
+                    "RM $priceText per day", // <--- Fixed: priceText
                     style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   const SizedBox(height: 12),
@@ -209,7 +219,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                       const Icon(Icons.star, color: Colors.amber, size: 20),
                       const SizedBox(width: 4),
                       Text(
-                        "${currentItem.rating}", // Used currentItem
+                        "${currentItem.averageRating}", // <--- Fixed: averageRating
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       const SizedBox(width: 8),
@@ -227,33 +237,31 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
             const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
             const SizedBox(height: 24),
 
-            // --- DESCRIPTION SECTION ---
             const Text(
               "Description Product",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101828)),
             ),
             const SizedBox(height: 12),
             Text(
-              currentItem.description, // Used currentItem
+              currentItem.description,
               style: const TextStyle(fontSize: 14, color: Color(0xFF667085), height: 1.5),
             ),
             
             const SizedBox(height: 40),
 
-            // --- ACTION BUTTONS ---
+            // --- BUTTONS ---
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
                       final existingNotifier = Provider.of<ListingNotifier>(context, listen: false);
-                      
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => ChangeNotifierProvider.value(
                             value: existingNotifier,
-                            child: RenterEditItem(item: currentItem),
+                            child: RenterEditItem(item: currentItem), // Pass real Item
                           ),
                         ),
                       );
