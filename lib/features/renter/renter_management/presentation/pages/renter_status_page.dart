@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../application/notifier/renter_notifier.dart';
+import '../widgets/status_item_card.dart'; // Import the widget
 
 class RenterStatusPage extends StatelessWidget {
   const RenterStatusPage({super.key});
@@ -15,14 +16,11 @@ class RenterStatusPage extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Filter: Only show items that are currently "approved" (On Renting)
-        // You can adjust this filter if you want to show other statuses too.
+        // Filter for "approved" items
         final activeRentals = state.items.where((item) => item.status == 'approved').toList();
 
         if (activeRentals.isEmpty) {
-          return const Center(
-            child: Text("No active rentals found."),
-          );
+          return const Center(child: Text("No active rentals found."));
         }
 
         return ListView.builder(
@@ -31,80 +29,17 @@ class RenterStatusPage extends StatelessWidget {
           itemBuilder: (context, index) {
             final item = activeRentals[index];
 
-            return Card(
-              elevation: 2,
-              margin: const EdgeInsets.only(bottom: 16),
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Handle Image (Network or Asset fallback)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: item.imageUrl.startsWith('http')
-                          ? Image.network(item.imageUrl, height: 120, width: double.infinity, fit: BoxFit.cover)
-                          : Container(
-                              height: 120,
-                              color: Colors.grey[200],
-                              child: const Center(child: Icon(Icons.image, size: 50, color: Colors.grey)),
-                            ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    Text(
-                      item.name, // Using the getter from Item model
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-
-                    const SizedBox(height: 5),
-
-                    Text(
-                      "RM ${item.price} / day | ${item.rentalInfo}",
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black87),
-                    ),
-                    
-                    const SizedBox(height: 15),
-
-                    // Status row: badge + Stop Rent button
-                    Row(
-                      children: [
-                        // Status badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFFD700), // Gold for "On Renting"
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Text(
-                            "On Renting...",
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-
-                        const Spacer(),
-
-                        // Stop Rent button
-                        ElevatedButton(
-                          onPressed: () => _showStopConfirmation(context, notifier, item.id),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text("Stop Rent"),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+            // USE THE WIDGET HERE instead of manual Card
+            return StatusItemCard(
+              title: item.name,
+              // Format: "RM 50 / day | 3 Days"
+              statusText: "On Renting...", 
+              imageUrl: item.imageUrl,
+              
+              onStopRent: () {
+                 // We call the dialog function defined at the bottom of this class
+                _showStopConfirmation(context, notifier, item.id);
+              },
             );
           },
         );
@@ -112,41 +47,24 @@ class RenterStatusPage extends StatelessWidget {
     );
   }
 
-  // ===========================
-  // CONFIRMATION DIALOG
-  // ===========================
-  void _showStopConfirmation(BuildContext context, RenterNotifier notifier, String itemId) {
+  // ... (Keep the _showStopConfirmation method at the bottom of the file)
+   void _showStopConfirmation(BuildContext context, RenterNotifier notifier, String itemId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
-          "Confirm to stop rent?",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
+        title: const Text("Confirm to stop rent?", style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text("This will mark the item as returned/completed."),
-        actionsPadding: const EdgeInsets.only(bottom: 12, right: 12),
         actions: [
-          // NO BUTTON
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            child: const Text("Cancel"),
           ),
-
-          // YES BUTTON
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
-              notifier.stopRent(itemId); // Call Firebase
-              
-              // Optional: Show snackbar
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Rent stopped successfully")),
-              );
+              Navigator.pop(context);
+              notifier.stopRent(itemId);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
             child: const Text("Yes, Stop"),
           ),
         ],
