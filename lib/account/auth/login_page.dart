@@ -1,10 +1,11 @@
 import 'package:easyrent/account/recovery/email_confirm_page.dart';
 import 'package:easyrent/pages/rentee/complete_profile.dart';
 import 'package:flutter/material.dart';
-import '../../pages/rentee/profile_page.dart';
-import '../recovery/email_confirm_page.dart';
+import '../../pages/rentee/profile_page.dart'; // Kept based on your code, though unused in snippet
+import '../recovery/email_confirm_page.dart'; // Duplicate import cleanup (optional)
 import '../registration/registration.dart';
 import 'package:lottie/lottie.dart';
+import 'package:easyrent/services/auth_service.dart'; // Import AuthService
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -17,20 +18,60 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  
+  // Service Instance
+  final AuthService _authService = AuthService();
 
+  // State Variables
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
+  bool _isLoading = false; // To show loading spinner
 
-  void _login() {
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _login() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Login successful")));
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Call Firebase Login via AuthService
+      final user = await _authService.signIn(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      // Check if widget is mounted
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (user != null) {
+        // Success
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Login successful")),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const CompleteProfilePage()),
+        );
+      } else {
+        // Failure
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Login failed. Check email and password."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const CompleteProfilePage()),
-    );
   }
 
   @override
@@ -69,6 +110,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             const SizedBox(height: 30),
 
+            // Login/Register Toggle
             Container(
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
@@ -80,7 +122,7 @@ class _LoginPageState extends State<LoginPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: Color(0xFFF8BE17),
+                        color: const Color(0xFFF8BE17),
                         borderRadius: BorderRadius.circular(30),
                       ),
                       alignment: Alignment.center,
@@ -121,6 +163,7 @@ class _LoginPageState extends State<LoginPage> {
             ),
             const SizedBox(height: 30),
 
+            // Login Form
             Form(
               key: _formKey,
               child: Column(
@@ -196,7 +239,7 @@ class _LoginPageState extends State<LoginPage> {
                         children: [
                           Checkbox(
                             value: _rememberMe,
-                            activeColor: Color(0xFFF8BE17),
+                            activeColor: const Color(0xFFF8BE17),
                             onChanged: (value) {
                               setState(() {
                                 _rememberMe = value ?? false;
@@ -231,21 +274,30 @@ class _LoginPageState extends State<LoginPage> {
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
-                      onPressed: _login,
+                      onPressed: _isLoading ? null : _login, // Disable if loading
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFF8BE17),
+                        backgroundColor: const Color(0xFFF8BE17),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
                       ),
-                      child: const Text(
-                        "Login",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              "Login",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                 ],

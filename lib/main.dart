@@ -1,8 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import '../account/registration/renter_registration.dart';
 import 'account/recovery/onboarding_page.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (kIsWeb) {
+    // WEB SETUP
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyB-FmpQ7mEkt96pHju22S_jiK7RNG3ZkX8",
+        appId: "1:319516291992:web:9ae20352abf0ba7d9b71ed",
+        messagingSenderId: "319516291992",
+        projectId: "opensource-88def",
+        storageBucket: "opensource-88def.firebasestorage.app",
+      ),
+    );
+  } else {
+    // ANDROID/iOS SETUP (Uses google-services.json)
+    await Firebase.initializeApp();
+  }
+
   runApp(const MyApp());
 }
 

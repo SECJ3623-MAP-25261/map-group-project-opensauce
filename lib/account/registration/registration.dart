@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../auth/login_page.dart';
 import 'package:lottie/lottie.dart';
+import 'package:easyrent/pages/rentee/complete_profile.dart';
+import 'package:easyrent/services/auth_service.dart'; // Import AuthService
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -12,18 +14,67 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
 
+  // Text Controllers
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  bool _isPasswordVisible = false;
+  // Service Instance
+  final AuthService _authService = AuthService();
 
-  void _register() {
+  // State Variables
+  bool _isPasswordVisible = false;
+  bool _isLoading = false; // To show loading spinner
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _register() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Registration successful")),
+      setState(() {
+        _isLoading = true;
+      });
+
+      // Call Firebase Sign Up via AuthService
+      final user = await _authService.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        fname: _firstNameController.text.trim(),
+        lname: _lastNameController.text.trim(),
       );
+
+      // Check if widget is still mounted before using context
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (user != null) {
+        // Success: Navigate to next page
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Registration successful")),
+        );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const CompleteProfilePage()),
+        );
+      } else {
+        // Failure: Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Registration failed. Email might already be in use."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -41,19 +92,19 @@ class _RegisterPageState extends State<RegisterPage> {
                 children: [
                   Lottie.asset(
                     'assets/lotties/Logo_Loading.json',
-                    width: 800, 
+                    width: 800,
                     height: 100,
                   ),
                   const SizedBox(height: 20),
-                  Text(
+                  const Text(
                     "Welcome to EasyRent",
                     style: TextStyle(
                       fontSize: 20,
                       color: Colors.grey,
                     ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
+                  const SizedBox(height: 8),
+                  const Text(
                     "Create your Account",
                     style: TextStyle(
                       fontSize: 24,
@@ -66,6 +117,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             const SizedBox(height: 30),
 
+            // Login/Register Toggle Switch
             Container(
               decoration: BoxDecoration(
                 color: Colors.grey.shade200,
@@ -100,7 +152,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        color: Color(0xFFF8BE17),
+                        color: const Color(0xFFF8BE17),
                         borderRadius: BorderRadius.circular(30),
                       ),
                       alignment: Alignment.center,
@@ -118,6 +170,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
             const SizedBox(height: 30),
 
+            // Registration Form
             Form(
               key: _formKey,
               child: Column(
@@ -239,21 +292,30 @@ class _RegisterPageState extends State<RegisterPage> {
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
-                      onPressed: _register,
+                      onPressed: _isLoading ? null : _register, // Disable if loading
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFFF8BE17),
+                        backgroundColor: const Color(0xFFF8BE17),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
                       ),
-                      child: const Text(
-                        "Register",
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              "Register",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                 ],
