@@ -1,36 +1,52 @@
 import 'package:flutter/material.dart';
+import '../../../../models/item.dart';
 import '../../domain/repositories/renter_repository.dart';
 import '../state/renter_state.dart';
 
 class RenterNotifier extends ChangeNotifier {
-  final RenterRepository _repository;
+  final RenterRepository repository;
 
-  RenterNotifier(this._repository);
+  RenterNotifier(this.repository);
 
-  RenterState _state = RenterState.initial();
-  RenterState get state => _state;
+  RenterState state = const RenterState();
 
   Future<void> loadItems() async {
-    _state = _state.copyWith(loading: true, errorMessage: null);
-    notifyListeners();
+    if (state.items.isEmpty) {
+      state = state.copyWith(loading: true);
+      notifyListeners();
+    }
 
     try {
-      final items = await _repository.getRequestedItems();
-      _state = _state.copyWith(items: items, loading: false);
+      final items = await repository.getRequestedItems();
+      state = state.copyWith(items: items, loading: false);
     } catch (e) {
-      _state = _state.copyWith(loading: false, errorMessage: e.toString());
-      print("Error: $e");
+      print("Error loading items: $e");
+      state = state.copyWith(loading: false, errorMessage: e.toString());
     }
     notifyListeners();
   }
 
+  // --- Status Updates ---
+
   Future<void> approveItem(String id) async {
-    await _repository.updateItemStatus(id, 'approved');
-    await loadItems(); // Refresh the list
+    await repository.updateItemStatus(id, "approved");
+    await loadItems(); 
   }
 
   Future<void> rejectItem(String id) async {
-    await _repository.updateItemStatus(id, 'rejected');
-    await loadItems(); // Refresh the list
+    await repository.updateItemStatus(id, "rejected");
+    await loadItems(); 
+  }
+
+  Future<void> stopRent(String id) async {
+    await repository.updateItemStatus(id, "completed");
+    await loadItems(); 
+  }
+
+  // NEW: Toggle Availability
+  Future<void> setAvailability(String id, String newStatus) async {
+    // newStatus should be 'available' or 'on_hold'
+    await repository.updateItemStatus(id, newStatus);
+    await loadItems();
   }
 }

@@ -10,11 +10,11 @@ void main() async {
     // ⚠️ ONLY FOR WEB: Paste your keys from Firebase Console here
     await Firebase.initializeApp(
       options: const FirebaseOptions(
-        apiKey: "PASTE_YOUR_API_KEY_HERE",
-        appId: "PASTE_YOUR_APP_ID_HERE",
-        messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID",
-        projectId: "PASTE_YOUR_PROJECT_ID",
-        storageBucket: "PASTE_YOUR_STORAGE_BUCKET",
+        apiKey: "AIzaSyB-FmpQ7mEkt96pHju22S_jiK7RNG3ZkX8",
+        appId: "1:319516291992:web:9ae20352abf0ba7d9b71ed",
+        messagingSenderId: "319516291992",
+        projectId: "opensource-88def",
+        storageBucket: "opensource-88def.firebasestorage.app",
       ),
     );
   } else {

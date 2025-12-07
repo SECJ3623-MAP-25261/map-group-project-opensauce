@@ -1,7 +1,7 @@
-import '../../domain/entities/item_entity.dart';
+import '../../../../../features/models/item.dart';
 
 class RenterState {
-  final List<ItemEntity> items;
+  final List<Item> items;
   final bool loading;
   final String? errorMessage;
 
@@ -14,7 +14,7 @@ class RenterState {
   factory RenterState.initial() => const RenterState();
 
   RenterState copyWith({
-    List<ItemEntity>? items,
+    List<Item>? items,
     bool? loading,
     String? errorMessage,
   }) {

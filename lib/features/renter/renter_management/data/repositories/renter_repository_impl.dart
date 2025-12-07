@@ -1,4 +1,4 @@
-import '../../domain/entities/item_entity.dart';
+import '../../../../../features/models/item.dart';
 import '../../domain/repositories/renter_repository.dart';
 import '../datasources/renter_remote_api.dart';
 
@@ -8,7 +8,7 @@ class RenterRepositoryImpl implements RenterRepository {
   RenterRepositoryImpl(this.api);
 
   @override
-  Future<List<ItemEntity>> getRequestedItems() async {
+  Future<List<Item>> getRequestedItems() async {
     return await api.fetchRequestedItems();
   }
 
