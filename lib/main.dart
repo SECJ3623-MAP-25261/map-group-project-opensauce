@@ -39,7 +39,7 @@ class _MyAppState extends State<MyApp> {
         fontFamily: 'Roboto',
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF800000)),
       ),
-      home: const MainScreen(),
+      home: DummySelectRole(),
     );
   }
 }
