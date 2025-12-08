@@ -1,15 +1,20 @@
+import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
+import 'package:easyrent/features/rentee/checkout/domain/checkout_state.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
-class StartEndDateWidget extends StatefulWidget {
+class StartEndDateWidget extends ConsumerWidget {
   const StartEndDateWidget({super.key});
-
+  
   @override
-  State<StartEndDateWidget> createState() => _StartEndDateWidgetState();
-}
+  // Check if a date range was selected before trying to format
+  
+  Widget build(BuildContext context, WidgetRef ref) {
+  CheckoutState CheckoutNotifier = ref.watch(checkoutProvider);
+  String startDateString = DateFormat('MMMM d, yyyy').format(CheckoutNotifier.startRenting ?? DateTime.now());
+  String endDateString = DateFormat('MMMM d, yyyy').format(CheckoutNotifier.endRenting ?? DateTime.now());
 
-class _StartEndDateWidgetState extends State<StartEndDateWidget> {
-  @override
-  Widget build(BuildContext context) {
     return Container(
       child: Column(
         children: [
@@ -17,7 +22,9 @@ class _StartEndDateWidgetState extends State<StartEndDateWidget> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("Start Renting Date",style: TextStyle(color: Colors.black),),
-              Text("12/12/2025")
+              Text(
+                startDateString
+                )
             ],
           ),
           const SizedBox(height: 5),
@@ -25,7 +32,15 @@ class _StartEndDateWidgetState extends State<StartEndDateWidget> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text("End Renting Date"),
-              Text("14/12/2025 (2 Days)")
+              Text(endDateString)
+            ],
+          ),
+          const SizedBox(height: 5),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Duration"),
+              Text(CheckoutNotifier.duration.toString())
             ],
           )
         ],

@@ -1,8 +1,6 @@
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-// 1. Change to ConsumerWidget (Stateful is not needed here)
 class DeliveryOptionsWidget extends ConsumerWidget { 
   const DeliveryOptionsWidget({super.key});
 
