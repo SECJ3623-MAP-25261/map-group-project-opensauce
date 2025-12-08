@@ -1,7 +1,7 @@
 import '../../../../models/item.dart'; 
 
 class ListingState {
-  final List<Item> myItems; // Change type to Item
+  final List<Item> myItems;
   final bool isLoading;
 
   const ListingState({
@@ -10,7 +10,7 @@ class ListingState {
   });
 
   ListingState copyWith({
-    List<Item>? myItems, // Change type to Item
+    List<Item>? myItems,
     bool? isLoading,
   }) {
     return ListingState(
