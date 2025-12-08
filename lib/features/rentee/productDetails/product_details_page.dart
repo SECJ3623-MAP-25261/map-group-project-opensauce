@@ -1,29 +1,24 @@
-import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
-import 'package:easyrent/features/rentee/checkout/presentation/pages/checkout_page.dart';
-import 'package:easyrent/features/rentee/wishlist/services/wishlist_notifier.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../data/dummy_data.dart';
-import '../reviewPage/review_page.dart';
+import '../../models/item.dart';
+import '../../models/review.dart'; // Keep this if you use the Review model elsewhere
+import '../reviewPage/review_page.dart'; // IMPORT ADDED to fix the undefined error
 
-class ProductDetailsPage extends ConsumerStatefulWidget {
-  final Map<String, dynamic> product;
+class ProductDetailsPage extends StatefulWidget {
+  final Item item;
 
-  const ProductDetailsPage({super.key, required this.product});
+  const ProductDetailsPage({super.key, required this.item});
 
   @override
-  ConsumerState<ProductDetailsPage> createState() => _ProductDetailsPageState();
+  State<ProductDetailsPage> createState() => _ProductDetailsPageState();
 }
 
-class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
-
-  // IMAGE CAROUSEL
-  int _currentImageIndex = 0;
+class _ProductDetailsPageState extends State<ProductDetailsPage> {
   final PageController _pageController = PageController();
-
-  // DATES & PRICING
+  int _currentImageIndex = 0;
   DateTimeRange? _selectedDateRange;
+  bool _isFavorite = false;
 
   @override
   void dispose() {
@@ -31,24 +26,13 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     super.dispose();
   }
 
-  double _getPricePerDay() {
-    try {
-      final String priceStr = widget.product['price']?.toString() ?? "0";
-      final String cleanStr = priceStr.replaceAll(RegExp(r'[^0-9.]'), '');
-      return double.tryParse(cleanStr) ?? 0.0;
-    } catch (e) {
-      return 0.0;
-    }
-  }
-
-  // pick date range
   Future<void> _pickDateRange() async {
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       initialDateRange: _selectedDateRange,
-      saveText: "Save",
+      saveText: "Select",
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -57,31 +41,20 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black,
-              secondary: Color(0xFF5C001F),
             ),
             datePickerTheme: DatePickerThemeData(
               rangePickerHeaderBackgroundColor: Colors.white,
               rangePickerHeaderForegroundColor: Colors.black,
               rangeSelectionBackgroundColor: const Color(
                 0xFF5C001F,
-              ).withValues(alpha: 0.1),
-              rangePickerSurfaceTintColor: Colors.transparent,
+              ).withOpacity(0.1),
               backgroundColor: Colors.white,
-              headerForegroundColor: Colors.black,
               headerBackgroundColor: Colors.white,
+              headerForegroundColor: Colors.black,
               confirmButtonStyle: ButtonStyle(
-                textStyle: WidgetStateProperty.all(
-                  const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF5C001F),
-                  ),
-                ),
-                foregroundColor: WidgetStateProperty.all(
+                foregroundColor: MaterialStateProperty.all(
                   const Color(0xFF5C001F),
                 ),
-              ),
-              cancelButtonStyle: ButtonStyle(
-                foregroundColor: WidgetStateProperty.all(Colors.black),
               ),
             ),
             appBarTheme: const AppBarTheme(
@@ -94,61 +67,23 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
         );
       },
     );
-
-    if (picked != null) {
-      setState(() {
-        _selectedDateRange = picked;
-      });
-    }
+    if (picked != null) setState(() => _selectedDateRange = picked);
   }
 
-  // format date using intl
   String _formatDateRange(DateTimeRange range) {
-    final startFormat = DateFormat('d');
-    final fullFormat = DateFormat('d MMM');
-
-    // If same month
-    if (range.start.month == range.end.month &&
-        range.start.year == range.end.year) {
-      return "${startFormat.format(range.start)} - ${fullFormat.format(range.end)}";
-    }
-    // If different month
-    else {
-      return "${fullFormat.format(range.start)} - ${fullFormat.format(range.end)}";
-    }
+    final format = DateFormat('d MMM');
+    return "${format.format(range.start)} - ${format.format(range.end)}";
   }
 
-  late Future<bool> isFavorite;
-
-  @override
-  void initState() {
-    super.initState();
-    isFavorite = isItemSaveToDB(widget.product['id']);
-  }
   @override
   Widget build(BuildContext context) {
-    final renter =
-        widget.product['renter'] ??
-        {
-          'name': 'EasyRent User',
-          'image': 'https://i.pravatar.cc/150?img=12',
-          'period': 'New Member',
-        };
-    final description =
-        widget.product['description'] ?? "No description provided.";
-    final int actualReviewCount = dummyReviews.length;
-
-    final List<dynamic> galleryImages =
-        widget.product['images'] ?? [widget.product['image']];
-    final int imageCount = galleryImages.length;
-
-    // CALCULATIONS FOR BOTTOM BAR
-    double pricePerDay = _getPricePerDay();
+    final imageCount = widget.item.imageUrls.length;
+    double pricePerDay = widget.item.pricePerDay;
     double totalPrice = pricePerDay;
     String durationText = "per day";
 
     if (_selectedDateRange != null) {
-      final int days = _selectedDateRange!.duration.inDays + 1; // inclusive
+      final int days = _selectedDateRange!.duration.inDays + 1;
       totalPrice = pricePerDay * days;
       durationText =
           "For $days days • ${_formatDateRange(_selectedDateRange!)}";
@@ -157,121 +92,40 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        title: const Text(
+          "Product Detail",
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          "Product Detail",
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
-        ),
-        centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.share_outlined, color: Colors.black),
-            onPressed: () {},
-          ),
-          FutureBuilder(
-            future: isFavorite,
-            builder: (context, asyncSnapshot) {
-              bool _isFavorite = asyncSnapshot.data ?? false;
-              return IconButton(
-                icon: Icon(
-                  _isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: _isFavorite ? Colors.red : Colors.black,
-                ),
-                onPressed: () {
-                  setState(() {
-                    void saveToDB()async{
-                      if(!_isFavorite){
-                        print("_isFavorite: ${_isFavorite}");
-                        // item havent save to wishlist 
-                              final bool isSuccess = await saveToWishlistDB(widget.product);
-                              if(isSuccess){
-                                _isFavorite = true;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item save to wishlist.',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.green.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item failed to save to wishlist. Please try again',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.red.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                              }
-                      } else {
-                        // remove the item from wishlist
-                        print("_isFavorite: ${_isFavorite}");
-                        String itemId= widget.product['id'];
-                        final bool isSuccess = await removeWishlistItemFromDB(itemId);
-                              if(isSuccess){
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item sucessfully remove from wishlit.',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.green.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                                _isFavorite=false;
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item failed to remove from wishlist. Please try again',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.red.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                              }
-                      }
-                    }
-                    saveToDB();
-                  });
-                },
-              );
-            }
+            icon: Icon(
+              _isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: _isFavorite ? Colors.red : Colors.black,
+            ),
+            onPressed: () => setState(() => _isFavorite = !_isFavorite),
           ),
         ],
       ),
-
-    // Rent Confirmation + Date selection
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         decoration: BoxDecoration(
           color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey.shade300)),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha: 0.1),
-              spreadRadius: 1,
+              color: Colors.grey.withOpacity(0.1),
               blurRadius: 10,
-              offset: const Offset(0, -1),
+              offset: const Offset(0, -2),
             ),
           ],
         ),
@@ -287,11 +141,12 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
+                      color: Color(0xFF5C001F),
                     ),
                   ),
                   Text(
                     durationText,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
                   ),
                 ],
               ),
@@ -299,34 +154,24 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
               ElevatedButton(
                 onPressed: () {
                   if (_selectedDateRange == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Please select rent dates first"),
-                      ),
-                    );
                     _pickDateRange();
                   } else {
-                    ref.read(checkoutProvider.notifier).setItems(widget.product);
-                    ref.read(checkoutProvider.notifier).setStartEndRenting(_selectedDateRange?.start, _selectedDateRange?.end);
-                    // Proceed to checkout logic
-                    Navigator.push(context, MaterialPageRoute(builder: (context) {
-                      return CheckoutPage(items: widget.product,);
-                    },));
+                    print("Renting product: ${widget.item.productName}");
                   }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF5C001F),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 70,
-                    vertical: 20,
+                    horizontal: 50,
+                    vertical: 15,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text(
-                  "Rent",
-                  style: TextStyle(
+                child: Text(
+                  _selectedDateRange == null ? "Select Dates" : "Rent",
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -337,366 +182,454 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
           ),
         ),
       ),
+      // UPDATED: Listen to the Product DOCUMENT, not a subcollection
+      body: StreamBuilder<DocumentSnapshot>(
+        stream:
+            FirebaseFirestore.instance
+                .collection('product')
+                .doc(widget.item.id)
+                .snapshots(),
+        builder: (context, snapshot) {
+          List<dynamic> reviewsList = [];
+          int reviewCount = 0;
+          double averageRating = 0.0;
 
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // SWIPEABLE IMAGE
-            Stack(
+          if (snapshot.hasData && snapshot.data!.exists) {
+            final data = snapshot.data!.data() as Map<String, dynamic>;
+            // Extract the Array 'reviews' from the document
+            if (data.containsKey('reviews')) {
+              reviewsList = data['reviews'] as List<dynamic>;
+
+              // Optional: Sort reviews by date descending (client-side sort)
+              reviewsList.sort((a, b) {
+                Timestamp? tA = a['date'] as Timestamp?;
+                Timestamp? tB = b['date'] as Timestamp?;
+                if (tA == null || tB == null) return 0;
+                return tB.compareTo(tA);
+              });
+            }
+
+            reviewCount = reviewsList.length;
+            if (reviewCount > 0) {
+              double sum = 0;
+              for (var review in reviewsList) {
+                sum += (review['star'] as num?)?.toDouble() ?? 0.0;
+              }
+              averageRating = sum / reviewCount;
+            }
+          }
+
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  height: 300,
-                  width: double.infinity,
-                  color: const Color(0xFFF9F9F9),
-                  child: PageView.builder(
-                    controller: _pageController,
-                    itemCount: imageCount,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentImageIndex = index;
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      return Center(
-                        child: Image.network(
-                          galleryImages[index],
-                          height: 200,
-                          fit: BoxFit.contain,
-                          errorBuilder:
-                              (ctx, err, stack) => const Icon(
-                                Icons.broken_image,
-                                size: 50,
-                                color: Colors.grey,
-                              ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                if (_currentImageIndex > 0)
-                  Positioned(
-                    left: 10,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: CircleAvatar(
-                        backgroundColor: Colors.white.withValues(alpha: 0.7),
-                        radius: 20,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.arrow_back_ios,
-                            size: 18,
-                            color: Colors.black,
-                          ),
-                          onPressed: () {
-                            _pageController.previousPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-
-                if (_currentImageIndex < imageCount - 1)
-                  Positioned(
-                    right: 10,
-                    top: 0,
-                    bottom: 0,
-                    child: Center(
-                      child: CircleAvatar(
-                        backgroundColor: Colors.white.withValues(alpha: 0.7),
-                        radius: 20,
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.arrow_forward_ios,
-                            size: 18,
-                            color: Colors.black,
-                          ),
-                          onPressed: () {
-                            _pageController.nextPage(
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  ),
-
-                Positioned(
-                  bottom: 20,
-                  left: 20,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      "${_currentImageIndex + 1} / $imageCount",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Column(
-                      children: [
-                        Text(
-                          widget.product['product_name'],
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          widget.product['price'].toString(),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.star,
-                              color: Color(0xFFFFC107),
-                              size: 18,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              "${widget.product['rating']}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            const Text(
-                              "•",
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              "$actualReviewCount Reviews",
-                              style: const TextStyle(
-                                color: Colors.grey,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  const Divider(),
-                  const SizedBox(height: 15),
-                  Row(
+                // Image Carousel
+                SizedBox(
+                  height: 250,
+                  child: Stack(
                     children: [
-                      CircleAvatar(
-                        backgroundImage: NetworkImage(renter['image']),
-                        radius: 20,
-                        onBackgroundImageError: (_, __) {},
+                      PageView.builder(
+                        controller: _pageController,
+                        itemCount: imageCount,
+                        onPageChanged:
+                            (i) => setState(() => _currentImageIndex = i),
+                        itemBuilder:
+                            (_, i) => Container(
+                              color: Colors.grey[100],
+                              child: Image.network(
+                                widget.item.imageUrls[i],
+                                fit: BoxFit.cover,
+                                errorBuilder:
+                                    (context, error, stackTrace) => Center(
+                                      child: Icon(
+                                        Icons.broken_image,
+                                        color: Colors.grey[300],
+                                        size: 60,
+                                      ),
+                                    ),
+                              ),
+                            ),
                       ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      Positioned(
+                        bottom: 20,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(imageCount, (index) {
+                            return Container(
+                              width: 8,
+                              height: 8,
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color:
+                                    _currentImageIndex == index
+                                        ? const Color(0xFF5C001F)
+                                        : Colors.white.withOpacity(0.7),
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Content
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Title
+                      Text(
+                        widget.item.productName,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        "RM ${widget.item.pricePerDay.toStringAsFixed(0)} per day",
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+
+                      // Rating Badge
+                      Row(
                         children: [
-                          Text(
-                            renter['name'],
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFC107),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.star,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  averageRating.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 10),
                           Text(
-                            renter['period'],
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 12,
+                            "$reviewCount Reviews",
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                              decoration: TextDecoration.underline,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  const Divider(),
-                  const SizedBox(height: 15),
-                  const Text(
-                    "Description Product",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    description,
-                    style: TextStyle(color: Colors.grey[600], height: 1.5),
-                  ),
-                  const SizedBox(height: 15),
-                  const Divider(),
-                  const SizedBox(height: 15),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.star,
-                        color: Color(0xFFFFC107),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        "${widget.product['rating']}",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        "• $actualReviewCount reviews",
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 15),
-                  const ReviewListWidget(),
-                  const SizedBox(height: 15),
+                      const SizedBox(height: 20),
 
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ReviewPage(),
+                      // --- DIVIDER ---
+                      Divider(
+                        color: Colors.grey[300],
+                        thickness: 1,
+                        height: 30,
+                      ),
+
+                      // Owner
+                      ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: 25,
+                          backgroundImage: NetworkImage(widget.item.ownerImage),
+                        ),
+                        title: Text(
+                          widget.item.ownerName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
                           ),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Color(0xFF5C001F)),
-                        backgroundColor: const Color(0xFF5C001F),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        subtitle: Text(
+                          "2 months renting",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 14,
+                          ),
                         ),
                       ),
-                      child: const Text(
-                        "See All Review",
+                      const SizedBox(height: 10),
+
+                      // --- DIVIDER ---
+                      Divider(
+                        color: Colors.grey[300],
+                        thickness: 1,
+                        height: 30,
+                      ),
+
+                      // Description
+                      const Text(
+                        "Description Product",
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          fontSize: 18,
                         ),
                       ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                  const Divider(),
-
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text(
-                      "Availability",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      _selectedDateRange != null
-                          ? _formatDateRange(_selectedDateRange!)
-                          : "Add your rent dates for exact pricing",
-                      style: TextStyle(
-                        color:
-                            _selectedDateRange != null
-                                ? const Color(0xFF5C001F)
-                                : Colors.grey[600],
-                        fontWeight:
-                            _selectedDateRange != null
-                                ? FontWeight.bold
-                                : FontWeight.normal,
+                      const SizedBox(height: 10),
+                      Text(
+                        widget.item.description,
+                        style: TextStyle(
+                          color: Colors.grey[700],
+                          fontSize: 15,
+                          height: 1.6,
+                        ),
                       ),
-                    ),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                    onTap: _pickDateRange, // Triggers the Date Picker
-                  ),
+                      const SizedBox(height: 20),
 
-                  const Divider(),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text(
-                      "Cancellation policy",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: const Text("Free cancellation before November."),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 14),
+                      // --- DIVIDER ---
+                      Divider(
+                        color: Colors.grey[300],
+                        thickness: 1,
+                        height: 30,
+                      ),
+
+                      // Reviews Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Color(0xFFFFC107),
+                                size: 24,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "${averageRating.toStringAsFixed(1)} - $reviewCount reviews",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder:
+                                      (context) =>
+                                          ReviewPage(itemId: widget.item.id),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              "See all",
+                              style: TextStyle(
+                                color: Color(0xFF5C001F),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
+
+                      // Reviews Horizontal List
+                      if (reviewCount == 0)
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              "No reviews yet",
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ),
+                        )
+                      else
+                        SizedBox(
+                          height: 170,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: reviewCount,
+                            separatorBuilder:
+                                (_, __) => const SizedBox(width: 15),
+                            itemBuilder: (context, index) {
+                              final data =
+                                  reviewsList[index] as Map<String, dynamic>;
+                              return SizedBox(
+                                width: 300,
+                                child: _buildReviewCard(data),
+                              );
+                            },
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+
+                      // --- DIVIDER ---
+                      Divider(
+                        color: Colors.grey[300],
+                        thickness: 1,
+                        height: 30,
+                      ),
+
+                      // Availability
+                      const Text(
+                        "Availability",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      GestureDetector(
+                        onTap: _pickDateRange,
+                        child: Container(
+                          padding: const EdgeInsets.all(15),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[50],
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _selectedDateRange != null
+                                    ? _formatDateRange(_selectedDateRange!)
+                                    : "Add your rent dates for exact pricing",
+                                style: TextStyle(
+                                  color:
+                                      _selectedDateRange != null
+                                          ? Colors.black
+                                          : Colors.grey[600],
+                                  fontSize: 15,
+                                ),
+                              ),
+                              const Icon(
+                                Icons.calendar_today,
+                                color: Colors.grey,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+
+                      // --- DIVIDER ---
+                      Divider(
+                        color: Colors.grey[300],
+                        thickness: 1,
+                        height: 30,
+                      ),
+
+                      // Policy
+                      const Text(
+                        "Cancellation policy",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Free cancellation before – ${DateFormat('MMMM').format(DateTime.now().add(const Duration(days: 30)))}.",
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              "Cancel before pick-up on – ${DateFormat('MMMM').format(DateTime.now().add(const Duration(days: 14)))} for a partial refund.",
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontSize: 15,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            GestureDetector(
+                              onTap: () {},
+                              child: const Text(
+                                "Review this renter's full policy for details.",
+                                style: TextStyle(
+                                  color: Color(0xFF5C001F),
+                                  decoration: TextDecoration.underline,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 80),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class ReviewListWidget extends StatelessWidget {
-  const ReviewListWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 140,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        clipBehavior: Clip.none,
-        itemCount: dummyReviews.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 15),
-        itemBuilder: (context, index) {
-          return ReviewCard(review: dummyReviews[index]);
+          );
         },
       ),
     );
   }
-}
 
-class ReviewCard extends StatelessWidget {
-  final Map<String, dynamic> review;
-  const ReviewCard({super.key, required this.review});
+  Widget _buildReviewCard(Map<String, dynamic> data) {
+    // USING CORRECT FIELD NAMES FROM DATABASE SCREENSHOT
+    final String reviewerName = data['reviewerName'] ?? 'Guest';
+    final String reviewerImage =
+        data['reviewerImage'] ?? 'https://via.placeholder.com/150';
+    final String reviewText = data['reviewText'] ?? '';
+    final double rating = (data['star'] as num?)?.toDouble() ?? 0.0;
 
-  @override
-  Widget build(BuildContext context) {
+    DateTime date = DateTime.now();
+    if (data['date'] != null && data['date'] is Timestamp) {
+      date = (data['date'] as Timestamp).toDate();
+    }
+
     return Container(
-      width: 280,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.5),
-            spreadRadius: 1,
+            color: Colors.grey.withOpacity(0.05),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -706,53 +639,61 @@ class ReviewCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               CircleAvatar(
-                backgroundImage: NetworkImage(review['image']),
-                radius: 16,
+                radius: 20,
+                backgroundImage: NetworkImage(reviewerImage),
                 onBackgroundImageError: (_, __) {},
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 15),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      review['name'],
+                      reviewerName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: 15,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
-                      review['date'],
-                      style: const TextStyle(color: Colors.grey, fontSize: 10),
+                      DateFormat('MMM yyyy').format(date),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
                     ),
                   ],
                 ),
               ),
               Row(
                 children: [
-                  const Icon(Icons.star, size: 14, color: Color(0xFFFFC107)),
-                  const SizedBox(width: 2),
+                  const Icon(Icons.star, size: 16, color: Color(0xFFFFC107)),
+                  const SizedBox(width: 4),
                   Text(
-                    "${review['rating']}",
+                    rating.toStringAsFixed(1),
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontSize: 14,
                     ),
                   ),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Expanded(
             child: Text(
-              review['comment'],
+              reviewText,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 14,
+                height: 1.4,
+              ),
             ),
           ),
         ],

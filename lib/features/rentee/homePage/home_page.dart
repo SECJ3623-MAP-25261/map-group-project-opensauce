@@ -1,8 +1,8 @@
-import 'package:easyrent/features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/pages/renting_status_page.dart';
 import 'package:flutter/material.dart';
 import 'list_widget.dart';
 import '../searchPage/search_page.dart';
+import '../services/database_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,16 +12,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
-
-  void _onNavTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,38 +28,24 @@ class _HomePageState extends State<HomePage> {
             SizedBox(height: 20),
             BannerWidget(),
             SizedBox(height: 20),
-
-            // Top Rated
             ProductSectionWidget(
               title: "Top Rated Product",
               isYellowBackground: true,
             ),
-
             SizedBox(height: 10),
-
-            // Featured Items
             ProductSectionWidget(
               title: "Featured items",
               isYellowBackground: false,
             ),
-
             SizedBox(height: 10),
-
-            // Recently Viewed
             ProductSectionWidget(
               title: "Recently viewed",
-              isRecentlyViewed: true,
+              isYellowBackground: false,
             ),
-
             SizedBox(height: 20),
           ],
         ),
       ),
-      // bottomNavigationBar: NavbarWidget(
-      //   currentIndex: _selectedIndex,
-      //   onTap: _onNavTapped,
-      // ),
-      bottomNavigationBar: RenteeBottomNavBar()
     );
   }
 }
@@ -83,6 +59,38 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
 }
 
 class _CustomAppBarState extends State<CustomAppBar> {
+  bool _isUploading = false;
+
+  Future<void> _uploadSampleProducts() async {
+    setState(() {
+      _isUploading = true;
+    });
+
+    try {
+      await DatabaseService().uploadSampleProducts();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ Sample products uploaded successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppBar(
@@ -104,32 +112,72 @@ class _CustomAppBarState extends State<CustomAppBar> {
             ),
       ),
       actions: [
-        _circleBtn(Icons.inventory_2_outlined,"shopping_cart"),
-        _circleBtn(Icons.notifications_none,"notifications"),
+        // Upload Button
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFC107),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            onPressed: _isUploading ? null : _uploadSampleProducts,
+            icon:
+                _isUploading
+                    ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF5C001F),
+                        strokeWidth: 2,
+                      ),
+                    )
+                    : const Icon(Icons.cloud_upload, color: Color(0xFF5C001F)),
+            tooltip: 'Upload Sample Products',
+          ),
+        ),
+        // Shopping Cart Button
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFC107),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const RentingStatusPage(),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.inventory_2_outlined,
+              color: Color(0xFF5C001F),
+            ),
+            tooltip: 'Renting Status',
+          ),
+        ),
+        // Notifications Button
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 5),
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFC107),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            onPressed: () {
+              // Notification action
+            },
+            icon: const Icon(
+              Icons.notifications_none,
+              color: Color(0xFF5C001F),
+            ),
+            tooltip: 'Notifications',
+          ),
+        ),
         const SizedBox(width: 15),
       ],
-    );
-  }
-
-  Widget _circleBtn(IconData icon,String title) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 5),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFC107),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        onPressed: () {
-          if(title == 'shopping_cart') {
-              Navigator.push(context, MaterialPageRoute(builder: (context) {
-                return RentingStatusPage();
-              },));
-          } else if (title == 'notifications') {
-              null;
-          }
-        },
-        icon: Icon(icon, color: const Color(0xFF5C001F)),
-      ),
     );
   }
 }
@@ -164,7 +212,7 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                 border: Border.all(color: Colors.grey.shade300),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withValues(alpha: 0.15),
+                    color: Colors.grey.withOpacity(0.15),
                     spreadRadius: 2,
                     blurRadius: 8,
                     offset: const Offset(0, 2),
@@ -213,6 +261,8 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
     {'icon': Icons.camera_alt, 'label': 'Cameras'},
   ];
 
+  int _selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -224,30 +274,43 @@ class _CategoriesWidgetState extends State<CategoriesWidget> {
         separatorBuilder: (_, __) => const SizedBox(width: 15),
         itemBuilder: (context, index) {
           final cat = categories[index];
-          return Container(
-            width: 65,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFC107),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  cat['icon'] as IconData,
-                  size: 24,
-                  color: const Color(0xFF5C001F),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  cat['label'] as String,
-                  style: const TextStyle(
-                    fontSize: 8,
-                    fontWeight: FontWeight.bold,
+          final isSelected = _selectedIndex == index;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            child: Container(
+              width: 65,
+              decoration: BoxDecoration(
+                color:
+                    isSelected
+                        ? const Color(0xFF5C001F)
+                        : const Color(0xFFFFC107),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    cat['icon'] as IconData,
+                    size: 24,
+                    color: isSelected ? Colors.white : const Color(0xFF5C001F),
                   ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                  const SizedBox(height: 2),
+                  Text(
+                    cat['label'] as String,
+                    style: TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.white : Colors.black,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           );
         },
