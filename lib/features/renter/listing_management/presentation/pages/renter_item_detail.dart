@@ -177,7 +177,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
               icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
-            title: const Text("Detail Product", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+            title: const Text("Product Detial", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
             centerTitle: true,
           ),
           body: SingleChildScrollView(
