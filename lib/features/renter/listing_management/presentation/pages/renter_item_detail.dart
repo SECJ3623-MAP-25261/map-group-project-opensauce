@@ -1,12 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import '../../../../models/item.dart'; 
 import '../../services/notifier/listing_notifier.dart';
 import 'edit_item.dart';
 
 class RenterItemDetail extends StatefulWidget {
-  final Item item;
+  final Item item; // <--- Changed to Item
 
   const RenterItemDetail({super.key, required this.item});
 
@@ -31,10 +32,8 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
           ),
           TextButton(
             onPressed: () {
-              // 2. Call Real Delete Logic
               Provider.of<ListingNotifier>(context, listen: false)
                   .deleteItem(widget.item.id);
-              
               Navigator.pop(ctx);
               Navigator.pop(context);
             },
@@ -53,24 +52,97 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
     );
   }
 
+  // --- NEW: REVIEW CARD WIDGET (Adapted from Teammate) ---
+  Widget _buildReviewCard(dynamic review) {
+    // Note: Since your Review model might only have 'star' and 'reviewText',
+    // we use placeholders for Name/Image until the model is updated.
+    final double rating = review.star;
+    final String text = review.reviewText;
+    final String name = "Guest User"; // Placeholder
+    final String date = DateFormat('MMM yyyy').format(DateTime.now()); // Placeholder
+
+    return Container(
+      width: 300,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 16,
+                backgroundImage: NetworkImage('https://via.placeholder.com/150'), // Placeholder
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Text(
+                      date,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.star, size: 14, color: Color(0xFFFFC107)),
+              const SizedBox(width: 4),
+              Text(
+                rating.toStringAsFixed(1),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: Colors.grey[700], fontSize: 13, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // 3. LISTEN FOR UPDATES (Stale Data Fix)
     final state = Provider.of<ListingNotifier>(context).state;
     
-    // Find the latest version of this item in the list
+    // Find the latest version of this item (Stale Data Fix)
     final Item currentItem = state.myItems.firstWhere(
       (element) => element.id == widget.item.id,
       orElse: () => widget.item,
     );
 
-    // 4. PREPARE DATA
-    // Note: pricePerDay is already a double in the new model! No parsing needed.
-    final String priceText = currentItem.pricePerDay.toStringAsFixed(0);
-
+    final double priceVal = currentItem.pricePerDay; // Already double in new model
     final List<String> displayImages = currentItem.imageUrls.isNotEmpty
         ? currentItem.imageUrls
         : [currentItem.imageUrl];
+
+    // Real Rating Data
+    final int reviewCount = currentItem.reviews.length;
+    final String avgRating = currentItem.averageRating.toStringAsFixed(1);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -116,7 +188,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                       },
                       itemBuilder: (context, index) {
                         final String imagePath = displayImages[index];
-                        // 5. HYBRID IMAGE LOGIC (File vs URL)
                         bool isNetworkImage = imagePath.startsWith('http') || imagePath.startsWith('https');
 
                         if (isNetworkImage) {
@@ -197,34 +268,35 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
             
             const SizedBox(height: 24),
 
-            // --- INFO SECTION ---
+            // --- TITLE & PRICE SECTION ---
             Center(
               child: Column(
                 children: [
                   Text(
-                    currentItem.productName, // <--- Fixed: productName
+                    currentItem.productName,
                     textAlign: TextAlign.center,
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF101828)),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "RM $priceText per day", // <--- Fixed: priceText
+                    "RM ${priceVal.toStringAsFixed(0)} per day",
                     style: const TextStyle(fontSize: 16, color: Colors.grey),
                   ),
                   const SizedBox(height: 12),
                   
+                  // FIXED RATING ROW (Using Real Data)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.star, color: Colors.amber, size: 20),
                       const SizedBox(width: 4),
                       Text(
-                        "${currentItem.averageRating}", // <--- Fixed: averageRating
+                        avgRating, // Real Average
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        "(0 Reviews)", 
+                        "($reviewCount Reviews)", // Real Count
                         style: TextStyle(color: Colors.grey[400]),
                       ),
                     ],
@@ -237,6 +309,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
             const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
             const SizedBox(height: 24),
 
+            // --- DESCRIPTION SECTION ---
             const Text(
               "Description Product",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101828)),
@@ -247,9 +320,56 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
               style: const TextStyle(fontSize: 14, color: Color(0xFF667085), height: 1.5),
             ),
             
+            const SizedBox(height: 24),
+            const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
+            const SizedBox(height: 24),
+
+            // --- NEW: REVIEWS SECTION ---
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "Reviews",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101828)),
+                ),
+                if (reviewCount > 0)
+                  TextButton(
+                    onPressed: () {
+                      // Navigate to full reviews list if you implement it
+                    },
+                    child: const Text("See All", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 15),
+
+            if (reviewCount == 0)
+              Container(
+                padding: const EdgeInsets.all(20),
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Center(child: Text("No reviews yet", style: TextStyle(color: Colors.grey))),
+              )
+            else
+              SizedBox(
+                height: 160,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: reviewCount,
+                  separatorBuilder: (_, __) => const SizedBox(width: 15),
+                  itemBuilder: (context, index) {
+                    final review = currentItem.reviews[index];
+                    return _buildReviewCard(review);
+                  },
+                ),
+              ),
+
             const SizedBox(height: 40),
 
-            // --- BUTTONS ---
+            // --- ACTION BUTTONS ---
             Row(
               children: [
                 Expanded(
@@ -261,7 +381,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                         MaterialPageRoute(
                           builder: (context) => ChangeNotifierProvider.value(
                             value: existingNotifier,
-                            child: RenterEditItem(item: currentItem), // Pass real Item
+                            child: RenterEditItem(item: currentItem),
                           ),
                         ),
                       );

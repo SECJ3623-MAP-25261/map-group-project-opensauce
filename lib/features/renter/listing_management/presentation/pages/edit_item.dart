@@ -7,7 +7,7 @@ import '../../../../models/item.dart';
 import '../../services/notifier/listing_notifier.dart';
 
 class RenterEditItem extends StatefulWidget {
-  final Item item; // <--- Changed from ItemEntity to Item
+  final Item item;
 
   const RenterEditItem({super.key, required this.item});
 
