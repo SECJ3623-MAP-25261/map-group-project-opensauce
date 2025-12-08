@@ -7,29 +7,22 @@ class ListingRepositoryImpl implements ListingRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  //String? get _currentUserId => _auth.currentUser?.uid;
-  String? get _currentUserId => "UAPrpMnRHvfu47xvzh7L";
+  // String? get _currentUserId => _auth.currentUser?.uid;
+  String? get _currentUserId => "UAPrpMnRHvfu47xvzh7L"; // TEST
 
   @override
   Future<List<Item>> getMyItems() async {
     try {
       final uid = _currentUserId;
-      if (uid == null) {
-        print("Error: No user logged in.");
-        return []; 
-      }
+      if (uid == null) return [];
 
-      // 1. Create a Reference to the current user (matches your DB screenshot)
-      // Your DB uses references like: /user/UAPrp...
       final userRef = _firestore.doc('user/$uid');
 
-      // 2. Query the 'product' collection
       final snapshot = await _firestore
           .collection('product') 
-          .where('owner', isEqualTo: userRef) // Filter by Reference
+          .where('owner', isEqualTo: userRef)
           .get();
 
-      // 3. Convert to Item objects
       return snapshot.docs.map((doc) => Item.fromSnapshot(doc)).toList();
     } catch (e) {
       print("Error fetching products: $e");
@@ -43,12 +36,24 @@ class ListingRepositoryImpl implements ListingRepository {
       final uid = _currentUserId;
       if (uid == null) throw Exception("User must be logged in");
 
-      // 4. Convert Item to JSON
-      final data = item.toJson();
+      // 1. Fetch User Profile
+      final userDoc = await _firestore.collection('user').doc(uid).get();
       
-      // 5. Force the Owner to be the Current User (Security)
-      data['owner'] = _firestore.doc('user/$uid');
-      // Ideally, we should also fetch/set 'ownerName' and 'ownerImage' here if they are missing
+      String ownerName = "Unknown Renter";
+      String ownerImage = "";
+      
+      if (userDoc.exists) {
+        final userData = userDoc.data()!;
+        // Assuming your user collection uses 'fname', 'lname', 'profile_image'
+        ownerName = "${userData['fname'] ?? ''} ${userData['lname'] ?? ''}".trim();
+        ownerImage = userData['profile_image'] ?? "";
+      }
+
+      // 2. Overwrite Item with Real Owner Data
+      final data = item.toJson();
+      data['owner'] = _firestore.doc('user/$uid'); // Reference
+      data['ownerName'] = ownerName;               // String
+      data['ownerImage'] = ownerImage;             // String
 
       await _firestore.collection('product').add(data);
     } catch (e) {
@@ -60,8 +65,6 @@ class ListingRepositoryImpl implements ListingRepository {
   @override
   Future<void> updateItem(Item item) async {
     try {
-      // 6. Update using item.toJson()
-      // Note: This overrides 'owner' again, which is fine as long as item.ownerId is correct
       await _firestore.collection('product').doc(item.id).update(item.toJson());
     } catch (e) {
       print("Error updating product: $e");

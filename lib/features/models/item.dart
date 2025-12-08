@@ -1,31 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'review.dart'; // Keep this if you have the review file
+import 'review.dart';
 
 class Item {
   final String id;
-  
-  // --- OWNER INFO (From Screenshot) ---
   final String ownerId;        
   final String ownerName;      
   final String ownerImage;     
-  
-  // --- PRODUCT INFO ---
-  final String productName;    // Maps to 'product_name'
-  final double pricePerDay;    // Maps to 'price_per_day'
+  final String productName;    
+  final double pricePerDay;    
   final String description;    
   final String category;
   final double deposit;       
-  
-  // --- IMAGES ---
-  final String imageUrl;       // Maps to 'imageURL'
-  final List<String> imageUrls;// Maps to 'imageUrls'
-
-  // --- DETAILS ---
+  final String imageUrl;       
+  final List<String> imageUrls;
+  final String location;
   final int quantity;          
-  final String rentingDuration;// Maps to 'renting_duration'
-  final String deliveryMethods;// Maps to 'delivery_methods'
-  final double averageRating;  // Maps to 'rating'
-  
+  final String rentingDuration;
+  final String deliveryMethods;
+  final double averageRating;    
   final String? currentRenterId; 
   final List<Review> reviews;
 
@@ -41,6 +33,7 @@ class Item {
     this.deposit = 0.0,
     required this.imageUrl,
     required this.imageUrls,
+    required this.location,
     required this.quantity,
     required this.rentingDuration,
     required this.deliveryMethods,
@@ -49,21 +42,18 @@ class Item {
     this.reviews = const [],
   });
 
-  // --- 1. UPLOAD TO FIREBASE (Matches Screenshot Keys) ---
   Map<String, dynamic> toJson() {
     return {
-      // Convert String ID back to Reference
       'owner': FirebaseFirestore.instance.doc('user/$ownerId'),
       'ownerName': ownerName,
-      'ownerImage': ownerImage,
-      
+      'ownerImage': ownerImage,      
       'product_name': productName,
       'price_per_day': pricePerDay,
       'description': description,
-      'imageURL': imageUrl,   // CamelCase per screenshot
-      'imageUrls': imageUrls, // Array per screenshot
+      'imageURL': imageUrl,
+      'imageUrls': imageUrls,
       'deposit': deposit,
-      
+      'location': location,
       'quantity': quantity,
       'renting_duration': rentingDuration,
       'delivery_methods': deliveryMethods,
@@ -73,16 +63,13 @@ class Item {
           ? FirebaseFirestore.instance.doc('user/$currentRenterId') 
           : null,
           
-      // 'reviews': reviews.map((r) => r.toJson()).toList(), // Uncomment if reviews are ready
     };
   }
 
-  // --- 2. DOWNLOAD FROM FIREBASE ---
   factory Item.fromSnapshot(DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data();
     if (data == null) throw StateError('Item data is missing.');
 
-    // Helper to extract ID from Reference safely
     String getIdFromRef(dynamic value) {
       if (value is DocumentReference) {
         return value.id; 
@@ -92,31 +79,23 @@ class Item {
 
     return Item(
       id: snapshot.id,
-      
-      // Owner Logic
       ownerId: getIdFromRef(data['owner']),
       ownerName: data['ownerName'] ?? 'Unknown',
       ownerImage: data['ownerImage'] ?? '',
-
-      // Product Logic
       productName: data['product_name'] ?? '',
       pricePerDay: (data['price_per_day'] as num?)?.toDouble() ?? 0.0,
       description: data['description'] ?? '',
       category: data['category'] ?? 'Other',
       deposit: (data['deposit'] as num?)?.toDouble() ?? 0.0, 
-
-      // Image Logic
+      location: data['location'] ?? '',
       imageUrl: data['imageURL'] ?? '', 
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
-
-      // Details
       quantity: (data['quantity'] as num?)?.toInt() ?? 1,
-      rentingDuration: data['renting_duration'].toString(), // Safe toString() handles Numbers or Strings
+      rentingDuration: data['renting_duration'].toString(),
       deliveryMethods: data['delivery_methods'] ?? 'Pick-up',
       averageRating: (data['rating'] as num?)?.toDouble() ?? 0.0,
-      
       currentRenterId: getIdFromRef(data['renter']),
-      reviews: [], // Initialize empty for now to prevent crashes
+      reviews: [],
     );
   }
 }

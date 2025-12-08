@@ -53,7 +53,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
     );
   }
 
-  // --- HELPER: Review Card (Matches Teammate's Style) ---
   Widget _buildReviewCard(Map<String, dynamic> data) {
     String dateStr = "";
     if (data['date'] != null && data['date'] is Timestamp) {
@@ -66,7 +65,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
     final String reviewText = data['reviewText'] ?? "";
 
     return Container(
-      width: 300, // Fixed width for horizontal scrolling
+      width: 300,
       padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -132,26 +131,20 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
 
   @override
   Widget build(BuildContext context) {
-    // USE STREAMBUILDER for Live Data (Fixes "Not Showing" issue)
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
       stream: FirebaseFirestore.instance.collection('product').doc(widget.item.id).snapshots(),
       builder: (context, snapshot) {
         
-        // 1. Handle Loading/Error
         if (!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
-        // 2. Parse Live Data
-        final data = snapshot.data!.data() as Map<String, dynamic>?;
+        final data = snapshot.data!.data();
         if (data == null) return const Scaffold(body: Center(child: Text("Item not found")));
 
-        // Create Item object from live data
         final currentItem = Item.fromSnapshot(snapshot.data!);
 
-        // 3. Process Reviews
         List<dynamic> reviewsList = [];
         if (data.containsKey('reviews')) {
           reviewsList = data['reviews'] as List<dynamic>;
-          // Sort by date (Newest first)
           reviewsList.sort((a, b) {
             Timestamp? tA = a['date'] as Timestamp?;
             Timestamp? tB = b['date'] as Timestamp?;
@@ -160,7 +153,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
           });
         }
         
-        // 4. Calculate Rating Live
         final int reviewCount = reviewsList.length;
         double calculatedRating = 0.0;
         if (reviewCount > 0) {
@@ -194,7 +186,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 
-                // --- IMAGE CAROUSEL ---
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -253,7 +244,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                 
                 const SizedBox(height: 24),
 
-                // --- INFO HEADER (LIVE DATA) ---
                 Center(
                   child: Column(
                     children: [
@@ -273,13 +263,11 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                         children: [
                           const Icon(Icons.star, color: Colors.amber, size: 20),
                           const SizedBox(width: 4),
-                          // Live Rating
                           Text(
                             calculatedRating.toStringAsFixed(1), 
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
                           const SizedBox(width: 8),
-                          // Live Count
                           Text(
                             "($reviewCount Reviews)", 
                             style: TextStyle(color: Colors.grey[400]),
@@ -294,7 +282,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                 const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
                 const SizedBox(height: 24),
 
-                // --- DESCRIPTION ---
                 const Text(
                   "Description Product",
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101828)),
@@ -309,13 +296,22 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                 const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
                 const SizedBox(height: 24),
 
-                // --- REVIEWS SECTION ---
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text("Reviews", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101828))),
                     if (reviewCount > 0)
-                      const Text("See All", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                      TextButton(
+                        onPressed: () {
+                          //Navigator.push(
+                            //context,
+                            //MaterialPageRoute(
+                              //builder: (context) => ReviewPage(itemId: widget.item.id),
+                            //),
+                          //);
+                        },
+                        child: const Text("See All", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -343,13 +339,11 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
 
                 const SizedBox(height: 40),
 
-                // --- BUTTONS ---
                 Row(
                   children: [
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
-                          // Pass Live Item to Edit
                           Navigator.push(context, MaterialPageRoute(builder: (_) => 
                             ChangeNotifierProvider.value(
                               value: Provider.of<ListingNotifier>(context, listen: false),

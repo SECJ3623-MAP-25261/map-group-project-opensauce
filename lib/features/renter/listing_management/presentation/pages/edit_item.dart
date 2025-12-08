@@ -16,7 +16,6 @@ class RenterEditItem extends StatefulWidget {
 }
 
 class _RenterEditItemState extends State<RenterEditItem> {
-  // --- CONTROLLERS ---
   late TextEditingController _nameController;
   late TextEditingController _priceController;
   late TextEditingController _depositController;
@@ -26,14 +25,12 @@ class _RenterEditItemState extends State<RenterEditItem> {
   String? _selectedCategory;
   final List<String> _categories = ['Electronic', 'Stationary', 'Clothing', 'Sports', 'Other'];
 
-  // --- IMAGE STATE ---
   final List<dynamic> _itemImages = []; 
   final ImagePicker _picker = ImagePicker();
   
   int _currentImageIndex = 0; 
   final PageController _pageController = PageController();
   
-  // Loading State
   bool _isSaving = false;
 
   @override
@@ -46,7 +43,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
 
 
     _descriptionController = TextEditingController(text: widget.item.description);
-    _locationController = TextEditingController(text: "Johor Bahru");
+    _locationController = TextEditingController(text: "UTM");
     
     if (_categories.contains(widget.item.category)) {
       _selectedCategory = widget.item.category;
@@ -70,7 +67,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
     super.dispose();
   }
 
-  // --- IMAGE HELPERS ---
   Future<void> _pickImage(ImageSource source) async {
     if (_itemImages.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -97,7 +93,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
     }
   }
 
-  // Upload Helper
   Future<String> _uploadImage(File imageFile, String folderName) async {
     try {
       String fileName = DateTime.now().millisecondsSinceEpoch.toString();
@@ -182,9 +177,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
     );
   }
 
-  // --- REAL UPDATE LOGIC ---
   Future<void> _updateItem() async {
-    // 1. Validation
     if (_nameController.text.isEmpty || _priceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill in Name and Price")),
@@ -197,14 +190,11 @@ class _RenterEditItemState extends State<RenterEditItem> {
     try {
       List<String> finalImageUrls = [];
 
-      // 2. Process Images (Upload New Files, Keep Old Strings)
       for (var img in _itemImages) {
         if (img is File) {
-          // It's a new file, upload it
           String url = await _uploadImage(img, 'item_images');
           finalImageUrls.add(url);
         } else if (img is String) {
-          // It's an existing URL, keep it
           finalImageUrls.add(img);
         }
       }
@@ -219,9 +209,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
         }
       }
 
-      // 3. Create Updated Object
-      // Use 'Item' model logic here
-      // Note: We keep the existing ID and Owner info
       final updatedItem = Item(
         id: widget.item.id,
         ownerId: widget.item.ownerId,
@@ -230,10 +217,10 @@ class _RenterEditItemState extends State<RenterEditItem> {
         
         productName: _nameController.text,
         pricePerDay: double.tryParse(_priceController.text) ?? 0.0,
-        // deposit: double.tryParse(_depositController.text) ?? 0.0, // Uncomment if Model has deposit
+        deposit: double.tryParse(_depositController.text) ?? 0.0,
         
         description: _descriptionController.text,
-        // location: _locationController.text, // Uncomment if Model has location
+        location: _locationController.text,
         category: _selectedCategory ?? "Other",
         
         imageUrl: newMainImage,
@@ -247,7 +234,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
         currentRenterId: widget.item.currentRenterId,
       );
 
-      // 4. Update via Provider
       if (!mounted) return;
       await Provider.of<ListingNotifier>(context, listen: false).updateItem(updatedItem);
 
@@ -287,7 +273,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             
-            // --- IMAGE CAROUSEL ---
             Center(
               child: Stack(
                 alignment: Alignment.center,
@@ -439,7 +424,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
             
             const SizedBox(height: 24),
 
-            // --- FIELDS ---
             _buildLabel("Name"),
             _buildTextField(controller: _nameController, hint: "Insert here"),
             _buildLabel("Category"),
@@ -454,7 +438,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
             _buildTextField(controller: _locationController, hint: "Location"),
             const SizedBox(height: 30),
 
-            // --- BUTTONS ---
             Row(
               children: [
                 Expanded(
@@ -492,7 +475,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
     );
   }
 
-  // --- HELPER WIDGETS ---
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, top: 12.0),

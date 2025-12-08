@@ -2,9 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_storage/firebase_storage.dart'; 
 import '../../../../models/item.dart'; 
 import '../../services/notifier/listing_notifier.dart';
 
@@ -26,17 +24,14 @@ class _RenterAddItemState extends State<RenterAddItem> {
   String? _selectedCategory;
   final List<String> _categories = ['Electronic', 'Stationary', 'Clothing', 'Sports', 'Other'];
 
-  // --- IMAGE STATE ---
   final List<File> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
   
   int _currentImageIndex = 0; 
   final PageController _pageController = PageController();
   
-  // Loading state
   bool _isSaving = false;
 
-  // --- 1. IMAGE PICKER LOGIC ---
   Future<void> _pickImage(ImageSource source) async {
     if (_selectedImages.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -51,7 +46,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
         setState(() {
           _selectedImages.add(File(pickedFile.path));
           _currentImageIndex = _selectedImages.length - 1;
-          // Wait for UI to build, then scroll
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageController.hasClients) {
               _pageController.jumpToPage(_currentImageIndex);
@@ -64,7 +58,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
     }
   }
 
-  // --- 2. UPLOAD HELPER (Was Missing) ---
   Future<String> _uploadImage(File imageFile, String folderName) async {
     try {
       String fileName = DateTime.now().millisecondsSinceEpoch.toString();
@@ -78,7 +71,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
     }
   }
 
-  // --- 3. UI HELPERS (Delete, Move, Show Options) ---
   void _confirmDelete() {
     showDialog(
       context: context,
@@ -150,9 +142,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  // --- 4. REAL SAVE LOGIC ---
   Future<void> _saveItem() async {
-    // Validation
     if (_nameController.text.isEmpty || 
         _priceController.text.isEmpty || 
         _depositController.text.isEmpty ||
@@ -174,21 +164,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
     setState(() { _isSaving = true; });
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("User not logged in");
-
-      // A. Fetch User Profile
-      final userDoc = await FirebaseFirestore.instance.collection('user').doc(user.uid).get();
-      String ownerName = "Unknown";
-      String ownerImage = "";
-
-      if (userDoc.exists) {
-        final data = userDoc.data()!;
-        ownerName = "${data['fname'] ?? ''} ${data['lname'] ?? ''}".trim();
-        ownerImage = data['profile_image'] ?? "";
-      }
-
-      // B. Upload Images to Cloud
       List<String> uploadedUrls = [];
       for (File img in _selectedImages) {
         String url = await _uploadImage(img, 'item_images');
@@ -201,23 +176,21 @@ class _RenterAddItemState extends State<RenterAddItem> {
         additionalImages = uploadedUrls.sublist(1);
       }
 
-      // C. Create Item Object
       final newItem = Item(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        ownerId: user.uid,
-        ownerName: ownerName,
-        ownerImage: ownerImage,
+        ownerId: "temp",
+        ownerName: "temp",
+        ownerImage: "temp",
         
         productName: _nameController.text,
         pricePerDay: double.tryParse(_priceController.text) ?? 0.0,
-        deposit: double.tryParse(_depositController.text) ?? 0.0, 
+        deposit: double.tryParse(_depositController.text) ?? 0.0,
         
         description: _descriptionController.text,
-        category: _selectedCategory ?? "Other",
-        
+        category: _selectedCategory ?? "Other",        
         imageUrl: mainImageUrl,
         imageUrls: additionalImages,
-        
+        location: _depositController.text,
         quantity: 1,
         rentingDuration: "Daily",
         deliveryMethods: "Pickup",
@@ -226,7 +199,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
         currentRenterId: null,
       );
 
-      // D. Save
       if (!mounted) return;
       await Provider.of<ListingNotifier>(context, listen: false).addItem(newItem);
 
@@ -265,8 +237,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
-            // --- IMAGE CAROUSEL SECTION ---
             Center(
               child: Stack(
                 alignment: Alignment.center,
@@ -309,8 +279,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
                             ),
                     ),
                   ),
-
-                  // LEFT ARROW
                   if (_currentImageIndex > 0)
                     Positioned(
                       left: 10,
@@ -318,17 +286,11 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         onTap: () => _movePage(-1),
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                          ),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
                           child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black87),
                         ),
                       ),
                     ),
-
-                  // RIGHT ARROW
                   if (_currentImageIndex < _selectedImages.length - 1)
                     Positioned(
                       right: 10,
@@ -336,38 +298,21 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         onTap: () => _movePage(1),
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                          ),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
                           child: const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.black87),
                         ),
                       ),
                     ),
-
-                  // INDICATOR
                   if (_selectedImages.isNotEmpty)
                     Positioned(
                       bottom: 16,
                       left: 16,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "${_currentImageIndex + 1} / ${_selectedImages.length}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
+                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(12)),
+                        child: Text("${_currentImageIndex + 1} / ${_selectedImages.length}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
                     ),
-
                   Positioned(
                     bottom: 16,
                     right: 16,
@@ -375,16 +320,11 @@ class _RenterAddItemState extends State<RenterAddItem> {
                       onTap: _showImagePickerOptions,
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF5C001F),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        decoration: BoxDecoration(color: const Color(0xFF5C001F), borderRadius: BorderRadius.circular(12)),
                         child: const Icon(Icons.edit, color: Colors.white, size: 20),
                       ),
                     ),
                   ),
-
-                  // DELETE BUTTON
                   if (_selectedImages.isNotEmpty)
                     Positioned(
                       top: 16,
@@ -393,25 +333,16 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         onTap: _confirmDelete, 
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9), 
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
-                            ]
-                          ),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)]),
                           child: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
                         ),
                       ),
                     ),
-
                 ],
               ),
             ),
-            
             const SizedBox(height: 24),
-
-            // --- FORM FIELDS ---
+            // FIELDS
             _buildLabel("Name"),
             _buildTextField(controller: _nameController, hint: "Insert here"),
             _buildLabel("Category"),
@@ -425,8 +356,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
             _buildLabel("Location"),
             _buildTextField(controller: _locationController, hint: "Location"),
             const SizedBox(height: 30),
-
-            // --- BUTTONS ---
+            // BUTTONS
             Row(
               children: [
                 Expanded(
@@ -437,13 +367,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
                       side: const BorderSide(color: Color(0xFF5C001F)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: _isSaving 
-                      ? const SizedBox(
-                          height: 20, 
-                          width: 20, 
-                          child: CircularProgressIndicator(color: Color(0xFF5C001F), strokeWidth: 2)
-                        )
-                      : const Text("SAVE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                    child: _isSaving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Color(0xFF5C001F), strokeWidth: 2)) : const Text("SAVE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -468,12 +392,8 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  // --- HELPER WIDGETS ---
   Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0, top: 12.0),
-      child: Text(text, style: const TextStyle(fontSize: 16, color: Colors.black87)),
-    );
+    return Padding(padding: const EdgeInsets.only(bottom: 8.0, top: 12.0), child: Text(text, style: const TextStyle(fontSize: 16, color: Colors.black87)));
   }
 
   Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType}) {
