@@ -1,20 +1,22 @@
+import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/pages/checkout_page.dart';
+import 'package:easyrent/features/rentee/wishlist/services/wishlist_notifier.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../data/dummy_data.dart';
 import '../reviewPage/review_page.dart';
 
-class ProductDetailsPage extends StatefulWidget {
+class ProductDetailsPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> product;
 
   const ProductDetailsPage({super.key, required this.product});
 
   @override
-  State<ProductDetailsPage> createState() => _ProductDetailsPageState();
+  ConsumerState<ProductDetailsPage> createState() => _ProductDetailsPageState();
 }
 
-class _ProductDetailsPageState extends State<ProductDetailsPage> {
-  bool isFavorite = false;
+class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
 
   // IMAGE CAROUSEL
   int _currentImageIndex = 0;
@@ -31,7 +33,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
   double _getPricePerDay() {
     try {
-      final String priceStr = widget.product['price'] ?? "0";
+      final String priceStr = widget.product['price']?.toString() ?? "0";
       final String cleanStr = priceStr.replaceAll(RegExp(r'[^0-9.]'), '');
       return double.tryParse(cleanStr) ?? 0.0;
     } catch (e) {
@@ -116,6 +118,13 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
     }
   }
 
+  late Future<bool> isFavorite;
+
+  @override
+  void initState() {
+    super.initState();
+    isFavorite = isItemSaveToDB(widget.product['id']);
+  }
   @override
   Widget build(BuildContext context) {
     final renter =
@@ -168,20 +177,91 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             icon: const Icon(Icons.share_outlined, color: Colors.black),
             onPressed: () {},
           ),
-          IconButton(
-            icon: Icon(
-              isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: isFavorite ? Colors.red : Colors.black,
-            ),
-            onPressed: () {
-              setState(() {
-                isFavorite = !isFavorite;
-              });
-            },
+          FutureBuilder(
+            future: isFavorite,
+            builder: (context, asyncSnapshot) {
+              bool _isFavorite = asyncSnapshot.data ?? false;
+              return IconButton(
+                icon: Icon(
+                  _isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: _isFavorite ? Colors.red : Colors.black,
+                ),
+                onPressed: () {
+                  setState(() {
+                    void saveToDB()async{
+                      if(!_isFavorite){
+                        print("_isFavorite: ${_isFavorite}");
+                        // item havent save to wishlist 
+                              final bool isSuccess = await saveToWishlistDB(widget.product);
+                              if(isSuccess){
+                                _isFavorite = true;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'Item save to wishlist.',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.green.shade700,
+                                    duration: const Duration(seconds: 4),
+                                    behavior: SnackBarBehavior.floating, // Looks cleaner
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'Item failed to save to wishlist. Please try again',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.red.shade700,
+                                    duration: const Duration(seconds: 4),
+                                    behavior: SnackBarBehavior.floating, // Looks cleaner
+                                  ),
+                                );
+                              }
+                      } else {
+                        // remove the item from wishlist
+                        print("_isFavorite: ${_isFavorite}");
+                        String itemId= widget.product['id'];
+                        final bool isSuccess = await removeWishlistItemFromDB(itemId);
+                              if(isSuccess){
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'Item sucessfully remove from wishlit.',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.green.shade700,
+                                    duration: const Duration(seconds: 4),
+                                    behavior: SnackBarBehavior.floating, // Looks cleaner
+                                  ),
+                                );
+                                _isFavorite=false;
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'Item failed to remove from wishlist. Please try again',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.red.shade700,
+                                    duration: const Duration(seconds: 4),
+                                    behavior: SnackBarBehavior.floating, // Looks cleaner
+                                  ),
+                                );
+                              }
+                      }
+                    }
+                    saveToDB();
+                  });
+                },
+              );
+            }
           ),
         ],
       ),
 
+    // Rent Confirmation + Date selection
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
         decoration: BoxDecoration(
@@ -226,9 +306,11 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     );
                     _pickDateRange();
                   } else {
+                    ref.read(checkoutProvider.notifier).setItems(widget.product);
+                    ref.read(checkoutProvider.notifier).setStartEndRenting(_selectedDateRange?.start, _selectedDateRange?.end);
                     // Proceed to checkout logic
                     Navigator.push(context, MaterialPageRoute(builder: (context) {
-                      return CheckoutPage();
+                      return CheckoutPage(items: widget.product,);
                     },));
                   }
                 },
@@ -378,7 +460,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                     child: Column(
                       children: [
                         Text(
-                          widget.product['title'],
+                          widget.product['product_name'],
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 22,
@@ -387,7 +469,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          widget.product['price'],
+                          widget.product['price'].toString(),
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.grey,

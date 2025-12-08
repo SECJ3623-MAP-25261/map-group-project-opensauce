@@ -24,7 +24,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
           Icon(Icons.star, color: AppColors.primary, size: 16),
           const SizedBox(width: 4),
           Text(
-            '${widget.item['star_rating']}/5.0 (${widget.item['price_per_day']})',
+            '${widget.item['rating']}/5.0 (${widget.item['price']})',
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
@@ -45,7 +45,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
             IconButton(
               onPressed: () {
                 if (ref.watch(checkoutProvider.notifier).getItemQuantity(id) > 0) {
-                  ref.read(checkoutProvider.notifier).decrementItemQuantity(widget.item['id']);
+                  ref.read(checkoutProvider.notifier).decrementItemQuantity();
                 }
               },
               icon: const Icon(Icons.remove, size: 16, color: Colors.grey),
@@ -60,7 +60,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
             const SizedBox(width: 4),
             IconButton(
               onPressed: () {
-                ref.read(checkoutProvider.notifier).incrementItemQuantity(widget.item['id']);
+                ref.read(checkoutProvider.notifier).incrementItemQuantity();
               },
               icon: const Icon(Icons.add, size: 16, color: Colors.grey),
               padding: EdgeInsets.zero,
@@ -93,7 +93,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              widget.item['imageUrl'],
+              widget.item['image'],
               width: 80,
               height: 80,
               fit: BoxFit.cover,
@@ -105,7 +105,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 17),
 
           // Center: Product Details
           Expanded(
@@ -125,19 +125,19 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
                         ),
                       ),
                     ),
-                      IconButton(
-                        onPressed: () {
-                          ref.read(checkoutProvider.notifier).deleteItem(id);
-                        },
-                        icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                    ),
+                    //   IconButton(
+                    //     onPressed: () {
+                    //       ref.read(checkoutProvider.notifier).deleteItem(id);
+                    //     },
+                    //     icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                    //     padding: EdgeInsets.zero,
+                    //     constraints: const BoxConstraints(),
+                    // ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'RM ${widget.item['price_per_day']} per day',
+                  'RM ${widget.item['price'].toString()} per day',
                   style: TextStyle(
                     color: AppColors.primaryRed,
                     fontWeight: FontWeight.w600,

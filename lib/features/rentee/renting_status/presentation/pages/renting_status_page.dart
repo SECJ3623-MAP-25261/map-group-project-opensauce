@@ -4,6 +4,7 @@ import 'package:easyrent/features/rentee/presentation/widgets/rentee_bottom_navb
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/history_item_card_widgets.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/inRenting_item_card_widget.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/ordering_item_card_widget.dart';
+import 'package:easyrent/features/rentee/renting_status/services/database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -37,6 +38,7 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
   @override
   Widget build(BuildContext context) {
     // Scaffold wraps the entire page
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
 
@@ -90,18 +92,43 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
 
   // --- WIDGET METHOD TO BUILD THE CONTENT ---
   Widget _buildOrderingTabContent() {
+    final Future<List<Map<String, dynamic>>> orderingItemsFuture = 
+    RentingStatusDatabaseService().getOrderingItems("testing User Ling") as Future<List<Map<String, dynamic>>>;
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
-      child: Stack(
-        children: [
-          Column(
+      // 1. Removed Stack and made FutureBuilder the direct child
+      child: FutureBuilder<List<Map<String, dynamic>>>(
+        future: orderingItemsFuture,
+        builder: (context, asyncSnapshot) {
+          
+          if (asyncSnapshot.connectionState == ConnectionState.waiting) {
+            // Show a loading indicator at the top while waiting
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          if (asyncSnapshot.hasError) {
+            return Center(child: Text('Error: ${asyncSnapshot.error}'));
+          }
+
+          final List<Map<String, dynamic>> orderingItems = asyncSnapshot.data ?? [];
+
+          if (orderingItems.isEmpty) {
+            // Use an Expanded widget if this builder is nested, but Center is fine here.
+            return const Center(child: Text('No ordering items found.'));
+          }
+          
+          // 2. The Column is now scrollable due to the SingleChildScrollView parent
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children:
-                userOrdering.map((item) {
-                  return RentalItemCardWidget(item: item);
-                }).toList(),
-          ),
-        ],
+            children: orderingItems.map((item) {
+              // 3. Ensure the key 'items' correctly extracts the product data map
+              // Note: If item['items'] contains the item ID, product name, etc., this is correct.
+              // If the key is 'item' (singular) use item['item']
+              return RentalItemCardWidget(item: item['items']); 
+            }).toList(),
+          );
+        },
       ),
     );
   }
@@ -130,7 +157,7 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children:
                 userOrderHistory.map((item) {
-                  return HistoryItemCardWidgets(item: item);
+                  return HistoryItemCardWidgets(item: item['items']);
                 }).toList(),
           ),
         ],

@@ -15,7 +15,7 @@ class WishlistCard extends ConsumerStatefulWidget {
 class _WishlistCardState extends ConsumerState<WishlistCard> {
   @override
   Widget build(BuildContext context) {
-    final id = widget.item['id'] as String;
+    final id = widget.item['itemId'] as String;
     // Helper function to create the star rating row
     Widget buildRatingRow() {
       return Row(
@@ -24,7 +24,7 @@ class _WishlistCardState extends ConsumerState<WishlistCard> {
           Icon(Icons.star, color: AppColors.primary, size: 16),
           const SizedBox(width: 4),
           Text(
-            '${widget.item['star_rating']}/5.0 (${widget.item['price_per_day']})',
+            '${widget.item['item']['rating']}/5.0 (${widget.item['item']['price']})',
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
@@ -44,7 +44,7 @@ class _WishlistCardState extends ConsumerState<WishlistCard> {
           children: [
             IconButton(
               onPressed: () {
-                if (widget.item['quantity'] > 0) {
+                if (widget.item['item']['quantity'] > 0) {
                   ref.read(shoppingCartProvider.notifier).decrementItemQuantity(id);
                 }
               },
@@ -93,7 +93,7 @@ class _WishlistCardState extends ConsumerState<WishlistCard> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              widget.item['imageUrl'],
+              widget.item['item']['image'],
               width: 80,
               height: 80,
               fit: BoxFit.cover,
@@ -117,7 +117,7 @@ class _WishlistCardState extends ConsumerState<WishlistCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        widget.item['product_name'],
+                        widget.item['item']['product_name'],
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -136,7 +136,7 @@ class _WishlistCardState extends ConsumerState<WishlistCard> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'RM ${widget.item['price_per_day']} per day',
+                  'RM ${widget.item['item']['price']} per day',
                   style: TextStyle(
                     color: AppColors.primaryRed,
                     fontWeight: FontWeight.w600,

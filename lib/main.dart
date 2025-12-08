@@ -47,16 +47,16 @@ class _MyAppState extends State<MyApp> {
           seedColor: const Color(0xFF800000),
         ),
       ),
-      home: MessagesApp()
-      // ValueListenableBuilder(valueListenable: selectedPageNotifiers, builder: (context, value, child) {
-      //   if(value == 0){
-      //       return HomePage();
-      //   } else if(value ==1) {
-      //     return WishlistPage();
-      //   } else {
-      //     return MyProfilePage();
-      //   }
-      // },),
+      home: 
+      ValueListenableBuilder(valueListenable: selectedPageNotifiers, builder: (context, value, child) {
+        if(value == 0){
+            return HomePage();
+        } else if(value ==1) {
+          return WishlistPage();
+        } else {
+          return MyProfilePage();
+        }
+      },),
     );
   }
 }

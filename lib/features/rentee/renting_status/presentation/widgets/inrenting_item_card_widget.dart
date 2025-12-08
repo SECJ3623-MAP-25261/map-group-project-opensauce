@@ -60,7 +60,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
               ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                widget.item['imageUrl'],
+                widget.item['item']['image'],
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
@@ -85,7 +85,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                     children: [
                        Expanded(
                          child: Text(
-                          widget.item['product_name'],
+                          widget.item['item']['product_name'],
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -93,27 +93,29 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                                                ),
                        ),
                       // Days Remaining
-                      Text(
-                        '${widget.item['daysRemaining']} days',
-                        style: TextStyle(color: AppColors.primaryRed, fontSize: 13, fontWeight: FontWeight.bold),
-                      ),
+                      //TODO: Integrate remaining days
+                      // Text(
+                      //   '${widget.item['daysRemaining']} days',
+                      //   style: TextStyle(color: AppColors.primaryRed, fontSize: 13, fontWeight: FontWeight.bold),
+                      // ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        'Return Date: ${widget.item['returnDate']}',
-                        style: TextStyle(color: AppColors.primaryRed, fontSize: 12),
-                      )
-                    ],
-                  ),
+                  //TODO: Integrate remaining days
+                  // Row(
+                  //   children: [
+                  //     Text(
+                  //       'Return Date: ${widget.item['returnDate']}',
+                  //       style: TextStyle(color: AppColors.primaryRed, fontSize: 12),
+                  //     )
+                  //   ],
+                  // ),
                   const SizedBox(height: 10),
                   // Rental Rate
                   Row(
                     children: [
                       Text(
-                        'RM ${widget.item['price_per_day']} / day',
+                        'RM ${widget.item['item']['price']} / day',
                         style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
                       const SizedBox(width: 10,),
@@ -122,57 +124,59 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                   const SizedBox(height: 10,),
                   Row(
                     children: [
-                      SizedBox(
-                        height: 28,
-                        // 1. Replace OutlinedButton with a Container to hold the styling.
-                        child: Container(
-                          // 2. Apply styling equivalent to OutlinedButton.styleFrom:
-                          padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
-                          decoration: BoxDecoration(
-                            color: Colors.transparent, // Background color (optional, but good practice)
-                            border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
-                            borderRadius: BorderRadius.circular(4), // Shape
-                          ),
-                          alignment: Alignment.center, // Center the text vertically within the container
-                          // 3. Place the Text widget inside the Container.
-                          child: Text(
-                            //TODO: Change the data format and use function to convert to readable type
-                            widget.item['returnMethod'],
-                            style: TextStyle(
-                              fontSize: 12, 
-                              color: Colors.black,
-                              // Optional: Ensure text height aligns well with the 28px height constraint
-                              // height: 1.0, 
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10,),
-                        SizedBox(
-                        height: 28,
-                        // 1. Replace OutlinedButton with a Container to hold the styling.
-                        child: Container(
-                          // 2. Apply styling equivalent to OutlinedButton.styleFrom:
-                          padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
-                          decoration: BoxDecoration(
-                            color: Colors.transparent, // Background color (optional, but good practice)
-                            border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
-                            borderRadius: BorderRadius.circular(4), // Shape
-                          ),
-                          alignment: Alignment.center, // Center the text vertically within the container
-                          // 3. Place the Text widget inside the Container.
-                          child: Text(
+                      //TODO: Integrate returnMethods
+                      // SizedBox(
+                      //   height: 28,
+                      //   // 1. Replace OutlinedButton with a Container to hold the styling.
+                      //   child: Container(
+                      //     // 2. Apply styling equivalent to OutlinedButton.styleFrom:
+                      //     padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
+                      //     decoration: BoxDecoration(
+                      //       color: Colors.transparent, // Background color (optional, but good practice)
+                      //       border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
+                      //       borderRadius: BorderRadius.circular(4), // Shape
+                      //     ),
+                      //     alignment: Alignment.center, // Center the text vertically within the container
+                      //     // 3. Place the Text widget inside the Container.
+                      //     child: Text(
+                      //       //TODO: Change the data format and use function to convert to readable type
+                      //       widget.item['returnMethod'],
+                      //       style: TextStyle(
+                      //         fontSize: 12, 
+                      //         color: Colors.black,
+                      //         // Optional: Ensure text height aligns well with the 28px height constraint
+                      //         // height: 1.0, 
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ),
+                      //TODO: Integrate currentStatus
+                      // const SizedBox(width: 10,),
+                      //   SizedBox(
+                      //   height: 28,
+                      //   // 1. Replace OutlinedButton with a Container to hold the styling.
+                      //   child: Container(
+                      //     // 2. Apply styling equivalent to OutlinedButton.styleFrom:
+                      //     padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
+                      //     decoration: BoxDecoration(
+                      //       color: Colors.transparent, // Background color (optional, but good practice)
+                      //       border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
+                      //       borderRadius: BorderRadius.circular(4), // Shape
+                      //     ),
+                      //     alignment: Alignment.center, // Center the text vertically within the container
+                      //     // 3. Place the Text widget inside the Container.
+                      //     child: Text(
                             
-                            widget.item['currentStatus'],
-                            style: TextStyle(
-                              fontSize: 12, 
-                              color: Colors.black,
-                              // Optional: Ensure text height aligns well with the 28px height constraint
-                              // height: 1.0, 
-                            ),
-                          ),
-                        ),
-                      ),
+                      //       widget.item['currentStatus'],
+                      //       style: TextStyle(
+                      //         fontSize: 12, 
+                      //         color: Colors.black,
+                      //         // Optional: Ensure text height aligns well with the 28px height constraint
+                      //         // height: 1.0, 
+                      //       ),
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                   const SizedBox(height: 10,),
@@ -187,7 +191,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Total Price: RM${widget.item['totalPrice']}',
+                          'Total Price: RM${widget.item['totalFee']}',
                           style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w600,

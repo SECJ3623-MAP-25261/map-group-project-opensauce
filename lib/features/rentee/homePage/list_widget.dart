@@ -135,7 +135,7 @@ class ProductCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                product['title'],
+                product['product_name'],
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
@@ -146,7 +146,7 @@ class ProductCard extends StatelessWidget {
               ),
               const SizedBox(height: 5),
               Text(
-                product['price'],
+                product['price'].toString(),
                 style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
               const SizedBox(height: 5),
@@ -155,7 +155,7 @@ class ProductCard extends StatelessWidget {
                   const Icon(Icons.star, size: 16, color: Colors.amber),
                   const SizedBox(width: 5),
                   Text(
-                    "${product['rating']}",
+                    product['rating'].toString(),
                     style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                 ],

@@ -8,18 +8,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart'; // For nicer fonts
 
 class CheckoutPage extends ConsumerStatefulWidget {
-  const CheckoutPage({super.key});
-
+  const CheckoutPage({super.key, required this.items});
+  final Map<String,dynamic> items;
   @override
   ConsumerState<CheckoutPage> createState() => _CheckoutPageState();
+  
 }
 
 class _CheckoutPageState extends ConsumerState<CheckoutPage> {
-
+  
   @override
   Widget build(BuildContext context) {
     // If loading is true, show the loading widget
-    return ref.watch(checkoutProvider).isLoading? Loading() : Scaffold(
+    return ref.watch(checkoutProvider).isLoading? const Center(child: CircularProgressIndicator()) : Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -53,19 +54,11 @@ class _CheckoutPageState extends ConsumerState<CheckoutPage> {
                   ),
                 ),
               )
-              : ListView.builder(
-                // The ListView now correctly uses the height provided by Expanded
+              : 
+              Container(
                 padding: const EdgeInsets.all(8.0),
-                itemCount: ref.watch(checkoutProvider).items.length,
-                itemBuilder: (context, index) {
-                  return CheckoutCartWidget(
-                    item: ref.watch(checkoutProvider).items[index],
-                    // onRemove: () => _onRemoveItem(item['id']),
-                    // onQuantityChanged: (newQuantity) => _onQuantityChanged(item['id'], newQuantity),
-                  );
-                },
+                child: CheckoutCartWidget(item: widget.items),
               ),
-              // This is a DragablleScrollSheet
             BottomSummaryWidget(),
         ],
       ),
