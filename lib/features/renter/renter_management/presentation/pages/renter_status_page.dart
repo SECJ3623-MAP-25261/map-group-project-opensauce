@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../application/notifier/renter_notifier.dart';
+import '../../services/notifier/renter_notifier.dart';
 import '../widgets/status_item_card.dart'; // Import the widget
 
 class RenterStatusPage extends StatelessWidget {
@@ -17,7 +17,7 @@ class RenterStatusPage extends StatelessWidget {
         }
 
         // Filter for "approved" items
-        final activeRentals = state.items.where((item) => item.status == 'approved').toList();
+        final activeRentals = state.rentalitems.where((rentalitem) => rentalitem.status == 'approved').toList();
 
         if (activeRentals.isEmpty) {
           return const Center(child: Text("No active rentals found."));
@@ -27,18 +27,18 @@ class RenterStatusPage extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           itemCount: activeRentals.length,
           itemBuilder: (context, index) {
-            final item = activeRentals[index];
+            final rentalitem = activeRentals[index];
 
             // USE THE WIDGET HERE instead of manual Card
             return StatusItemCard(
-              title: item.name,
+              title: rentalitem.name,
               // Format: "RM 50 / day | 3 Days"
               statusText: "On Renting...", 
-              imageUrl: item.imageUrl,
+              imageUrl: rentalitem.imageUrl,
               
               onStopRent: () {
                  // We call the dialog function defined at the bottom of this class
-                _showStopConfirmation(context, notifier, item.id);
+                _showStopConfirmation(context, notifier, rentalitem.id);
               },
             );
           },

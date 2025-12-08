@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../application/notifier/renter_notifier.dart';
+import '../../services/notifier/renter_notifier.dart';
 import '../widgets/availability_item_card.dart';
 
 class RenterAvailabilityPage extends StatelessWidget {
@@ -18,8 +18,8 @@ class RenterAvailabilityPage extends StatelessWidget {
 
         // FILTER: Show items that are part of your inventory (Available or On Hold)
         // We exclude 'pending', 'approved', 'completed' etc.
-        final inventoryItems = state.items.where((item) {
-          return item.status == 'available' || item.status == 'on_hold';
+        final inventoryItems = state.rentalitems.where((rentalitem) {
+          return rentalitem.status == 'available' || rentalitem.status == 'on_hold';
         }).toList();
 
         if (inventoryItems.isEmpty) {

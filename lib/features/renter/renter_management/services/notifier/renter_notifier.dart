@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../models/item.dart';
+import '../../../../models/rentalitem.dart';
 import '../../domain/repositories/renter_repository.dart';
 import 'package:easyrent/features/renter/renter_management/services/state/renter_state.dart';
-import '../state/renter_state.dart';
 
 class RenterNotifier extends ChangeNotifier {
   final RenterRepository repository;
@@ -12,14 +11,14 @@ class RenterNotifier extends ChangeNotifier {
   RenterState state = const RenterState();
 
   Future<void> loadItems() async {
-    if (state.items.isEmpty) {
+    if (state.rentalitems.isEmpty) {
       state = state.copyWith(loading: true);
       notifyListeners();
     }
 
     try {
-      final items = await repository.getRequestedItems();
-      state = state.copyWith(items: items, loading: false);
+      final rentalitems = await repository.getRequestedItems();
+      state = state.copyWith(rentalitems: rentalitems, loading: false);
     } catch (e) {
       print("Error loading items: $e");
       state = state.copyWith(loading: false, errorMessage: e.toString());

@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../../../features/models/item.dart'; 
+import '../../../../../features/models/rentalitem.dart'; 
 
 abstract class RenterRemoteApi {
-  Future<List<Item>> fetchRequestedItems();
+  Future<List<RentalItem>> fetchRequestedItems();
   Future<void> updateItemStatus(String id, String status);
 }
 
@@ -13,7 +13,7 @@ class RenterRemoteApiImpl implements RenterRemoteApi {
       : firestore = firestore ?? FirebaseFirestore.instance;
 
   @override
-  Future<List<Item>> fetchRequestedItems() async {
+  Future<List<RentalItem>> fetchRequestedItems() async {
     print("🔥 API: Attempting to fetch items from 'renter_items'..."); // DEBUG 1
 
     try {
@@ -29,7 +29,7 @@ class RenterRemoteApiImpl implements RenterRemoteApi {
         print("    -> Data: $data"); // DEBUG 4: See exactly what fields exist
         
         try {
-          return Item.fromSnapshot(doc);
+          return RentalItem.fromSnapshot(doc);
         } catch (e) {
           print("❌ API: Error converting doc ${doc.id}: $e"); // DEBUG 5: Catch conversion errors
           rethrow;
