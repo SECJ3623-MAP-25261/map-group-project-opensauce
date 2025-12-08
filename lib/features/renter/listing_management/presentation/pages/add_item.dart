@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -178,6 +179,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
 
       final newItem = Item(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
+        ownerRef: FirebaseFirestore.instance.collection('user').doc('temp_user'),
         ownerId: "temp",
         ownerName: "temp",
         ownerImage: "temp",

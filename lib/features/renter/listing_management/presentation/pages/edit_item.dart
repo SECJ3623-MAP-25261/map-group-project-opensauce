@@ -210,6 +210,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
       }
 
       final updatedItem = Item(
+        ownerRef: widget.item.ownerRef,
         id: widget.item.id,
         ownerId: widget.item.ownerId,
         ownerName: widget.item.ownerName,
