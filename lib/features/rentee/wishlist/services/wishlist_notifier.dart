@@ -1,3 +1,4 @@
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/checkout/services/database.dart';
 import 'package:easyrent/features/rentee/wishlist/domain/shopping_cart_state.dart';
 import 'package:easyrent/features/rentee/wishlist/services/database.dart';
@@ -146,13 +147,13 @@ Future<bool> isItemSaveToDB(String itemId) async {
   return await dbService.doesItemExist(itemIdToCheck: itemId);
 }
 
-Future<bool> saveToWishlistDB(Map<String, dynamic> selectedItem) async {
+Future<bool> saveToWishlistDB(Item selectedItem) async {
   final dbService = WishlistDatabaseServices();
   try {
     const String currentUserId = 'user_abc_123';
     // check the existence of item
     bool isItemexistinWishlist = await dbService.doesItemExist(
-      itemIdToCheck: selectedItem['id'],
+      itemIdToCheck: selectedItem.id,
     );
 
     if (!isItemexistinWishlist) {
@@ -165,7 +166,7 @@ Future<bool> saveToWishlistDB(Map<String, dynamic> selectedItem) async {
       Map<String, dynamic> changeToObject = wishlistObject();
 
       String newOrderId = await dbService.CreateWishlistItem(
-        itemId: selectedItem['id'],
+        itemId: selectedItem.id,
         item: changeToObject,
         // userId: currentUserId, // implement after integrate user
       );

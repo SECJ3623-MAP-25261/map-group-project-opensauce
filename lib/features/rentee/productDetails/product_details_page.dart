@@ -1,10 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easyrent/features/rentee/wishlist/services/wishlist_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/item.dart';
-import '../../models/review.dart'; // Keep this if you use the Review model elsewhere
-import '../reviewPage/review_page.dart'; // IMPORT ADDED to fix the undefined error
-
+import '../reviewPage/review_page.dart'; 
 class ProductDetailsPage extends StatefulWidget {
   final Item item;
 
@@ -18,7 +17,13 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   final PageController _pageController = PageController();
   int _currentImageIndex = 0;
   DateTimeRange? _selectedDateRange;
-  bool _isFavorite = false;
+  late Future<bool> isFavorite;
+
+  @override
+  void initState() {
+    super.initState();
+    isFavorite = isItemSaveToDB(widget.item.id);
+  }
 
   @override
   void dispose() {
@@ -106,13 +111,91 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
+         actions: [
           IconButton(
-            icon: Icon(
-              _isFavorite ? Icons.favorite : Icons.favorite_border,
-              color: _isFavorite ? Colors.red : Colors.black,
-            ),
-            onPressed: () => setState(() => _isFavorite = !_isFavorite),
+            icon: const Icon(Icons.share_outlined, color: Colors.black),
+            onPressed: () {},
+          ),
+          FutureBuilder(
+            future: isFavorite,
+            builder: (context, asyncSnapshot) {
+              bool _isFavorite = asyncSnapshot.data ?? false;
+              return IconButton(
+                icon: Icon(
+                  _isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: _isFavorite ? Colors.red : Colors.black,
+                ),
+                onPressed: () {
+                  setState(() {
+                    void saveToDB()async{
+                      if(!_isFavorite){
+                        print("_isFavorite: ${_isFavorite}");
+                        // item havent save to wishlist 
+                              final bool isSuccess = await saveToWishlistDB(widget.item);
+                              if(isSuccess){
+                                _isFavorite = true;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'Item save to wishlist.',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.green.shade700,
+                                    duration: const Duration(seconds: 4),
+                                    behavior: SnackBarBehavior.floating, // Looks cleaner
+                                  ),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'Item failed to save to wishlist. Please try again',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.red.shade700,
+                                    duration: const Duration(seconds: 4),
+                                    behavior: SnackBarBehavior.floating, // Looks cleaner
+                                  ),
+                                );
+                              }
+                      } else {
+                        // remove the item from wishlist
+                        print("_isFavorite: ${_isFavorite}");
+                        String itemId= widget.item.id;
+                        final bool isSuccess = await removeWishlistItemFromDB(itemId);
+                              if(isSuccess){
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'Item sucessfully remove from wishlit.',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.green.shade700,
+                                    duration: const Duration(seconds: 4),
+                                    behavior: SnackBarBehavior.floating, // Looks cleaner
+                                  ),
+                                );
+                                _isFavorite=false;
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text(
+                                      'Item failed to remove from wishlist. Please try again',
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                    backgroundColor: Colors.red.shade700,
+                                    duration: const Duration(seconds: 4),
+                                    behavior: SnackBarBehavior.floating, // Looks cleaner
+                                  ),
+                                );
+                              }
+                      }
+                    }
+                    saveToDB();
+                  });
+                },
+              );
+            }
           ),
         ],
       ),
