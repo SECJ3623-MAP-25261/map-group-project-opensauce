@@ -1,4 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easyrent/features/models/item.dart';
+import 'package:easyrent/features/rentee/rentee_profile/domain/user.dart';
 
 class Rental {
   final String id;

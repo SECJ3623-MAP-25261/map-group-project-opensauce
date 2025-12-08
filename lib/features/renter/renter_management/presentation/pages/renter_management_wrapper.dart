@@ -14,7 +14,7 @@ class RenterManagementWrapper extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => RenterNotifier(
         RenterRepositoryImpl(
-          RenterRemoteApi(),
+          RenterRemoteApiImpl(),
         ),
       )..loadItems(),
       child: const RenterManagementPage(),

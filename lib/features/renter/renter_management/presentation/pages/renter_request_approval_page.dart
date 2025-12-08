@@ -21,17 +21,25 @@ class RenterRequestApprovalPage extends StatelessWidget {
           return const Center(child: Text("No items to approve."));
         }
 
+        // --- NEW FILTER LOGIC ---
+        // Only show items that are waiting for approval ('pending')
+        final pendingItems = state.items.where((item) => item.status == 'pending').toList();
+
+        if (pendingItems.isEmpty) {
+          return const Center(child: Text("No pending requests."));
+        }
+
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: state.items.length,
+          itemCount: pendingItems.length,
           itemBuilder: (context, index) {
-            final item = state.items[index];
+            final item = pendingItems[index];
 
             return ApprovalItemCard(
               title: item.name,
               subtitle: "${item.price} | ${item.rentalInfo}",
               imageUrl: item.imageUrl,
-              status: item.status, // <-- NEW
+              status: item.status,
               
               onApprove: () {
                 notifier.approveItem(item.id);
@@ -78,9 +86,6 @@ class RenterRequestApprovalPage extends StatelessWidget {
     );
   }
 
-  // ===========================
-  // REJECTED POP-UP DIALOG
-  // ===========================
   void _showNotApproveDialog(BuildContext context) {
     showDialog(
       context: context,

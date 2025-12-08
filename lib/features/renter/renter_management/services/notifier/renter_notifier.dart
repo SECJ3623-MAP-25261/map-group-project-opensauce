@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../domain/entities/item_entity.dart';
+import '../../../../models/item.dart';
 import '../../domain/repositories/renter_repository.dart';
 import 'package:easyrent/features/renter/renter_management/services/state/renter_state.dart';
+import '../state/renter_state.dart';
 
 class RenterNotifier extends ChangeNotifier {
   final RenterRepository repository;
@@ -10,38 +11,43 @@ class RenterNotifier extends ChangeNotifier {
 
   RenterState state = const RenterState();
 
-  // Load requested items
   Future<void> loadItems() async {
-    state = state.copyWith(loading: true);
-    notifyListeners();
+    if (state.items.isEmpty) {
+      state = state.copyWith(loading: true);
+      notifyListeners();
+    }
 
-    final items = await repository.getRequestedItems();
-    state = state.copyWith(items: items, loading: false);
-
+    try {
+      final items = await repository.getRequestedItems();
+      state = state.copyWith(items: items, loading: false);
+    } catch (e) {
+      print("Error loading items: $e");
+      state = state.copyWith(loading: false, errorMessage: e.toString());
+    }
     notifyListeners();
   }
 
-  // Approve item
-  void approveItem(String id) {
-    final index = state.items.indexWhere((item) => item.id == id);
-    if (index != -1) {
-      final updatedItem = state.items[index].copyWith(status: "approved");
-      final updatedItems = List<ItemEntity>.from(state.items);
-      updatedItems[index] = updatedItem;
-      state = state.copyWith(items: updatedItems);
-      notifyListeners();
-    }
+  // --- Status Updates ---
+
+  Future<void> approveItem(String id) async {
+    await repository.updateItemStatus(id, "approved");
+    await loadItems(); 
   }
 
-  // Reject item
-  void rejectItem(String id) {
-    final index = state.items.indexWhere((item) => item.id == id);
-    if (index != -1) {
-      final updatedItem = state.items[index].copyWith(status: "rejected");
-      final updatedItems = List<ItemEntity>.from(state.items);
-      updatedItems[index] = updatedItem;
-      state = state.copyWith(items: updatedItems);
-      notifyListeners();
-    }
+  Future<void> rejectItem(String id) async {
+    await repository.updateItemStatus(id, "rejected");
+    await loadItems(); 
+  }
+
+  Future<void> stopRent(String id) async {
+    await repository.updateItemStatus(id, "completed");
+    await loadItems(); 
+  }
+
+  // NEW: Toggle Availability
+  Future<void> setAvailability(String id, String newStatus) async {
+    // newStatus should be 'available' or 'on_hold'
+    await repository.updateItemStatus(id, newStatus);
+    await loadItems();
   }
 }

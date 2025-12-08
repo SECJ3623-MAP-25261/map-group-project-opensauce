@@ -11,7 +11,6 @@ class User {
   final String? profileImage; // Nullable (e.g., URL to the image)
   final String? faculty; // Nullable
   final String role; // e.g., 'rentee', 'renter', 'admin'
-
   // Constructor
   User({
     required this.id,
