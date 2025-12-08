@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:easyrent/features/rentee/reviewPage/review_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -303,12 +304,12 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                     if (reviewCount > 0)
                       TextButton(
                         onPressed: () {
-                          //Navigator.push(
-                            //context,
-                            //MaterialPageRoute(
-                              //builder: (context) => ReviewPage(itemId: widget.item.id),
-                            //),
-                          //);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ReviewPage(itemId: widget.item.id),
+                            ),
+                          );
                         },
                         child: const Text("See All", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
                       ),
