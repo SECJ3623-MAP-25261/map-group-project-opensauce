@@ -5,6 +5,7 @@ class StatusItemCard extends StatelessWidget {
   final String statusText;
   final String imageUrl;
   final VoidCallback onStopRent;
+  final VoidCallback onShowQR;
 
   const StatusItemCard({
     super.key,
@@ -12,6 +13,7 @@ class StatusItemCard extends StatelessWidget {
     required this.statusText,
     required this.imageUrl,
     required this.onStopRent,
+    required this.onShowQR,
   });
 
   @override
@@ -78,6 +80,20 @@ class StatusItemCard extends StatelessWidget {
 
                 const Spacer(),
 
+                // SHOW QR BUTTON (GOLD)
+                ElevatedButton(
+                  onPressed: onShowQR,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF8BE17), // Gold
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  child: const Text("Show QR"),
+                ),
+
+                const SizedBox(width: 8),
+                
                 ElevatedButton(
                   onPressed: onStopRent,
                   style: ElevatedButton.styleFrom(

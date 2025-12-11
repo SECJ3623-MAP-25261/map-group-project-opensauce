@@ -5,6 +5,7 @@ import '../../../listing_management/presentation/pages/renter_listing_wrapper.da
 import 'renter_request_approval_page.dart';
 import 'renter_status_page.dart';
 import 'renter_availability_page.dart';
+import 'renter_qr_scanner_page.dart'; // <--- NEW IMPORT (Make sure you create this file in Step 4)
 
 class RenterManagementPage extends StatefulWidget {
   const RenterManagementPage({super.key});
@@ -18,6 +19,7 @@ class _RenterManagementPageState extends State<RenterManagementPage>
   
   late TabController _tabController;
   
+  // This page corresponds to index 1 in your bottom nav
   final int _bottomNavIndex = 1; 
 
   @override
@@ -31,7 +33,7 @@ class _RenterManagementPageState extends State<RenterManagementPage>
 
     switch (index) {
       case 0:
-        // Go to Listing
+        // Go to Listing (Home)
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
@@ -41,9 +43,20 @@ class _RenterManagementPageState extends State<RenterManagementPage>
           ),
         );
         break;
+        
       case 1:
-
+        // Already on Management page
         break;
+
+      case 2: 
+        // --- GO TO SCANNER ---
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const RenterQRScannerPage()),
+        );
+        break;
+
+      // Add other cases (Messages, Profile) here if needed
     }
   }
 
