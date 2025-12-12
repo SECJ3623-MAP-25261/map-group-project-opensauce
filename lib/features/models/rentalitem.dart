@@ -18,12 +18,14 @@ class RentalItem {
   final String? currentRenterId;
   final double averageRating;
   final List<Review> reviews;
-  final String status; // Added to support your approval flow
+  final String status;
+  final String pickupLocation;
 
   // --- Compatibility Getters (Keeps your old code working) ---
   String get name => productName;
   String get price => pricePerDay.toStringAsFixed(2);
   String get rentalInfo => rentingDuration;
+  String get location => pickupLocation;
   // ---------------------------------------------------------
 
   RentalItem({
@@ -41,6 +43,7 @@ class RentalItem {
     required this.averageRating,
     required this.reviews,
     this.status = 'pending',
+    this.pickupLocation = 'Library UTM (Default)',
   });
 
   Map<String, dynamic> toJson() {
@@ -84,6 +87,7 @@ class RentalItem {
           .map((r) => Review.fromMap(r as Map<String, dynamic>))
           .toList(),
       status: data['status'] ?? 'pending',
+      pickupLocation: data['pickup_location'] ?? 'Library UTM (Default)',
     );
   }
 }

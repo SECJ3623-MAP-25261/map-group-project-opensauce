@@ -17,13 +17,12 @@ class RenterStatusPage extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Filter for "approved" items
-        final activeRentals = state.rentalitems
-            .where((rentalitem) => rentalitem.status == 'approved')
-            .toList();
+        final activeRentals = state.rentalitems.where((item) {
+          return item.status == 'approved' || item.status == 'on_renting';
+        }).toList();
 
         if (activeRentals.isEmpty) {
-          return const Center(child: Text("No active rentals found."));
+          return const Center(child: Text("No active rentals."));
         }
 
         return ListView.builder(
@@ -31,21 +30,28 @@ class RenterStatusPage extends StatelessWidget {
           itemCount: activeRentals.length,
           itemBuilder: (context, index) {
             final rentalitem = activeRentals[index];
+            
+            bool isWaitingPickup = (rentalitem.status == 'approved');
 
             return StatusItemCard(
               title: rentalitem.name,
-              statusText: "On Renting...",
+              statusText: isWaitingPickup ? "Ready for Pickup" : "On Renting...",
               imageUrl: rentalitem.imageUrl,
 
-              // 1. STOP RENT ACTION
               onStopRent: () {
-                _showStopConfirmation(context, notifier, rentalitem.id);
+                if (!isWaitingPickup) {
+                  _showStopConfirmation(context, notifier, rentalitem.id);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Scan QR code to start renting first!")),
+                  );
+                }
               },
 
-              // 2. SHOW QR ACTION (Gold Button)
-              onShowQR: () {
-                _showQRCodeDialog(context, rentalitem);
-              },
+              // SHOW QR ACTION (Only show if waiting for pickup)
+              onShowQR: isWaitingPickup 
+                  ? () => _showQRCodeDialog(context, rentalitem, notifier)
+                  : null, 
             );
           },
         );
@@ -54,7 +60,13 @@ class RenterStatusPage extends StatelessWidget {
   }
 
   // --- QR CODE POPUP DIALOG ---
-  void _showQRCodeDialog(BuildContext context, dynamic rentalitem) {
+  void _showQRCodeDialog(BuildContext context, dynamic rentalitem, RenterNotifier notifier) {
+    final String itemID = rentalitem.id;
+    final String qrData = "PICKUP:$itemID";
+    final String displayLocation = (rentalitem.deliveryMethods.isNotEmpty) 
+        ? rentalitem.deliveryMethods 
+        : "Library UTM (Default)";
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -70,7 +82,7 @@ class RenterStatusPage extends StatelessWidget {
               height: 200,
               width: 200,
               child: QrImageView(
-                data: "PICKUP:${rentalitem.id}", // Payload: "PICKUP:ITEM_ID"
+                data: qrData, 
                 version: QrVersions.auto,
                 size: 200.0,
                 backgroundColor: Colors.white,
@@ -80,16 +92,19 @@ class RenterStatusPage extends StatelessWidget {
             const SizedBox(height: 20),
             const Divider(),
 
-            // ITEM DETAILS
+            // DYNAMIC ITEM DETAILS FROM FIREBASE
             ListTile(
-              leading: const Icon(Icons.shopping_bag_outlined),
-              title: Text(rentalitem.name),
-              subtitle: Text("Rental Price: ${rentalitem.price}"),
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF800000)),
+              title: Text(rentalitem.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text("Price: RM ${rentalitem.price}/Days \nDuration: ${rentalitem.rentingDuration}"),
+              isThreeLine: true,
             ),
-            const ListTile(
-              leading: Icon(Icons.location_on_outlined),
-              title: Text("Pickup Location"),
-              subtitle: Text("Library UTM (Default)"),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.location_on_outlined, color: Color(0xFF800000)),
+              title: const Text("Pickup Location"),
+              subtitle: Text(rentalitem.pickupLocation),
             ),
           ],
         ),
@@ -98,30 +113,33 @@ class RenterStatusPage extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
             child: const Text("Close"),
           ),
+          
+          // SIMULATE SCAN BUTTON (Only for Demo)
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // Close dialog
+              notifier.startRental(rentalitem.id); // Update Firebase to 'on_renting'
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Pickup Confirmed! Status: On Renting")),
+              );
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF8BE17), // Gold color
+              backgroundColor: const Color(0xFFF8BE17),
               foregroundColor: Colors.black,
             ),
-            child: const Text("Done"),
-          )
+            child: const Text("Simulate Scan"),
+          ),
         ],
       ),
     );
   }
 
-  // --- STOP RENT CONFIRMATION ---
-  void _showStopConfirmation(
-      BuildContext context, RenterNotifier notifier, String itemId) {
+  void _showStopConfirmation(BuildContext context, RenterNotifier notifier, String itemId) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Confirm to stop rent?",
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text("This will mark the item as returned/completed."),
+        title: const Text("Confirm to stop rent?"),
+        content: const Text("This will mark the item as returned."),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -132,8 +150,7 @@ class RenterStatusPage extends StatelessWidget {
               Navigator.pop(context);
               notifier.stopRent(itemId);
             },
-            style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
             child: const Text("Yes, Stop"),
           ),
         ],

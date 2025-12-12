@@ -17,7 +17,7 @@ class RenterNotifier extends ChangeNotifier {
     }
 
     try {
-      final rentalitems = await repository.getRequestedItems();
+      final List<RentalItem> rentalitems = await repository.getRequestedItems();
       state = state.copyWith(rentalitems: rentalitems, loading: false);
     } catch (e) {
       print("Error loading items: $e");
@@ -36,6 +36,11 @@ class RenterNotifier extends ChangeNotifier {
   Future<void> rejectItem(String id) async {
     await repository.updateItemStatus(id, "rejected");
     await loadItems(); 
+  }
+
+  Future<void> startRental(String id) async {
+    await repository.updateItemStatus(id, "on_renting");
+    await loadItems();
   }
 
   Future<void> stopRent(String id) async {
