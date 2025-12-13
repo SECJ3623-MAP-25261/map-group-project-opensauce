@@ -1,11 +1,12 @@
 import 'package:easyrent/core/constants/constants.dart';
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class WishlistCard extends ConsumerStatefulWidget {
-  final Map<String, dynamic> item;
-
+  final Item item;
+  
   const WishlistCard({super.key, required this.item});
 
   @override
@@ -15,7 +16,7 @@ class WishlistCard extends ConsumerStatefulWidget {
 class _WishlistCardState extends ConsumerState<WishlistCard> {
   @override
   Widget build(BuildContext context) {
-    final id = widget.item['itemId'] as String;
+    final id = widget.item.id;
     // Helper function to create the star rating row
     Widget buildRatingRow() {
       return Row(
@@ -24,7 +25,7 @@ class _WishlistCardState extends ConsumerState<WishlistCard> {
           Icon(Icons.star, color: AppColors.primary, size: 16),
           const SizedBox(width: 4),
           Text(
-            '${widget.item['item']['rating']}/5.0 (${widget.item['item']['price']})',
+            '${widget.item.averageRating}/5.0 (${widget.item.pricePerDay})',
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
@@ -44,7 +45,7 @@ class _WishlistCardState extends ConsumerState<WishlistCard> {
           children: [
             IconButton(
               onPressed: () {
-                if (widget.item['item']['quantity'] > 0) {
+                if (widget.item.quantity > 0) {
                   ref.read(shoppingCartProvider.notifier).decrementItemQuantity(id);
                 }
               },
@@ -93,7 +94,7 @@ class _WishlistCardState extends ConsumerState<WishlistCard> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              widget.item['item']['image'],
+              widget.item.imageUrl,
               width: 80,
               height: 80,
               fit: BoxFit.cover,
@@ -117,7 +118,7 @@ class _WishlistCardState extends ConsumerState<WishlistCard> {
                   children: [
                     Expanded(
                       child: Text(
-                        widget.item['item']['product_name'],
+                        widget.item.productName,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -136,7 +137,7 @@ class _WishlistCardState extends ConsumerState<WishlistCard> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'RM ${widget.item['item']['price']} per day',
+                  'RM ${widget.item.pricePerDay} per day',
                   style: TextStyle(
                     color: AppColors.primaryRed,
                     fontWeight: FontWeight.w600,

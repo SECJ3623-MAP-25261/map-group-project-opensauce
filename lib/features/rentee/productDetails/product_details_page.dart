@@ -1,19 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
+import 'package:easyrent/features/rentee/checkout/presentation/pages/checkout_page.dart';
+import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
 import 'package:easyrent/features/rentee/wishlist/services/wishlist_notifier.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/item.dart';
 import '../reviewPage/review_page.dart'; 
-class ProductDetailsPage extends StatefulWidget {
+class ProductDetailsPage extends ConsumerStatefulWidget {
   final Item item;
 
   const ProductDetailsPage({super.key, required this.item});
 
   @override
-  State<ProductDetailsPage> createState() => _ProductDetailsPageState();
+  ConsumerState<ProductDetailsPage> createState() => _ProductDetailsPageState();
 }
 
-class _ProductDetailsPageState extends State<ProductDetailsPage> {
+class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
   final PageController _pageController = PageController();
   int _currentImageIndex = 0;
   DateTimeRange? _selectedDateRange;
@@ -22,7 +26,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   @override
   void initState() {
     super.initState();
-    isFavorite = isItemSaveToDB(widget.item.id);
+    isFavorite = isItemSaveToDB(widget.item.id,widget.item.ownerRef);
   }
 
   @override
@@ -131,9 +135,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                       if(!_isFavorite){
                         print("_isFavorite: ${_isFavorite}");
                         // item havent save to wishlist 
-                              final bool isSuccess = await saveToWishlistDB(widget.item);
+                              final bool isSuccess = await saveToWishlistDB(widget.item,widget.item.ownerRef);
                               if(isSuccess){
                                 _isFavorite = true;
+                                
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: const Text(
@@ -175,7 +180,10 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                                     behavior: SnackBarBehavior.floating, // Looks cleaner
                                   ),
                                 );
+                                setState(() {
+                      
                                 _isFavorite=false;
+                                });
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -237,9 +245,27 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
               ElevatedButton(
                 onPressed: () {
                   if (_selectedDateRange == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Please select rent dates first"),
+                      ),
+                    );
                     _pickDateRange();
                   } else {
-                    print("Renting product: ${widget.item.productName}");
+                    Duration difference =Duration(days: 0);
+                    final DateTime? start = _selectedDateRange?.start;
+                    final DateTime? end = _selectedDateRange?.end;
+
+                      if (start != null && end != null) {
+                        difference = end.difference(start);
+
+                      }
+                    ref.read(checkoutProvider.notifier).setItems(widget.item,difference.inDays);
+                    ref.read(checkoutProvider.notifier).setStartEndRenting(_selectedDateRange?.start, _selectedDateRange?.end);
+                    // Proceed to checkout logic
+                    Navigator.push(context, MaterialPageRoute(builder: (context) {
+                      return CheckoutPage(items: widget.item,duration: difference.inDays,);
+                    },));
                   }
                 },
                 style: ElevatedButton.styleFrom(

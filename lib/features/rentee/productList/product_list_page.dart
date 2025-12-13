@@ -1,20 +1,22 @@
+import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../productDetails/product_details_page.dart';
 import '../../../features/models/item.dart';
 import '../services/database_service.dart';
 
-class ProductListPage extends StatefulWidget {
+class ProductListPage extends ConsumerStatefulWidget {
   final String title;
 
   const ProductListPage({super.key, required this.title});
 
   @override
-  State<ProductListPage> createState() => _ProductListPageState();
+  ConsumerState<ProductListPage> createState() => _ProductListPageState();
 }
 
-class _ProductListPageState extends State<ProductListPage> {
+class _ProductListPageState extends ConsumerState<ProductListPage> {
   final DatabaseService _dbService = DatabaseService();
-
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,6 +109,8 @@ class _ProductListPageState extends State<ProductListPage> {
                 mainAxisSpacing: 15,
               ),
               itemBuilder: (context, index) {
+                //TODO: Need to fix when integrating wiht Kai Bin auth 
+                print("userId is ${items[0].ownerId}");
                 final item = items[index];
                 return GestureDetector(
                   onTap: () {

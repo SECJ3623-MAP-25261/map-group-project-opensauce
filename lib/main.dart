@@ -1,3 +1,4 @@
+import 'package:easyrent/features/rentee/renting_status/presentation/pages/renting_status_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -19,6 +20,7 @@ class MyApp extends StatefulWidget {
   @override
   State<MyApp> createState() => _MyAppState();
 }
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class _MyAppState extends State<MyApp> {
   @override
@@ -33,6 +35,10 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF800000)),
       ),
       home: const MainScreen(),
+      routes: {
+        '/home' : (_) => HomePage(),
+        '/renting-status' : (_) => RentingStatusPage(),
+      },
     );
   }
 }

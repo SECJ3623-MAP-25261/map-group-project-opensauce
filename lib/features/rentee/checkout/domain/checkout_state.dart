@@ -1,15 +1,18 @@
-class CheckoutState {
-  final double totalFee;
-  final double renteeFee;
-  final String deliveryOption;
-  final double depositRate;
-  final bool isLoading ;
-  final bool isDBSuccess;
-  final Map<String, dynamic> items;
-  final DateTime? startRenting;
-  final DateTime? endRenting;
-  final int? duration;
-  final bool? isOrderComplete; // if the user receive the order, it will be true
+import 'package:easyrent/features/models/item.dart';
+
+  class CheckoutState {
+    final double totalFee;
+    final double renteeFee;
+    final String deliveryOption;
+    final double depositRate;
+    final bool isLoading ;
+    final bool isDBSuccess;
+    final Item items;
+    final DateTime? startRenting;
+    final DateTime? endRenting;
+    final int duration;
+    final bool? isOrderComplete; // if the user receive the order, it will be true
+    final String userId;
 
   // Constructor for the initial state
   const CheckoutState({
@@ -23,17 +26,18 @@ class CheckoutState {
     required this.endRenting,
     required this.duration,
     required this.isDBSuccess,
-    required this.isOrderComplete
+    required this.isOrderComplete,
+    required this.userId
   });
 
-  // change to JSON to store in db
+  // // change to JSON to store in db
   Map<String, dynamic> toJson() {
     return {
       'totalFee': totalFee,
       'renteeFee': renteeFee,
       'deliveryOption': deliveryOption,
       // The items Map is already in the correct format
-      'items': items, 
+      'items': items.toMap(), 
       'depositRate': depositRate,
       'isLoading': isLoading,
       'startRenting': startRenting?.toIso8601String(),
@@ -49,13 +53,14 @@ class CheckoutState {
     double? renteeFee,
     String? deliveryOption,
     double? depositRate,
-    Map<String, dynamic>? items,
+    Item? items,
     bool? isLoading,
     DateTime? startRenting,
     DateTime? endRenting,
     int? duration,
     bool? isDBSuccess,
-    bool? isOrderComplete
+    bool? isOrderComplete,
+    String?userId
   }) {
     return CheckoutState(
       totalFee: totalFee ?? this.totalFee,
@@ -69,6 +74,7 @@ class CheckoutState {
       duration: duration?? this.duration,
       isDBSuccess: isDBSuccess ?? this.isDBSuccess,
       isOrderComplete: isOrderComplete ?? this.isOrderComplete,
+      userId: userId ?? this.userId
     );
   }
 }

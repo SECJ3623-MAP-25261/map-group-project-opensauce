@@ -10,26 +10,10 @@ class DatabaseService {
   CollectionReference get _usersRef => _db.collection('user');
 
   // --- FETCH PRODUCTS ---
-  // Stream<List<Item>> getProducts() {
-  //   return _productsRef.snapshots().map((snapshot) {
-  //     return snapshot.docs.map((doc) {
-  //       return Item.fromSnapshot(doc as DocumentSnapshot<Map<String, dynamic>>);
-  //     }).toList();
-  //   });
-  // }
-
-  Stream<List<Map<String, dynamic>>> getProducts() {
-    // 1. Get the real-time stream of QuerySnapshots
+  Stream<List<Item>> getProducts() {
     return _productsRef.snapshots().map((snapshot) {
-      // 2. Map the list of documents into a list of Maps
       return snapshot.docs.map((doc) {
-        // Get the document data as a Map<String, dynamic>
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-
-        // 3. Add the unique Document ID to the Map before returning it
-        data['id'] = doc.id;
-
-        return data;
+        return Item.fromSnapshot(doc as DocumentSnapshot<Map<String, dynamic>>);
       }).toList();
     });
   }
@@ -40,7 +24,7 @@ class DatabaseService {
       // Get first user from 'user' collection to use as owner
       final users = await _usersRef.limit(1).get();
       if (users.docs.isEmpty) {
-        print('❌ No users found. Please add a user first.');
+        print(' No users found. Please add a user first.');
         return;
       }
 

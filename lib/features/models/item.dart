@@ -17,6 +17,7 @@ class Item {
   final String deliveryMethods;
   final double averageRating;
   final List<Review> reviews;
+  final String location;
 
   Item({
     required this.id,
@@ -34,9 +35,10 @@ class Item {
     required this.deliveryMethods,
     required this.averageRating,
     required this.reviews,
+    required this.location,
   });
 
-  // Convert Item to Map for Firestore
+  // --- 1. Serialization (Dart Object -> Firestore Map) ---
   Map<String, dynamic> toMap() {
     return {
       'product_name': productName,
@@ -52,18 +54,101 @@ class Item {
       'ownerImage': ownerImage,
       'imageUrls': imageUrls,
       'reviews': reviews.map((r) => r.toMap()).toList(),
+      'location': location,
     };
+  }
+
+  // // --- 2. Deserialization (Firestore Map -> Dart Object) ---
+  // Map<String, dynamic> toJson() {
+  //   return {
+  //     'product_name': productName,
+  //     'price_per_day': pricePerDay,
+  //     'imageURL': imageUrl,
+  //     'owner': ownerRef,
+  //     'description': description,
+  //     'quantity': quantity,
+  //     'renting_duration': rentingDuration,
+  //     'delivery_methods': deliveryMethods,
+  //     'rating': averageRating,
+  //     'ownerName': ownerName,
+  //     'ownerImage': ownerImage,
+  //     'imageUrls': imageUrls,
+  //     'reviews': reviews.map((r) => r.toMap()).toList(),
+  //     'location': location,
+  //   };
+  // }
+
+  // --- 2. Deserialization (Firestore Map -> Dart Object) ---
+  // factory Item.fromMap(Map<String, dynamic> map, String id) {
+
+  //   // Cast the List of dynamic maps from Firestore into a List of Review objects
+  //   final List<Review> loadedReviews = (map['reviews'] as List<dynamic>?)
+  //       ?.map((reviewMap) => Review.fromMap(reviewMap as Map<String, dynamic>))
+  //       .toList() ?? [];
+
+  //   return Item(
+  //     id: id, // The ID comes from the DocumentSnapshot, not the map data
+  //     ownerRef: map['owner'] as DocumentReference,
+  //     // Use the DocumentReference to extract the ID and other owner fields
+  //     ownerId: map['ownerId'],
+  //     ownerName: map['ownerName'] as String,
+  //     ownerImage: map['ownerImage'] as String,
+  //     productName: map['product_name'] as String,
+  //     pricePerDay: map['price_per_day'] as double,
+  //     imageUrl: map['imageURL'] as String,
+  //     imageUrls: List<String>.from(map['imageUrls'] as List<dynamic>),
+  //     description: map['description'] as String,
+  //     quantity: map['quantity'] as int,
+  //     rentingDuration: map['renting_duration'] as String,
+  //     deliveryMethods: map['delivery_methods'] as String,
+  //     averageRating: map['rating'] as double,
+  //     reviews: loadedReviews,
+  //     location: map['location'] as String,
+  //   );
+  // }
+
+  factory Item.fromMap(Map<String, dynamic> map, String id) {
+    final List<Review> loadedReviews =
+        (map['reviews'] as List<dynamic>? ?? [])
+            .map((e) => Review.fromMap(e as Map<String, dynamic>))
+            .toList();
+
+    final DocumentReference? ownerRef =
+        map['owner'] is DocumentReference
+            ? map['owner'] as DocumentReference
+            : null;
+
+    return Item(
+      id: id,
+
+      ownerRef: ownerRef!,
+      ownerId: ownerRef?.id ?? '',
+
+      ownerName: map['ownerName'] ?? '',
+      ownerImage: map['ownerImage'] ?? '',
+      productName: map['product_name'] ?? '',
+
+      pricePerDay: (map['price_per_day'] as num?)?.toDouble() ?? 0.0,
+
+      imageUrl: map['imageURL'] ?? '',
+      imageUrls: List<String>.from(map['imageUrls'] ?? []),
+
+      description: map['description'] ?? '',
+      quantity: map['quantity'] ?? 0,
+
+      rentingDuration: map['renting_duration'] ?? '',
+      deliveryMethods: map['delivery_methods'] ?? '',
+
+      averageRating: (map['rating'] as num?)?.toDouble() ?? 0.0,
+
+      reviews: loadedReviews,
+      location: map['location'] ?? '',
+    );
   }
 
   // Create Item from Firestore Snapshot - UPDATED with type safety
   factory Item.fromSnapshot(DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data()!;
-
-    // Debug print to see what data we're getting
-    print('🔥 Firestore data for item ${snapshot.id}:');
-    data.forEach((key, value) {
-      print('  $key: $value (${value.runtimeType})');
-    });
 
     // Handle owner reference
     DocumentReference ownerRef;
@@ -87,6 +172,7 @@ class Item {
     final ownerImage = _safeString(
       data['ownerImage'] ?? 'https://i.pravatar.cc/150?img=1',
     );
+    final location = _safeString(data['location']);
 
     // Handle price - could be int or double
     final pricePerDay = _safeDouble(data['price_per_day']);
@@ -116,6 +202,7 @@ class Item {
               return Review.fromMap(reviewData);
             }
             return Review(
+              reviewerId: '',
               reviewerName: 'Unknown',
               reviewerImage: 'https://i.pravatar.cc/150?img=1',
               date: DateTime.now(),
@@ -141,6 +228,7 @@ class Item {
       deliveryMethods: deliveryMethods,
       averageRating: averageRating,
       reviews: reviews,
+      location: location,
     );
   }
 
@@ -213,6 +301,7 @@ class Item {
       deliveryMethods: deliveryMethods ?? this.deliveryMethods,
       averageRating: averageRating ?? this.averageRating,
       reviews: reviews ?? this.reviews,
+      location: location,
     );
   }
 }

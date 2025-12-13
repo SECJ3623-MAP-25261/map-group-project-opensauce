@@ -1,6 +1,8 @@
+import 'package:easyrent/features/models/item.dart';
+
 class RentingStatusState {
   final bool hasReviewed;
-  final List<Map<String,dynamic>> historyItem;
+  final List<Item> historyItem;
 
   const RentingStatusState ({
     required this.hasReviewed,
@@ -9,7 +11,7 @@ class RentingStatusState {
 
   RentingStatusState copyWith ({
     bool? hasReviewed,
-    List<Map<String,dynamic>>? historyItem
+    List<Item>? historyItem
   }) {
     return RentingStatusState(
       hasReviewed: hasReviewed ?? this.hasReviewed,

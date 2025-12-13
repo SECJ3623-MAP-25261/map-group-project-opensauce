@@ -1,9 +1,10 @@
+import 'package:easyrent/features/models/item.dart';
 import 'package:flutter/material.dart';
 
 void showCancelConfirmationModal({
   required BuildContext context,
-  required Map<String,dynamic> item,
-  required Future<void> Function(Map<String,dynamic> item) onConfirm,
+  required Item item,
+  required Future<void> Function(Item item) onConfirm,
 }) {
   showDialog(
     context: context,
@@ -19,8 +20,8 @@ void showCancelConfirmationModal({
 
 // Internal StatefulWidget to manage the loading state of the confirm button
 class CancelOrderWidget extends StatefulWidget {
-  final Map<String,dynamic> item;
-  final Future<void> Function(Map<String,dynamic> item) onConfirm;
+  final Item item;
+  final Future<void> Function(Item item) onConfirm;
 
   const CancelOrderWidget({
     super.key,
@@ -95,7 +96,7 @@ class _CancelOrderWidgetState extends State<CancelOrderWidget> {
         child: ListBody(
           children: <Widget>[
             Text(
-              'Are you sure you want to cancel order ${widget.item['id']}?',
+              'Are you sure you want to cancel order ${widget.item.id}?',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),

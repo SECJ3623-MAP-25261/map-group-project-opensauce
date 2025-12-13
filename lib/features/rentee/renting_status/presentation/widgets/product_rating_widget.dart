@@ -1,3 +1,4 @@
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/renting_status/data/provider/renting_status_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,7 +14,7 @@ class ProductRatingWidget extends ConsumerStatefulWidget {
   final String reviewHintText;
   // Optional: Whether the review text field is required.
   final bool isReviewRequired;
-  final Map<String,dynamic> item;
+  final Item item;
 
   const ProductRatingWidget({
     super.key,
@@ -66,7 +67,7 @@ class _ProductRatingWidgetState extends ConsumerState<ProductRatingWidget> {
 
   bool finishedReviewLoading = false;
   // --- Submission Logic ---
-  void _submitReview(Map<String,dynamic>item) async {
+  void _submitReview(Item item) async {
     // Validate rating
     if (_currentRating == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -116,7 +117,7 @@ class _ProductRatingWidgetState extends ConsumerState<ProductRatingWidget> {
         // Optionally reset the widget state after successful submission
         if (success) {
           setState(() {
-            ref.read(rentingStatusProvider.notifier).setHasReviewed(item['id'], true);
+            ref.read(rentingStatusProvider.notifier).setHasReviewed(item.id, 'Good ewview', 3);
             finishedReviewLoading =  true;
             _currentRating = 0; // Reset stars
             _reviewController.clear(); // Clear text field

@@ -1,12 +1,15 @@
 import 'package:easyrent/core/constants/constants.dart';
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class CheckoutCartWidget extends ConsumerStatefulWidget {
-  final Map<String, dynamic> item;
+  const CheckoutCartWidget({super.key, required this.item,required this.duration});
 
-  const CheckoutCartWidget({super.key, required this.item});
+  final Item item;
+  final int duration;
+
 
   @override
   ConsumerState<CheckoutCartWidget> createState() => _CheckoutCartWidgetState();
@@ -15,7 +18,7 @@ class CheckoutCartWidget extends ConsumerStatefulWidget {
 class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
   @override
   Widget build(BuildContext context) {
-    final id = widget.item['id'] as String;
+    final id = widget.item.id as String;
     // Helper function to create the star rating row
     Widget buildRatingRow() {
       return Row(
@@ -24,7 +27,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
           Icon(Icons.star, color: AppColors.primary, size: 16),
           const SizedBox(width: 4),
           Text(
-            '${widget.item['rating']}/5.0 (${widget.item['price']})',
+            '${widget.item.averageRating}/5.0 (${widget.item.pricePerDay})',
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
@@ -93,7 +96,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              widget.item['image'],
+              widget.item.imageUrl,
               width: 80,
               height: 80,
               fit: BoxFit.cover,
@@ -117,7 +120,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
                   children: [
                     Expanded(
                       child: Text(
-                        widget.item['product_name'],
+                        widget.item.productName,
                         style: const TextStyle(
                           overflow: TextOverflow.clip,
                           fontWeight: FontWeight.bold,
@@ -137,7 +140,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'RM ${widget.item['price'].toString()} per day',
+                  'RM ${widget.item.pricePerDay.toString()} per day',
                   style: TextStyle(
                     color: AppColors.primaryRed,
                     fontWeight: FontWeight.w600,
