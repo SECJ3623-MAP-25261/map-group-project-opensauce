@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 //TODO: Seperate the code into difference file if the code is too long
+
 class AppColors {
   static const primary = Color(0xFFF8BE17); // Gold color
   static const primaryRed = Color(0xFF800000);
 }
 
 class AppString {
+  static const userSampleId= "UAPrpMnRHvfu47xvzh7L";
   // Define text
   static const appName = 'EasyRent';
 }

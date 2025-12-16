@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/checkout/services/database.dart';
 import 'package:easyrent/features/rentee/wishlist/domain/shopping_cart_state.dart';
@@ -15,14 +16,20 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
           deliveryOption: 'Self-Pickup',
           items: [],
           depositRate: 30.0,
-          isDBSuccess: false
+          isDBSuccess: false,
+          userId: ''
         ),
       );
 
-  void setItems(List<Map<String, dynamic>> selectedItems) {
+  void setUserId(String userId) {
+    state = state.copyWith(userId: userId);
+  }
+
+  void setItems(List<Item> selectedItems) {
     state = state.copyWith(items: selectedItems);
   }
 
+  
   // Business Logic: Calculates the delivery fee based on the option
   double _calculateDeliveryFee(String option) {
     // Example logic:
@@ -44,42 +51,35 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
   }
 
   void incrementItemQuantity(String itemId) {
-    // 1. Create a new list based on the current state's items
-    final updatedItems =
-        state.items.map((item) {
-          if (item['itemId'] == itemId) {
-            // 2. Return a NEW map with the incremented quantity (immutability)
-            return Map<String, dynamic>.from(item)
-              ..['item']['quantity'] = item['item']['quantity'] + 1;
-          }
-          return item; // Return unchanged item
-        }).toList();
+    final updatedItems = state.items.map((item) {
+      if (item.id == itemId) {
+        return item.copyWith(quantity: item.quantity + 1);
+      }
+      return item;
+    }).toList();
 
-    // 3. Set the new, immutable state
     state = state.copyWith(items: updatedItems);
     setRenteeFee();
   }
 
   void decrementItemQuantity(String itemId) {
-    final updatedItems =
-        state.items.map((item) {
-          if (item['itemId'] == itemId && item['item']['quantity'] >= 1) {
-            return Map<String, dynamic>.from(item)
-              ..['item']['quantity'] = item['item']['quantity'] - 1;
-          }
-          return item;
-        }).toList();
+    final updatedItems = state.items.map((item) {
+      if (item.id == itemId) {
+        return item.copyWith(quantity: item.quantity - 1);
+      }
+      return item;
+    }).toList();
 
     state = state.copyWith(items: updatedItems);
     setRenteeFee();
   }
 
   int getItemQuantity(String itemId) {
-    final item = state.items.where((item) => item['itemId'] == itemId);
+    final item = state.items.where((item) => item.id == itemId);
 
     if (item.isNotEmpty) {
       //  print("the quantity is ${item.first['id']}");
-      return item.first['item']['quantity'] ?? 0;
+      return item.first.quantity ?? 0;
     }
     return 0;
   }
@@ -89,7 +89,7 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
     double totalPrice = 0;
 
     for (var item in state.items) {
-      totalPrice += (item['item']['quantity'] * item['item']['price']);
+      totalPrice += (item.quantity * item.pricePerDay);
     }
 
     state = state.copyWith(renteeFee: totalPrice);
@@ -112,7 +112,7 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
 
   void deleteItem(String itemId) {
     final updatedItem =
-        state.items.where((item) => item['itemId'] != itemId).toList();
+        state.items.where((item) => item.id != itemId).toList();
 
     state = state.copyWith(items: updatedItem);
   }
@@ -142,32 +142,28 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
   }
 }
 
-Future<bool> isItemSaveToDB(String itemId) async {
+Future<bool> isItemSaveToDB(String itemId, DocumentReference user) async {
   final dbService = WishlistDatabaseServices();
-  return await dbService.doesItemExist(itemIdToCheck: itemId);
+  // print("isItemSaveToDB itemId:${itemId} userId:${user}");
+  return await dbService.doesItemExist(itemIdToCheck: itemId,user: user);
 }
 
-Future<bool> saveToWishlistDB(Item selectedItem) async {
+Future<bool> saveToWishlistDB(Item selectedItem,DocumentReference user) async {
   final dbService = WishlistDatabaseServices();
   try {
-    const String currentUserId = 'user_abc_123';
+    // owner = usrId
     // check the existence of item
     bool isItemexistinWishlist = await dbService.doesItemExist(
       itemIdToCheck: selectedItem.id,
+      user: user
     );
+    print("item is abcd: ${selectedItem}");
 
     if (!isItemexistinWishlist) {
-      // item not exist in the db, save the item to the db
-      Map<String, dynamic> wishlistObject() {
-        return {"item": selectedItem};
-      }
-
-      ;
-      Map<String, dynamic> changeToObject = wishlistObject();
 
       String newOrderId = await dbService.CreateWishlistItem(
         itemId: selectedItem.id,
-        item: changeToObject,
+        item: selectedItem,
         // userId: currentUserId, // implement after integrate user
       );
 
@@ -178,11 +174,6 @@ Future<bool> saveToWishlistDB(Item selectedItem) async {
       print("item already exist in your wishlist");
       return false;
     }
-    // state=state.copyWith(
-    //   isLoading: false,
-    //   isDBSuccess: true,
-    // );
-    return true;
   } catch (e) {
     // Handle the error (e.g., show a dialog)
     print('Failed to place order: $e');

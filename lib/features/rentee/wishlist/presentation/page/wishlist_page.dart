@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/core/constants/constants.dart';
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/widgets/total_summary_widget.dart';
@@ -42,7 +43,8 @@ class _WishlistPageState extends ConsumerState<WishlistPage> {
             children: [
               Positioned.fill(
                 child: StreamBuilder(
-                  stream: dbService.getWishlistItems("testing User Ling"),
+                  //TODO: integrate user auth 
+                  stream: dbService.getWishlistItems(AppString.userSampleId),
                   builder: (context, asyncSnapshot) {
 
                    if (asyncSnapshot.connectionState == ConnectionState.waiting) {
@@ -60,10 +62,10 @@ class _WishlistPageState extends ConsumerState<WishlistPage> {
                       );
                     }
                     // Data is available: snapshot.data is a List<Map<String, dynamic>>
-                    final List<Map<String,dynamic>> wishlistItems = asyncSnapshot.data!;
+                    final List<Item> wishlistItems = asyncSnapshot.data!;
 
                     Future.microtask(() {
-                      if(ref.watch(shoppingCartProvider).items.length == 0){
+                      if(ref.watch(shoppingCartProvider).items.isEmpty){
                          ref.read(shoppingCartProvider.notifier).setItems(wishlistItems);
                       }
                     });
@@ -85,7 +87,6 @@ class _WishlistPageState extends ConsumerState<WishlistPage> {
             // 1. Scrollable Cart Items
           ),
           // 3. Bottom Navigation Bar
-          bottomNavigationBar: RenteeBottomNavBar(),
         );
   }
 }

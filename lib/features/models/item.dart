@@ -1,26 +1,26 @@
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'review.dart';
 
 class Item {
   final String id;
   final DocumentReference ownerRef;
-  final String ownerId;        
-  final String ownerName;      
-  final String ownerImage;     
-  final String productName;    
-  final double pricePerDay;    
-  final String description;    
-  final String category;
-  final double deposit;       
-  final String imageUrl;       
+  final String ownerId;
+  final String ownerName;
+  final String ownerImage;
+  final String productName;
+  final double pricePerDay;
+  final String imageUrl;
   final List<String> imageUrls;
-  final String location;
-  final int quantity;          
+  final String description;
+  final int quantity;
   final String rentingDuration;
   final String deliveryMethods;
-  final double averageRating;    
-  final String? currentRenterId; 
+  final double averageRating;
   final List<Review> reviews;
+  final String location;
+  final double locationLat;
+  final double locationLong;
 
   Item({
     required this.id,
@@ -30,45 +30,20 @@ class Item {
     required this.ownerImage,
     required this.productName,
     required this.pricePerDay,
-    required this.description,
-    this.category = "Other",
-    this.deposit = 0.0,
     required this.imageUrl,
     required this.imageUrls,
-    required this.location,
+    required this.description,
     required this.quantity,
     required this.rentingDuration,
     required this.deliveryMethods,
     required this.averageRating,
-    this.currentRenterId,
-    this.reviews = const [],
+    required this.reviews,
+    required this.location,
+    required this.locationLat,
+    required this.locationLong,
   });
 
-  Map<String, dynamic> toJson() {
-    return {
-      'owner': FirebaseFirestore.instance.doc('user/$ownerId'),
-      'ownerName': ownerName,
-      'ownerImage': ownerImage,      
-      'product_name': productName,
-      'price_per_day': pricePerDay,
-      'description': description,
-      'imageURL': imageUrl,
-      'imageUrls': imageUrls,
-      'deposit': deposit,
-      'location': location,
-      'quantity': quantity,
-      'renting_duration': rentingDuration,
-      'delivery_methods': deliveryMethods,
-      'rating': averageRating,
-      
-      'renter': currentRenterId != null && currentRenterId!.isNotEmpty
-          ? FirebaseFirestore.instance.doc('user/$currentRenterId') 
-          : null,
-          
-    };
-  }
-
-  // Convert Item to Map for Firestore
+  // --- 1. Serialization (Dart Object -> Firestore Map) ---
   Map<String, dynamic> toMap() {
     return {
       'product_name': productName,
@@ -84,27 +59,104 @@ class Item {
       'ownerImage': ownerImage,
       'imageUrls': imageUrls,
       'reviews': reviews.map((r) => r.toMap()).toList(),
+      'location': location,
     };
+  }
+
+  // // --- 2. Deserialization (Firestore Map -> Dart Object) ---
+  // Map<String, dynamic> toJson() {
+  //   return {
+  //     'product_name': productName,
+  //     'price_per_day': pricePerDay,
+  //     'imageURL': imageUrl,
+  //     'owner': ownerRef,
+  //     'description': description,
+  //     'quantity': quantity,
+  //     'renting_duration': rentingDuration,
+  //     'delivery_methods': deliveryMethods,
+  //     'rating': averageRating,
+  //     'ownerName': ownerName,
+  //     'ownerImage': ownerImage,
+  //     'imageUrls': imageUrls,
+  //     'reviews': reviews.map((r) => r.toMap()).toList(),
+  //     'location': location,
+  //   };
+  // }
+
+  // --- 2. Deserialization (Firestore Map -> Dart Object) ---
+  // factory Item.fromMap(Map<String, dynamic> map, String id) {
+
+  //   // Cast the List of dynamic maps from Firestore into a List of Review objects
+  //   final List<Review> loadedReviews = (map['reviews'] as List<dynamic>?)
+  //       ?.map((reviewMap) => Review.fromMap(reviewMap as Map<String, dynamic>))
+  //       .toList() ?? [];
+
+  //   return Item(
+  //     id: id, // The ID comes from the DocumentSnapshot, not the map data
+  //     ownerRef: map['owner'] as DocumentReference,
+  //     // Use the DocumentReference to extract the ID and other owner fields
+  //     ownerId: map['ownerId'],
+  //     ownerName: map['ownerName'] as String,
+  //     ownerImage: map['ownerImage'] as String,
+  //     productName: map['product_name'] as String,
+  //     pricePerDay: map['price_per_day'] as double,
+  //     imageUrl: map['imageURL'] as String,
+  //     imageUrls: List<String>.from(map['imageUrls'] as List<dynamic>),
+  //     description: map['description'] as String,
+  //     quantity: map['quantity'] as int,
+  //     rentingDuration: map['renting_duration'] as String,
+  //     deliveryMethods: map['delivery_methods'] as String,
+  //     averageRating: map['rating'] as double,
+  //     reviews: loadedReviews,
+  //     location: map['location'] as String,
+  //   );
+  // }
+
+  factory Item.fromMap(Map<String, dynamic> map, String id) {
+    final List<Review> loadedReviews =
+        (map['reviews'] as List<dynamic>? ?? [])
+            .map((e) => Review.fromMap(e as Map<String, dynamic>))
+            .toList();
+
+    final DocumentReference? ownerRef =
+        map['owner'] is DocumentReference
+            ? map['owner'] as DocumentReference
+            : null;
+
+    return Item(
+      id: id,
+
+      ownerRef: ownerRef!,
+      ownerId: ownerRef?.id ?? '',
+
+      ownerName: map['ownerName'] ?? '',
+      ownerImage: map['ownerImage'] ?? '',
+      productName: map['product_name'] ?? '',
+
+      pricePerDay: (map['price_per_day'] as num?)?.toDouble() ?? 0.0,
+
+      imageUrl: map['imageURL'] ?? '',
+      imageUrls: List<String>.from(map['imageUrls'] ?? []),
+
+      description: map['description'] ?? '',
+      quantity: map['quantity'] ?? 0,
+
+      rentingDuration: map['renting_duration'] ?? '',
+      deliveryMethods: map['delivery_methods'] ?? '',
+
+      averageRating: (map['rating'] as num?)?.toDouble() ?? 0.0,
+
+      reviews: loadedReviews,
+      location: map['location'] ?? '',
+      locationLat: (map['locationLat'] as num?)?.toDouble() ?? 0.0,
+      locationLong: (map['locationLong'] as num?)?.toDouble() ?? 0.0
+
+    );
   }
 
   // Create Item from Firestore Snapshot - UPDATED with type safety
   factory Item.fromSnapshot(DocumentSnapshot<Map<String, dynamic>> snapshot) {
     final data = snapshot.data()!;
-
-    if (data == null) throw StateError('Item data is missing.');
-
-    String getIdFromRef(dynamic value) {
-      if (value is DocumentReference) {
-        return value.id; 
-      }
-      return '';
-    }
-
-    // Debug print to see what data we're getting
-    print('🔥 Firestore data for item ${snapshot.id}:');
-    data.forEach((key, value) {
-      print('  $key: $value (${value.runtimeType})');
-    });
 
     // Handle owner reference
     DocumentReference ownerRef;
@@ -128,6 +180,7 @@ class Item {
     final ownerImage = _safeString(
       data['ownerImage'] ?? 'https://i.pravatar.cc/150?img=1',
     );
+    final location = _safeString(data['location']);
 
     // Handle price - could be int or double
     final pricePerDay = _safeDouble(data['price_per_day']);
@@ -157,6 +210,7 @@ class Item {
               return Review.fromMap(reviewData);
             }
             return Review(
+              reviewerId: '',
               reviewerName: 'Unknown',
               reviewerImage: 'https://i.pravatar.cc/150?img=1',
               date: DateTime.now(),
@@ -168,24 +222,23 @@ class Item {
 
     return Item(
       id: snapshot.id,
-      ownerRef: data['owner'],
-      ownerId: getIdFromRef(data['owner']),
-      ownerName: data['ownerName'] ?? 'Unknown',
-      ownerImage: data['ownerImage'] ?? '',
-      productName: data['product_name'] ?? '',
-      pricePerDay: (data['price_per_day'] as num?)?.toDouble() ?? 0.0,
-      description: data['description'] ?? '',
-      category: data['category'] ?? 'Other',
-      deposit: (data['deposit'] as num?)?.toDouble() ?? 0.0, 
-      location: data['location'] ?? '',
-      imageUrl: data['imageURL'] ?? '', 
-      imageUrls: List<String>.from(data['imageUrls'] ?? []),
-      quantity: (data['quantity'] as num?)?.toInt() ?? 1,
-      rentingDuration: data['renting_duration'].toString(),
-      deliveryMethods: data['delivery_methods'] ?? 'Pick-up',
-      averageRating: (data['rating'] as num?)?.toDouble() ?? 0.0,
-      currentRenterId: getIdFromRef(data['renter']),
-      reviews: [],
+      ownerRef: ownerRef,
+      ownerId: ownerRef.id,
+      ownerName: ownerName,
+      ownerImage: ownerImage,
+      productName: productName,
+      pricePerDay: pricePerDay,
+      imageUrl: imageUrl,
+      imageUrls: imageUrls,
+      description: description,
+      quantity: quantity,
+      rentingDuration: rentingDuration,
+      deliveryMethods: deliveryMethods,
+      averageRating: averageRating,
+      reviews: reviews,
+      location: location,
+      locationLat: _safeDouble(data['locationLat']),
+      locationLong: _safeDouble(data['locationLong'])
     );
   }
 
@@ -250,8 +303,6 @@ class Item {
       ownerImage: ownerImage ?? this.ownerImage,
       productName: productName ?? this.productName,
       pricePerDay: pricePerDay ?? this.pricePerDay,
-      deposit: deposit ?? this.deposit,
-      location: location ?? this.location,
       imageUrl: imageUrl ?? this.imageUrl,
       imageUrls: imageUrls ?? this.imageUrls,
       description: description ?? this.description,
@@ -260,6 +311,9 @@ class Item {
       deliveryMethods: deliveryMethods ?? this.deliveryMethods,
       averageRating: averageRating ?? this.averageRating,
       reviews: reviews ?? this.reviews,
+      location: location,
+      locationLat: locationLat,
+      locationLong: locationLong
     );
   }
 }

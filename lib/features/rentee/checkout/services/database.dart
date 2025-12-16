@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easyrent/core/constants/constants.dart';
 
 class CheckoutDatabaseServices {
   // 1. Get a reference to the Firestore instance
@@ -14,7 +15,7 @@ class CheckoutDatabaseServices {
     try {
       final Map<String, dynamic> finalData = {
         ...orderData, // Spread the data passed from the application logic
-        'userId': 'testing User Ling',
+        'userId': AppString.userSampleId,
         'timestamp':
             FieldValue.serverTimestamp(), // Firestore automatically sets server time
         'status': 'pending', // Initial status
@@ -80,4 +81,6 @@ class CheckoutDatabaseServices {
       rethrow;
     }
   }
+
+
 }

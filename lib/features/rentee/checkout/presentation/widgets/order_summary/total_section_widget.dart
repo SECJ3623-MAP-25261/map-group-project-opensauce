@@ -27,15 +27,15 @@ class _TotalSectionWidgetState extends ConsumerState<TotalSectionWidget> {
           Text(
             'Total',
             style: GoogleFonts.poppins(
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w700,
               color: Colors.black87,
             ),
           ),
           Text(
-            'Check Out (RM ${ref.read(checkoutProvider.notifier).getTotalFee() == 0? ref.watch(checkoutProvider).items['price'] * 1.3: ref.read(checkoutProvider.notifier).getTotalFee().toStringAsFixed(2)})',
+            'Check Out (RM ${ref.read(checkoutProvider.notifier).getTotalFee() == 0? ref.watch(checkoutProvider).items.pricePerDay * 1.3: ref.read(checkoutProvider.notifier).getTotalFee().toStringAsFixed(2)})',
             style: GoogleFonts.poppins(
-              fontSize: 26,
+              fontSize: 20,
               fontWeight: FontWeight.w900,
               color: AppColors.primaryRed,
             ),

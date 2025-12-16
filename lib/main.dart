@@ -1,3 +1,5 @@
+import 'package:easyrent/features/rentee/renting_status/presentation/pages/renting_status_page.dart';
+import 'package:easyrent/features/renter/renter_management/presentation/pages/dummy_select_role.dart';
 import 'package:easyrent/features/message/messages.dart';
 import 'package:easyrent/features/rentee/services/notifiers.dart';
 import 'package:easyrent/features/rentee/my_profile_page.dart';
@@ -26,6 +28,7 @@ class MyApp extends StatefulWidget {
   @override
   State<MyApp> createState() => _MyAppState();
 }
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class _MyAppState extends State<MyApp> {
   @override
@@ -40,6 +43,11 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF800000)),
       ),
       home: DummySelectRole(),
+      // home: const MainScreen(),
+      // routes: {
+      //   '/home' : (_) => HomePage(),
+      //   '/renting-status' : (_) => RentingStatusPage(),
+      // },
     );
   }
 }

@@ -1,11 +1,19 @@
 import 'package:easyrent/core/constants/constants.dart';
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/cancel_order_widget.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/report_item_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:easyrent/features/rentee/renting_status/services/database.dart';
 
 class InrentingItemCardWidget extends StatefulWidget {
-  final Map<String,dynamic> item;
-  const InrentingItemCardWidget({super.key,required this.item});
+  final Item item;
+  final String status; 
+  final double totalPrice;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String returnMethods;
+  const InrentingItemCardWidget({super.key,required this.item, required this.status, required this.totalPrice, required this.startDate, required this.endDate, required this.returnMethods});
 
   @override
   State<InrentingItemCardWidget> createState() => _InrentingItemCardWidgetState();
@@ -14,10 +22,10 @@ class InrentingItemCardWidget extends StatefulWidget {
 class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
   bool cancelledItem = false;
     // This is the function that simulates the API call to report the item
-  Future<bool> _handleReportSubmission(String reason, Map<String,dynamic> item) async {
+  Future<bool> _handleReportSubmission(String reason, Item item) async {
 
-    print('Reporting item: with ${item['product_name']} name and ${item['id']} id');
-    print('Reason: $reason');
+    // print('Reporting item: with ${item['product_name']} name and ${item['id']} id');
+    // print('Reason: $reason');
     
     // Simulate a network delay
     await Future.delayed(const Duration(seconds: 2)); 
@@ -28,22 +36,26 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
     return isSuccessful;
   }
   
-    Future<void> _cancelOrderApiCall( Map<String,dynamic> item) async {
-    print('Attempting to cancel order ${item['id']}...');
-    // Simulate API delay
-    await Future.delayed(const Duration(seconds: 2));
-    
-    // Simulate failure 20% of the time for testing the error state
-    if (DateTime.now().millisecond % 10 < 2) {
-      throw Exception('Server error: Could not process cancellation.');
-    }
-    setState(() {
-      cancelledItem = true;
-    });
-    print('Order ${item['id']} successfully cancelled.');
-    // In a real app, you would typically refresh the order status here
+   Future<void> _cancelOrderApiCall(String orderId, String newStatus) async {
+      print('Attempting to cancel order ${orderId}...');
+      await RentingStatusDatabaseService().updateItemStatus(orderId, newStatus);
+
+      if (DateTime.now().millisecond % 10 < 2) {
+        throw Exception('Server error: Could not process cancellation.');
+      }
+      setState(() {
+        cancelledItem = true;
+      });
+      print('Order ${orderId} successfully cancelled.');
   }
   @override
+  String get formattedEndDate {
+    return DateFormat('dd MMM yyyy').format(widget.endDate);
+  }
+  String get formattedStartDate {
+    return DateFormat('dd MMM yyyy').format(widget.startDate);
+  }
+
   Widget build(BuildContext context) {
     return Card(
       color: Colors.white,
@@ -60,7 +72,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
               ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                widget.item['item']['image'],
+                widget.item.imageUrl,
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
@@ -85,7 +97,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                     children: [
                        Expanded(
                          child: Text(
-                          widget.item['item']['product_name'],
+                          widget.item.productName,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
@@ -102,20 +114,20 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                   ),
                   const SizedBox(height: 4),
                   //TODO: Integrate remaining days
-                  // Row(
-                  //   children: [
-                  //     Text(
-                  //       'Return Date: ${widget.item['returnDate']}',
-                  //       style: TextStyle(color: AppColors.primaryRed, fontSize: 12),
-                  //     )
-                  //   ],
-                  // ),
+                  Row(
+                    children: [
+                      Text(
+                        'Return Date: ${formattedEndDate}',
+                        style: TextStyle(color: AppColors.primaryRed, fontSize: 12),
+                      )
+                    ],
+                  ),
                   const SizedBox(height: 10),
                   // Rental Rate
                   Row(
                     children: [
                       Text(
-                        'RM ${widget.item['item']['price']} / day',
+                        'RM ${widget.item.pricePerDay} / day',
                         style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
                       const SizedBox(width: 10,),
@@ -125,58 +137,58 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                   Row(
                     children: [
                       //TODO: Integrate returnMethods
-                      // SizedBox(
-                      //   height: 28,
-                      //   // 1. Replace OutlinedButton with a Container to hold the styling.
-                      //   child: Container(
-                      //     // 2. Apply styling equivalent to OutlinedButton.styleFrom:
-                      //     padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
-                      //     decoration: BoxDecoration(
-                      //       color: Colors.transparent, // Background color (optional, but good practice)
-                      //       border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
-                      //       borderRadius: BorderRadius.circular(4), // Shape
-                      //     ),
-                      //     alignment: Alignment.center, // Center the text vertically within the container
-                      //     // 3. Place the Text widget inside the Container.
-                      //     child: Text(
-                      //       //TODO: Change the data format and use function to convert to readable type
-                      //       widget.item['returnMethod'],
-                      //       style: TextStyle(
-                      //         fontSize: 12, 
-                      //         color: Colors.black,
-                      //         // Optional: Ensure text height aligns well with the 28px height constraint
-                      //         // height: 1.0, 
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ),
-                      //TODO: Integrate currentStatus
-                      // const SizedBox(width: 10,),
-                      //   SizedBox(
-                      //   height: 28,
-                      //   // 1. Replace OutlinedButton with a Container to hold the styling.
-                      //   child: Container(
-                      //     // 2. Apply styling equivalent to OutlinedButton.styleFrom:
-                      //     padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
-                      //     decoration: BoxDecoration(
-                      //       color: Colors.transparent, // Background color (optional, but good practice)
-                      //       border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
-                      //       borderRadius: BorderRadius.circular(4), // Shape
-                      //     ),
-                      //     alignment: Alignment.center, // Center the text vertically within the container
-                      //     // 3. Place the Text widget inside the Container.
-                      //     child: Text(
+                      SizedBox(
+                        height: 28,
+                        // 1. Replace OutlinedButton with a Container to hold the styling.
+                        child: Container(
+                          // 2. Apply styling equivalent to OutlinedButton.styleFrom:
+                          padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
+                          decoration: BoxDecoration(
+                            color: Colors.transparent, // Background color (optional, but good practice)
+                            border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
+                            borderRadius: BorderRadius.circular(4), // Shape
+                          ),
+                          alignment: Alignment.center, // Center the text vertically within the container
+                          // 3. Place the Text widget inside the Container.
+                          child: Text(
+                            //TODO: Change the data format and use function to convert to readable type
+                            widget.returnMethods,
+                            style: TextStyle(
+                              fontSize: 12, 
+                              color: Colors.black,
+                              // Optional: Ensure text height aligns well with the 28px height constraint
+                              // height: 1.0, 
+                            ),
+                          ),
+                        ),
+                      ),
+                      // TODO: Integrate currentStatus
+                      const SizedBox(width: 10,),
+                        SizedBox(
+                        height: 28,
+                        // 1. Replace OutlinedButton with a Container to hold the styling.
+                        child: Container(
+                          // 2. Apply styling equivalent to OutlinedButton.styleFrom:
+                          padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
+                          decoration: BoxDecoration(
+                            color: Colors.transparent, // Background color (optional, but good practice)
+                            border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
+                            borderRadius: BorderRadius.circular(4), // Shape
+                          ),
+                          alignment: Alignment.center, // Center the text vertically within the container
+                          // 3. Place the Text widget inside the Container.
+                          child: Text(
                             
-                      //       widget.item['currentStatus'],
-                      //       style: TextStyle(
-                      //         fontSize: 12, 
-                      //         color: Colors.black,
-                      //         // Optional: Ensure text height aligns well with the 28px height constraint
-                      //         // height: 1.0, 
-                      //       ),
-                      //     ),
-                      //   ),
-                      // ),
+                            widget.status,
+                            style: TextStyle(
+                              fontSize: 12, 
+                              color: Colors.black,
+                              // Optional: Ensure text height aligns well with the 28px height constraint
+                              // height: 1.0, 
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10,),
@@ -191,7 +203,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Total Price: RM${widget.item['totalFee']}',
+                          'Total Price: RM${widget.totalPrice}',
                           style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w600,
@@ -207,8 +219,8 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                              SizedBox(
                               height: 28,
                               child: ElevatedButton(
-                                onPressed: widget.item['status'] == 'cancelled' || cancelledItem == true? null : () {
-                                    showCancelConfirmationModal(context: context, item: widget.item, onConfirm: (item) => _cancelOrderApiCall(widget.item));
+                                onPressed: widget.status == 'cancelled' || cancelledItem == true? null : () {
+                                    showCancelConfirmationModal(context: context, item: widget.item, onConfirm: (item) => _cancelOrderApiCall(widget.item.id,'cancel'));
                                 },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.grey[300], // Grey color
@@ -220,7 +232,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                                 ),
                                 child: Text(
                                   'Cancel Order',
-                                  style: TextStyle(fontSize: 12, color: widget.item['status'] == 'cancelled' || cancelledItem == true ? Colors.grey : Colors.black),
+                                  style: TextStyle(fontSize: 12, color: widget.status == 'cancelled' || cancelledItem == true ? Colors.grey : Colors.black),
                                 ),
                               ),
                             ),

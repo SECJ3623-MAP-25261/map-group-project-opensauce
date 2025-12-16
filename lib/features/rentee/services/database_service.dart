@@ -40,7 +40,7 @@ class DatabaseService {
       // Get first user from 'user' collection to use as owner
       final users = await _usersRef.limit(1).get();
       if (users.docs.isEmpty) {
-        print('❌ No users found. Please add a user first.');
+        print(' No users found. Please add a user first.');
         return;
       }
 

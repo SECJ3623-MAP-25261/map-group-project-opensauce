@@ -1,4 +1,6 @@
 import 'package:easyrent/core/constants/constants.dart';
+import 'package:easyrent/core/utils/parse_date.dart';
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/renting_status/data/dummy_data/renting_status_dummy.dart';
 import 'package:easyrent/features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/history_item_card_widgets.dart';
@@ -92,75 +94,165 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
 
   // --- WIDGET METHOD TO BUILD THE CONTENT ---
   Widget _buildOrderingTabContent() {
-    final Future<List<Map<String, dynamic>>> orderingItemsFuture = 
-    RentingStatusDatabaseService().getOrderingItems("testing User Ling") as Future<List<Map<String, dynamic>>>;
-    
+    // 1. Define the stream variable with the correct type: Stream<List<Map<String, dynamic>>>
+    final Stream<List<Map<String, dynamic>>> orderingItemsStream =
+        RentingStatusDatabaseService().getOrderingItems(AppString.userSampleId);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
-      // 1. Removed Stack and made FutureBuilder the direct child
-      child: FutureBuilder<List<Map<String, dynamic>>>(
-        future: orderingItemsFuture,
+
+      // 2. Switched from FutureBuilder to StreamBuilder
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: orderingItemsStream,
+
         builder: (context, asyncSnapshot) {
-          
+          // --- Connection State Handling ---
           if (asyncSnapshot.connectionState == ConnectionState.waiting) {
-            // Show a loading indicator at the top while waiting
+            // Show a loading indicator while the stream is waiting for its first item
             return const Center(child: CircularProgressIndicator());
           }
-          
+
+          // --- Error Handling ---
           if (asyncSnapshot.hasError) {
+            // Display the error if the stream encounters one
             return Center(child: Text('Error: ${asyncSnapshot.error}'));
           }
 
-          final List<Map<String, dynamic>> orderingItems = asyncSnapshot.data ?? [];
+          // --- Data Handling ---
+          // Retrieve the data, which is now the latest list emitted by the stream
+          final List<Map<String, dynamic>> orderingItems =
+              asyncSnapshot.data ?? [];
 
           if (orderingItems.isEmpty) {
-            // Use an Expanded widget if this builder is nested, but Center is fine here.
+            // Display message if the data list is empty
             return const Center(child: Text('No ordering items found.'));
           }
-          
-          // 2. The Column is now scrollable due to the SingleChildScrollView parent
+
+          // 3. Build the UI using the latest data from the stream
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: orderingItems.map((item) {
-              // 3. Ensure the key 'items' correctly extracts the product data map
-              // Note: If item['items'] contains the item ID, product name, etc., this is correct.
-              // If the key is 'item' (singular) use item['item']
-              return RentalItemCardWidget(item: item['items']); 
-            }).toList(),
+            children:
+                orderingItems.map((item) {
+
+                  final itemMap = item['items'];
+                  // print("the main item is ${item}");
+                  // print("the duration and endRenting and pending is : ${item['duration']} ${item['endRenting']} ${item['status']}");
+                  // print("the id is ${item['id']}");
+                  final Item itemDetails = Item.fromMap(itemMap, item['id']);
+
+                  if (itemDetails != null) {
+                    // comvert string to datetime 
+                    final endRenting = parseDate(item['endRenting']);
+                    return RentalItemCardWidget(item: itemDetails,orderDate: item['duration'], returnDate: (endRenting!), status: item['status'],totalFee: item['totalFee'],);
+                  }
+                  return const SizedBox.shrink();
+                }).toList(),
           );
         },
       ),
     );
   }
+
   Widget _buildInRentingTabContent() {
+    // 1. Define the stream for items currently in renting status
+    final Stream<List<Map<String, dynamic>>> inRentingItemsStream =
+        RentingStatusDatabaseService().getInRentingItems(
+          AppString.userSampleId,
+        );
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
-      child: Stack(
-        children: [
-          Column(
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: inRentingItemsStream,
+        builder: (context, asyncSnapshot) {
+          // --- Connection State Handling ---
+          if (asyncSnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // --- Error Handling ---
+          if (asyncSnapshot.hasError) {
+            return Center(child: Text('Error: ${asyncSnapshot.error}'));
+          }
+
+          // --- Data Handling ---
+          final List<Map<String, dynamic>> inRentingItems =
+              asyncSnapshot.data ?? [];
+
+          if (inRentingItems.isEmpty) {
+            return const Center(child: Text('No items currently in renting.'));
+          }
+
+          // 2. Build the UI using the latest data from the stream
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children:
-                userInRenting.map((item) {
-                  return InrentingItemCardWidget(item: item);
+                inRentingItems.map((order) {
+                  
+                  final itemMap = order['items'];
+                  final Item itemDetails = Item.fromMap(itemMap, order['id']);
+
+                  if (itemDetails != null) {
+                    final startDate = parseDate(order['startRenting']);
+                    final endDate = parseDate(order['endRenting']);
+                    return InrentingItemCardWidget(item: itemDetails, status:order['status'] ,totalPrice: order['totalFee'],startDate: startDate!, endDate: endDate!, returnMethods: order['deliveryOption']);
+                  }
+
+                  // Return an empty widget if the data is corrupted or missing the 'items' field
+                  return const SizedBox.shrink();
                 }).toList(),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
+
   Widget _buildHistoryTabContent() {
+    // 1. Define the stream for completed/history items
+    final Stream<List<Map<String, dynamic>>> historyItemsStream =
+        RentingStatusDatabaseService().getHistoryItems(AppString.userSampleId);
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
-      child: Stack(
-        children: [
-          Column(
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: historyItemsStream,
+        builder: (context, asyncSnapshot) {
+          // --- Connection State Handling ---
+          if (asyncSnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          // --- Error Handling ---
+          if (asyncSnapshot.hasError) {
+            return Center(child: Text('Error: ${asyncSnapshot.error}'));
+          }
+
+          // --- Data Handling ---
+          final List<Map<String, dynamic>> historyItems =
+              asyncSnapshot.data ?? [];
+
+          if (historyItems.isEmpty) {
+            return const Center(child: Text('No order history found.'));
+          }
+
+          // 2. Build the UI using the latest data from the stream
+          return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children:
-                userOrderHistory.map((item) {
-                  return HistoryItemCardWidgets(item: item['items']);
+                historyItems.map((order) {
+
+                  final itemMap = order['items'];
+                  final Item itemDetails = Item.fromMap(itemMap, order['id']);
+                  if (itemDetails != null) {
+                    final endRenting = parseDate(order['endRenting']);
+                    final startRenting = parseDate(order['startRenting']);
+                    return HistoryItemCardWidgets(item: itemDetails, startDate: startRenting!, endDate: endRenting!, duration: order['duration'], status: order['status'], totalPrice: order['totalFee'], );
+                  }
+
+                  return const SizedBox.shrink();
                 }).toList(),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

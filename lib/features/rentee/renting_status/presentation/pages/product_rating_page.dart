@@ -1,7 +1,8 @@
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/product_rating_widget.dart';
 import 'package:flutter/material.dart';
 class ProductRatingPage extends StatelessWidget {
-  final Map<String,dynamic>item;
+  final Item item;
 
   const ProductRatingPage ({
       super.key,
@@ -9,9 +10,9 @@ class ProductRatingPage extends StatelessWidget {
   });
   // This function simulates an API call to submit the rating and review
   Future<bool> _submitUserRating(int rating, String review) async {
-    print('Submitting review for product: ${item['product_name']}');
-    print('Rating: $rating stars');
-    print('Review: $review');
+    // print('Submitting review for product: ${item['product_name']}');
+    // print('Rating: $rating stars');
+    // print('Review: $review');
 
     // Simulate network delay
     await Future.delayed(const Duration(seconds: 2));
@@ -41,7 +42,7 @@ class ProductRatingPage extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text(
-                'How was your experience with the ${item['product_name']}?',
+                'How was your experience with the ${item.productName}?',
                 style: Theme.of(context).textTheme.headlineMedium,
                 textAlign: TextAlign.center,
               ),
@@ -50,10 +51,10 @@ class ProductRatingPage extends StatelessWidget {
             // --- The Rating Widget Integration ---
             ProductRatingWidget(
               item: item,
-              title: 'Rate ${item['product_name']}',
+              title: 'Rate ${item.productName}',
               // Initial rating could come from user's previous review
               initialRating: 3, 
-              reviewHintText: 'Tell us what you think about the ${item['product_name']}...',
+              reviewHintText: 'Tell us what you think about the ${item.productName}...',
               isReviewRequired: false, // Set to true if review text is mandatory
               onSubmitRating: _submitUserRating, // Your async submission logic
             ),

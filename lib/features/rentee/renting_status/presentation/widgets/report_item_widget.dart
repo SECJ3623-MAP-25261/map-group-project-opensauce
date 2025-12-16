@@ -1,14 +1,15 @@
+import 'package:easyrent/features/models/item.dart';
 import 'package:flutter/material.dart';
 
 class ReportItemWidget extends StatefulWidget {
   // A callback function to handle the report submission logic.
   // It takes the report reason (String) and returns a Future<bool>
   // indicating if the submission was successful.
-  final Future<bool> Function(String reason, Map<String, dynamic> item)
+  final Future<bool> Function(String reason, Item item)
   onSubmitReport;
 
   // Optional: The ID or name of the item being reported, for context.
-  final Map<String, dynamic> item;
+  final Item item;
 
   const ReportItemWidget({
     super.key,
@@ -33,7 +34,7 @@ class _ReportItemWidgetState extends State<ReportItemWidget> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Report ${widget.item['product_name']}'),
+          title: Text('Report ${widget.item.productName}'),
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[

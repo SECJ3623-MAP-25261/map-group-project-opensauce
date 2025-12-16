@@ -1,13 +1,21 @@
 import 'package:easyrent/core/constants/constants.dart';
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/renting_status/data/provider/renting_status_provider.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/pages/product_rating_page.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/report_item_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 class HistoryItemCardWidgets extends ConsumerStatefulWidget {
-  final Map<String,dynamic> item;
-  const HistoryItemCardWidgets({super.key,required this.item});
+  final Item item;
+  final DateTime startDate;
+  final DateTime endDate;
+  final int duration;
+  final String status;
+  final double totalPrice;
+
+  const HistoryItemCardWidgets({super.key,required this.item, required this.startDate, required this.endDate, required this.duration, required this.status, required this.totalPrice});
 
   @override
   ConsumerState<HistoryItemCardWidgets> createState() => _HistoryItemCardWidgetsState();
@@ -15,9 +23,9 @@ class HistoryItemCardWidgets extends ConsumerStatefulWidget {
 
 class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets> {
   bool openReport = false;
-  Future<bool> _handleReportSubmission(String reason, Map<String,dynamic> item) async {
+  Future<bool> _handleReportSubmission(String reason, Item item) async {
 
-    print('Reporting item: with ${item['product_name']} name and ${item['id']} id');
+    print('Reporting item: with ${item.productName} name and ${item.id} id');
     print('Reason: $reason');
     
     // Simulate a network delay
@@ -30,6 +38,12 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
   }
   
   @override
+  String get formattedEndDate {
+    return DateFormat('dd MMM yyyy').format(widget.endDate);
+  }
+  String get formattedStartDate {
+    return DateFormat('dd MMM yyyy').format(widget.startDate);
+  }
   Widget build(BuildContext context) {
     final historyItemState = ref.read(rentingStatusProvider.notifier);
 
@@ -48,7 +62,7 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
               ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
-                widget.item['imageUrl'],
+                widget.item.imageUrl,
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
@@ -72,7 +86,7 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                        Text(
-                        widget.item['product_name'],
+                        widget.item.productName,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -80,7 +94,7 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
                       ),
                       // Item Count (2 Pcs)
                       Text(
-                        '${widget.item['quantity']} Pcs',
+                        '${widget.item.quantity} Pcs',
                         style: TextStyle(color: AppColors.primaryRed, fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -89,7 +103,7 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
                   Column(
                     children: [
                       Text(
-                        'Order Date: ${widget.item['startDate']} - ${widget.item['returnDate']} (${widget.item['rentalDurationDays']} Days)',
+                        'Order Date: ${formattedStartDate} - ${formattedEndDate} (${widget.duration} Days)',
                         style: TextStyle(color: AppColors.primaryRed, fontSize: 10),
                       ),
                       
@@ -100,7 +114,7 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
                   Row(
                     children: [
                       Text(
-                        'RM ${widget.item['price_per_day']} / day',
+                        'RM ${widget.item.pricePerDay} / day',
                         style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
                       const SizedBox(width: 10,),
@@ -143,7 +157,7 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
                           alignment: Alignment.center, // Center the text vertically within the container
                           // 3. Place the Text widget inside the Container.
                           child: Text(
-                            widget.item['finalStatus'],
+                            widget.status,
                             style: TextStyle(
                               fontSize: 12, 
                               color: Colors.black,
@@ -167,7 +181,7 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Total Price: RM${widget.item['finalTotalPrice']}',
+                          'Total Price: RM${widget.totalPrice}',
                           style: TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w600,
@@ -177,14 +191,14 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
                         const SizedBox(height: 4),
                         // Buttons
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             
                             SizedBox(
                               height: 30,
                               
                               child: ElevatedButton(
-                                onPressed: historyItemState.getHasReviewed(widget.item['id']) ?  null : (){
+                                onPressed: historyItemState.getHasReviewed(widget.item.id) ?  null : (){
                                    Navigator.push(context, MaterialPageRoute(builder: (context) => ProductRatingPage(item: widget.item,),));
                                 }                       
                                 ,
@@ -198,7 +212,7 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
                                 ),
                                 child: Text(
                                   'Rate Order',
-                                  style: TextStyle(fontSize: 12, color: historyItemState.getHasReviewed(widget.item['id']) ? Colors.grey : Colors.black),
+                                  style: TextStyle(fontSize: 12, color: historyItemState.getHasReviewed(widget.item.id) ? Colors.grey : Colors.black),
                                 ),
                               ),
                             ),

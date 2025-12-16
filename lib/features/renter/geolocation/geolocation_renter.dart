@@ -5,23 +5,31 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geocoding/geocoding.dart';
 
-class Geolocation extends ConsumerStatefulWidget {
-  const Geolocation({
+class GeolocationRenter extends StatefulWidget {
+    const GeolocationRenter({
     required this.latitude,
     required this.longitude,
+    // required this.location,
+    // required this.locationLat,
+    // required this.locationLong,
+    required this.onLocationSelected,
     super.key,
   });
 
+  final void Function(String location, double lat, double long) onLocationSelected;
   final double latitude;
   final double longitude;
+  // final String location;
+  // final double locationLat;
+  // final double locationLong;
 
   @override
-  ConsumerState<Geolocation> createState() => _GeolocationState();
+  State<GeolocationRenter> createState() => _GeolocationRenterState();
 }
 
-class _GeolocationState extends ConsumerState<Geolocation> {
+class _GeolocationRenterState extends State<GeolocationRenter> {
   LatLng? selectedLatLng;
-  String location = "";
+  String selectedLocation = "";
  
   /// Suggested places shown when map opens
   final List<LatLng> suggestedPlaces = [
@@ -43,7 +51,7 @@ class _GeolocationState extends ConsumerState<Geolocation> {
 
         setState(() {
           selectedLatLng = latLng;
-          location =
+          selectedLocation =
               "${place.name}, ${place.street}, ${place.locality}, "
               "${place.postalCode}, ${place.country}";
         });
@@ -72,7 +80,6 @@ class _GeolocationState extends ConsumerState<Geolocation> {
       );
     }).toSet();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,9 +114,9 @@ class _GeolocationState extends ConsumerState<Geolocation> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              location.isEmpty
+              selectedLocation.isEmpty
                   ? "Tap a marker or map to select a location"
-                  : location,
+                  : selectedLocation,
               style: const TextStyle(fontSize: 14),
             ),
           ),
@@ -123,22 +130,21 @@ class _GeolocationState extends ConsumerState<Geolocation> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: location.isNotEmpty && selectedLatLng != null
+                onPressed: selectedLocation.isNotEmpty && selectedLatLng != null
                     ? () {
-                        ref
-                            .read(checkoutProvider.notifier)
-                            .setLocation(location);
-                        ref
-                            .read(checkoutProvider.notifier)
-                            .setLatLng(selectedLatLng!.latitude, selectedLatLng!.longitude);
+                        widget.onLocationSelected(
+                          selectedLocation,
+                          selectedLatLng!.latitude,
+                          selectedLatLng!.longitude,
+                        );
                         Navigator.pop(context);
                       }
                     : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: location.isNotEmpty
+                  backgroundColor: selectedLocation.isNotEmpty
                       ? AppColors.primaryRed
                       : Colors.grey.shade400,
-                  foregroundColor: location.isNotEmpty
+                  foregroundColor: selectedLocation.isNotEmpty
                       ? Colors.white
                       : Colors.grey.shade700,
                 ),
