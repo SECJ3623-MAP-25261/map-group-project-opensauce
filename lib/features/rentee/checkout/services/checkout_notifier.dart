@@ -4,6 +4,7 @@ import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/checkout/domain/checkout_state.dart';
 import 'package:easyrent/features/rentee/checkout/services/database.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 // The StateNotifier must take your immutable state class as itse
 class CheckoutNotifier extends StateNotifier<CheckoutState> {
@@ -47,9 +48,25 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
           duration: 0,
           isDBSuccess: false,
           isOrderComplete: false,
-          userId: ''
+          userId: '',
+          location: '',
+          locationLat: 1.488889,
+          locationLong: 103.761111,
         ),
       );
+
+  void setLatLng (double selectedLat, double selectedLong) {
+    state = state.copyWith(
+      locationLat: selectedLat,
+      locationLong: selectedLong
+    );
+  }
+
+  void setLocation (String selectedLocation){
+    state = state.copyWith(
+      location: selectedLocation
+    );
+  }
 
   void setIsloading(bool isLoading) {
     state = state.copyWith(isLoading: isLoading);
