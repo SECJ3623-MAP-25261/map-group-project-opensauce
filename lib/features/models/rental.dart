@@ -73,7 +73,7 @@ class Rental {
     }
     
     // Helper function to safely convert Timestamp to DateTime
-    DateTime _toDateTime(dynamic ts) => (ts is Timestamp) ? ts.toDate() : DateTime.now();
+    DateTime toDateTime(dynamic ts) => (ts is Timestamp) ? ts.toDate() : DateTime.now();
 
     return Rental(
       id: snapshot.id, // **CRITICAL**: Document ID
@@ -82,8 +82,8 @@ class Rental {
       rentee: data['rentee'] ?? '',
       renter: data['renter'] ?? '',
       product: data['product'] ?? 'N/A',      
-      startDate: _toDateTime(data['start_date']),
-      endDate: _toDateTime(data['end_date']),
+      startDate: toDateTime(data['start_date']),
+      endDate: toDateTime(data['end_date']),
       rentalDurationDays: data['rental_duration_days'] ?? 0,
       finalTotalPrice: (data['final_total_price'] as num?)?.toDouble() ?? 0.0,
       

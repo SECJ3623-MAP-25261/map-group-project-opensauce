@@ -1,5 +1,4 @@
 import 'package:easyrent/features/models/review.dart';
-import 'package:easyrent/features/rentee/renting_status/data/dummy_data/renting_status_dummy.dart';
 import 'package:easyrent/features/rentee/renting_status/domain/renting_status_state.dart';
 import 'package:flutter_riverpod/legacy.dart';
 

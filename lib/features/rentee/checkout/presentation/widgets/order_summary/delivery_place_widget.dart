@@ -33,7 +33,7 @@ class _DeliveryPlaceWidgetState extends ConsumerState<DeliveryPlaceWidget> {
 
   void _navigateToGeolocation(
       {required double latitude, required double longitude}) {
-        print("longiture: ${longitude} latitude: ${latitude}");
+        print("longiture: $longitude latitude: $latitude");
     Navigator.push(
       context,
       MaterialPageRoute(

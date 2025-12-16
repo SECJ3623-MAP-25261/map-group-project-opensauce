@@ -47,7 +47,7 @@ class RentingStatusDatabaseService {
         .map((snapshot) {
           return snapshot.docs
               .map((doc) {
-                Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+                Map<String, dynamic> data = doc.data();
                 data['id'] = doc.id;
                 return data;
               })
@@ -65,7 +65,7 @@ class RentingStatusDatabaseService {
         .snapshots() // Get the real-time stream of QuerySnapshots
         .map((snapshot) {
           return snapshot.docs.map((doc) {
-            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+            Map<String, dynamic> data = doc.data();
             data['id'] = doc.id; // Include the unique Document ID
             return data;
           }).toList();
@@ -80,7 +80,7 @@ class RentingStatusDatabaseService {
         .snapshots() // Get the real-time stream of QuerySnapshots
         .map((snapshot) {
           return snapshot.docs.map((doc) {
-            Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+            Map<String, dynamic> data = doc.data();
             data['id'] = doc.id; // Include the unique Document ID
             return data;
           }).toList();

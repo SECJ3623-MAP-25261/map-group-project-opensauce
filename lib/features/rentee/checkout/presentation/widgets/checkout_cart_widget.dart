@@ -18,7 +18,7 @@ class CheckoutCartWidget extends ConsumerStatefulWidget {
 class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
   @override
   Widget build(BuildContext context) {
-    final id = widget.item.id as String;
+    final id = widget.item.id;
     // Helper function to create the star rating row
     Widget buildRatingRow() {
       return Row(

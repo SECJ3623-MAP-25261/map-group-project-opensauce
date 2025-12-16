@@ -1,4 +1,3 @@
-import 'package:easyrent/core/utils/loading.dart';
 import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/checkout_cart_widget.dart';

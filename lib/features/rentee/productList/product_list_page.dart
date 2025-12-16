@@ -1,4 +1,3 @@
-import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../productDetails/product_details_page.dart';

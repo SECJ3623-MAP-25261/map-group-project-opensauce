@@ -170,8 +170,8 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
 
     // Calculate price for this single item and add it to the total
 
-    totalPrice += pricePerDay * quantity * state.duration!;
-    print("the totalPrice is ${totalPrice} and the duration ${state.duration}");
+    totalPrice += pricePerDay * quantity * state.duration;
+    print("the totalPrice is $totalPrice and the duration ${state.duration}");
 
     // print("total Price: ${totalPrice.toString()}"); // You can put your debug print back here
 

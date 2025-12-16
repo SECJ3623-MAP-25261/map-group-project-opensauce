@@ -169,7 +169,7 @@ class _BottomSummaryWidgetState extends ConsumerState<BottomSummaryWidget> {
                     ),
                     child: Text(
                       
-                      'Check Out (RM ${calculated})',
+                      'Check Out (RM $calculated)',
                       // {checkoutState.getTotalFee() == 0 ? ref.watch(checkoutProvider).items.pricePerDay + (ref.watch(checkoutProvider).items.pricePerDay * 30 / 100) * ref.watch(checkoutProvider).duration! : checkoutState.getTotalFee().toStringAsFixed(2)}
                       style: GoogleFonts.poppins(
                         fontSize: 18,

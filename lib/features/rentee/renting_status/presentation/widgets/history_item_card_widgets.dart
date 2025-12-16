@@ -44,6 +44,7 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
   String get formattedStartDate {
     return DateFormat('dd MMM yyyy').format(widget.startDate);
   }
+  @override
   Widget build(BuildContext context) {
     final historyItemState = ref.read(rentingStatusProvider.notifier);
 
@@ -103,7 +104,7 @@ class _HistoryItemCardWidgetsState extends ConsumerState<HistoryItemCardWidgets>
                   Column(
                     children: [
                       Text(
-                        'Order Date: ${formattedStartDate} - ${formattedEndDate} (${widget.duration} Days)',
+                        'Order Date: $formattedStartDate - $formattedEndDate (${widget.duration} Days)',
                         style: TextStyle(color: AppColors.primaryRed, fontSize: 10),
                       ),
                       

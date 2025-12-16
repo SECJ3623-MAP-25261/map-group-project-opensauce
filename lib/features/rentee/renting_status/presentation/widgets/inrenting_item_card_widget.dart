@@ -37,7 +37,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
   }
   
    Future<void> _cancelOrderApiCall(String orderId, String newStatus) async {
-      print('Attempting to cancel order ${orderId}...');
+      print('Attempting to cancel order $orderId...');
       await RentingStatusDatabaseService().updateItemStatus(orderId, newStatus);
 
       if (DateTime.now().millisecond % 10 < 2) {
@@ -46,7 +46,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
       setState(() {
         cancelledItem = true;
       });
-      print('Order ${orderId} successfully cancelled.');
+      print('Order $orderId successfully cancelled.');
   }
   @override
   String get formattedEndDate {
@@ -56,6 +56,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
     return DateFormat('dd MMM yyyy').format(widget.startDate);
   }
 
+  @override
   Widget build(BuildContext context) {
     return Card(
       color: Colors.white,
@@ -117,7 +118,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                   Row(
                     children: [
                       Text(
-                        'Return Date: ${formattedEndDate}',
+                        'Return Date: $formattedEndDate',
                         style: TextStyle(color: AppColors.primaryRed, fontSize: 12),
                       )
                     ],

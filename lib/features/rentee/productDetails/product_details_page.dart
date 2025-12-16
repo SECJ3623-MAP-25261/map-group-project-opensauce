@@ -61,7 +61,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
               headerBackgroundColor: Colors.white,
               headerForegroundColor: Colors.black,
               confirmButtonStyle: ButtonStyle(
-                foregroundColor: MaterialStateProperty.all(
+                foregroundColor: WidgetStateProperty.all(
                   const Color(0xFF5C001F),
                 ),
               ),
@@ -123,21 +123,21 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
           FutureBuilder(
             future: isFavorite,
             builder: (context, asyncSnapshot) {
-              bool _isFavorite = asyncSnapshot.data ?? false;
+              bool isFavorite = asyncSnapshot.data ?? false;
               return IconButton(
                 icon: Icon(
-                  _isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: _isFavorite ? Colors.red : Colors.black,
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite ? Colors.red : Colors.black,
                 ),
                 onPressed: () {
                   setState(() {
                     void saveToDB()async{
-                      if(!_isFavorite){
-                        print("_isFavorite: ${_isFavorite}");
+                      if(!isFavorite){
+                        print("_isFavorite: $isFavorite");
                         // item havent save to wishlist 
                               final bool isSuccess = await saveToWishlistDB(widget.item,widget.item.ownerRef);
                               if(isSuccess){
-                                _isFavorite = true;
+                                isFavorite = true;
                                 
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -165,7 +165,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                               }
                       } else {
                         // remove the item from wishlist
-                        print("_isFavorite: ${_isFavorite}");
+                        print("_isFavorite: $isFavorite");
                         String itemId= widget.item.id;
                         final bool isSuccess = await removeWishlistItemFromDB(itemId);
                               if(isSuccess){
@@ -182,7 +182,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                                 );
                                 setState(() {
                       
-                                _isFavorite=false;
+                                isFavorite=false;
                                 });
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(

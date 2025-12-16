@@ -1,10 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/core/constants/constants.dart';
 import 'package:easyrent/features/models/item.dart';
-import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/widgets/total_summary_widget.dart';
-import 'package:easyrent/features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/widgets/wishlist_card.dart';
 import 'package:easyrent/features/rentee/wishlist/services/database.dart';
 import 'package:flutter/material.dart';

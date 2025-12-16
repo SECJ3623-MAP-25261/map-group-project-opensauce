@@ -161,18 +161,18 @@ class _RenterAddItemState extends State<RenterAddItem> {
       return;
     }
 
-    if (_selectedImages.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please upload at least 1 image")),
-      );
-      return;
-    }
+    // if (_selectedImages.isEmpty) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text("Please upload at least 1 image")),
+    //   );
+    //   return;
+    // }
 
-    String mainImage = _selectedImages[0].path;
-    List<String> additionalImages = [];
-    for (int i = 1; i < _selectedImages.length; i++) {
-      additionalImages.add(_selectedImages[i].path);
-    }
+    // String mainImage = _selectedImages[0].path;
+    // List<String> additionalImages = [];
+    // for (int i = 1; i < _selectedImages.length; i++) {
+    //   additionalImages.add(_selectedImages[i].path);
+    // }
 
     final newItem = ItemEntity(
       id: DateTime.now().millisecondsSinceEpoch.toString(), 
@@ -182,8 +182,8 @@ class _RenterAddItemState extends State<RenterAddItem> {
       description: _descriptionController.text,
       category: _selectedCategory ?? "Other",
       rentalInfo: "1 day | Total RM ${_priceController.text}",
-      imageUrl: mainImage,
-      additionalImages: additionalImages,
+      imageUrl: 'https://digitalrepublic.ch/wp-content/uploads/2022/11/DR-Use-Cases-GPStracker-opt-1.png',
+      additionalImages: ['https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1XZ8REUtdvNoTmlLKQxMdOBumhMsqcLJ_JQ&s'],
       rating: 0.0,
       status: "pending",
       location: selectedLocations,
@@ -447,7 +447,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
             ],
           ),
         );
-      }).toList(),
+      }),
         const SizedBox(height: 10),
         ElevatedButton(
           onPressed: () {

@@ -157,7 +157,7 @@ Future<bool> saveToWishlistDB(Item selectedItem,DocumentReference user) async {
       itemIdToCheck: selectedItem.id,
       user: user
     );
-    print("item is abcd: ${selectedItem}");
+    print("item is abcd: $selectedItem");
 
     if (!isItemexistinWishlist) {
 
@@ -192,7 +192,7 @@ Future<bool> removeWishlistItemFromDB(String itemId) async {
       // userId: currentUserId, // implement after integrate user
     );
 
-    print('${itemCount} items suceesfully deleted');
+    print('$itemCount items suceesfully deleted');
     // state=state.copyWith(
     //   isLoading: false,
     //   isDBSuccess: true,

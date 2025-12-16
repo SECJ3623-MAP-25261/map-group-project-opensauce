@@ -1,5 +1,4 @@
 import 'package:easyrent/features/models/item.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
   class CheckoutState {
     final double totalFee;

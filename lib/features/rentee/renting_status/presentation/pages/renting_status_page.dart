@@ -140,12 +140,10 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
                   // print("the id is ${item['id']}");
                   final Item itemDetails = Item.fromMap(itemMap, item['id']);
 
-                  if (itemDetails != null) {
-                    // comvert string to datetime 
-                    final endRenting = parseDate(item['endRenting']);
-                    return RentalItemCardWidget(item: itemDetails,orderDate: item['duration'], returnDate: (endRenting!), status: item['status'],totalFee: item['totalFee'],);
-                  }
-                  return const SizedBox.shrink();
+                  // comvert string to datetime 
+                  final endRenting = parseDate(item['endRenting']);
+                  return RentalItemCardWidget(item: itemDetails,orderDate: item['duration'], returnDate: (endRenting!), status: item['status'],totalFee: item['totalFee'],);
+                                  return const SizedBox.shrink();
                 }).toList(),
           );
         },
@@ -192,12 +190,10 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
                   final itemMap = order['items'];
                   final Item itemDetails = Item.fromMap(itemMap, order['id']);
 
-                  if (itemDetails != null) {
-                    final startDate = parseDate(order['startRenting']);
-                    final endDate = parseDate(order['endRenting']);
-                    return InrentingItemCardWidget(item: itemDetails, status:order['status'] ,totalPrice: order['totalFee'],startDate: startDate!, endDate: endDate!, returnMethods: order['deliveryOption']);
-                  }
-
+                  final startDate = parseDate(order['startRenting']);
+                  final endDate = parseDate(order['endRenting']);
+                  return InrentingItemCardWidget(item: itemDetails, status:order['status'] ,totalPrice: order['totalFee'],startDate: startDate!, endDate: endDate!, returnMethods: order['deliveryOption']);
+                
                   // Return an empty widget if the data is corrupted or missing the 'items' field
                   return const SizedBox.shrink();
                 }).toList(),
@@ -243,12 +239,10 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
 
                   final itemMap = order['items'];
                   final Item itemDetails = Item.fromMap(itemMap, order['id']);
-                  if (itemDetails != null) {
-                    final endRenting = parseDate(order['endRenting']);
-                    final startRenting = parseDate(order['startRenting']);
-                    return HistoryItemCardWidgets(item: itemDetails, startDate: startRenting!, endDate: endRenting!, duration: order['duration'], status: order['status'], totalPrice: order['totalFee'], );
-                  }
-
+                  final endRenting = parseDate(order['endRenting']);
+                  final startRenting = parseDate(order['startRenting']);
+                  return HistoryItemCardWidgets(item: itemDetails, startDate: startRenting!, endDate: endRenting!, duration: order['duration'], status: order['status'], totalPrice: order['totalFee'], );
+                
                   return const SizedBox.shrink();
                 }).toList(),
           );
