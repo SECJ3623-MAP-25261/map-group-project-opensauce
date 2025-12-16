@@ -17,6 +17,57 @@ class ProductListPage extends StatefulWidget {
 class _ProductListPageState extends State<ProductListPage> {
   final DatabaseService _dbService = DatabaseService();
 
+  Widget _buildGridImage(String imageUrl) {
+    if (imageUrl.isEmpty) {
+      return Container(
+        color: Colors.grey[100],
+        child: const Center(child: Icon(Icons.image_not_supported, color: Colors.grey, size: 40)),
+      );
+    }
+
+    if (imageUrl.startsWith('http')) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+              color: const Color(0xFF5C001F),
+            ),
+          );
+        },
+        errorBuilder: (ctx, err, stack) => Container(
+          color: Colors.grey[100],
+          child: const Center(child: Icon(Icons.broken_image, color: Colors.grey, size: 40)),
+        ),
+      );
+    }
+
+    try {
+      Uint8List bytes = base64Decode(imageUrl);
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder: (ctx, err, stack) => Container(
+          color: Colors.grey[100],
+          child: const Center(child: Icon(Icons.broken_image, color: Colors.grey, size: 40)),
+        ),
+      );
+    } catch (e) {
+      return Container(
+        color: Colors.grey[100],
+        child: const Center(child: Icon(Icons.error, color: Colors.red, size: 40)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,7 +91,7 @@ class _ProductListPageState extends State<ProductListPage> {
       ),
       body: StreamBuilder<List<Item>>(
         stream:
-            _dbService.getProducts(), // CHANGED: getItems() to getProducts()
+            _dbService.getProducts(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
@@ -152,46 +203,16 @@ class _ProductListPageState extends State<ProductListPage> {
               padding: const EdgeInsets.all(10),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  item.imageUrl,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value:
-                            loadingProgress.expectedTotalBytes != null
-                                ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                                : null,
-                        color: const Color(0xFF5C001F),
-                      ),
-                    );
-                  },
-                  errorBuilder:
-                      (ctx, err, stack) => Container(
-                        color: Colors.grey[100],
-                        child: const Center(
-                          child: Icon(
-                            Icons.broken_image,
-                            color: Colors.grey,
-                            size: 40,
-                          ),
-                        ),
-                      ),
-                ),
+                child: _buildGridImage(item.imageUrl),
               ),
             ),
           ),
 
-          // Product Details
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Product Name
                 Text(
                   item.productName,
                   maxLines: 2,
@@ -204,7 +225,6 @@ class _ProductListPageState extends State<ProductListPage> {
                 ),
                 const SizedBox(height: 6),
 
-                // Price
                 Text(
                   "RM ${item.pricePerDay.toStringAsFixed(0)}/day",
                   style: const TextStyle(
@@ -215,11 +235,9 @@ class _ProductListPageState extends State<ProductListPage> {
                 ),
                 const SizedBox(height: 6),
 
-                // Rating and Delivery Info
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Rating
                     Row(
                       children: [
                         const Icon(
@@ -238,7 +256,6 @@ class _ProductListPageState extends State<ProductListPage> {
                       ],
                     ),
 
-                    // Delivery Method (if available)
                     if (item.deliveryMethods.isNotEmpty)
                       Container(
                         padding: const EdgeInsets.symmetric(
