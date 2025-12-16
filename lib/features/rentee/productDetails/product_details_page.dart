@@ -3,7 +3,10 @@ import 'package:easyrent/features/rentee/wishlist/services/wishlist_notifier.dar
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/item.dart';
-import '../reviewPage/review_page.dart'; 
+import '../reviewPage/review_page.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+
 class ProductDetailsPage extends StatefulWidget {
   final Item item;
 
@@ -18,6 +21,52 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   int _currentImageIndex = 0;
   DateTimeRange? _selectedDateRange;
   late Future<bool> isFavorite;
+
+  Widget _buildImage(String imageUrl, {BoxFit fit = BoxFit.cover}) {
+    if (imageUrl.isEmpty) {
+      return const Center(
+        child: Icon(Icons.image_not_supported, color: Colors.grey),
+      );
+    }
+
+    if (imageUrl.startsWith('http')) {
+      return Image.network(
+        imageUrl,
+        fit: fit,
+        errorBuilder:
+            (context, error, stackTrace) => const Center(
+              child: Icon(Icons.broken_image, color: Colors.grey),
+            ),
+      );
+    }
+
+    try {
+      Uint8List bytes = base64Decode(imageUrl);
+      return Image.memory(
+        bytes,
+        fit: fit,
+        errorBuilder:
+            (context, error, stackTrace) => const Center(
+              child: Icon(Icons.broken_image, color: Colors.grey),
+            ),
+      );
+    } catch (e) {
+      return const Center(child: Icon(Icons.error, color: Colors.red));
+    }
+  }
+
+  void _openFullScreen(BuildContext context, List<String> images, int index) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false, // Dimmed background
+        barrierColor: Colors.black.withOpacity(0.85),
+        barrierDismissible: true,
+        pageBuilder: (BuildContext context, _, __) {
+          return FullScreenImageViewer(images: images, initialIndex: index);
+        },
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -82,7 +131,12 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final imageCount = widget.item.imageUrls.length;
+    final List<String> displayImages =
+        widget.item.imageUrls.isNotEmpty
+            ? widget.item.imageUrls
+            : [widget.item.imageUrl];
+
+    final imageCount = displayImages.length;
     double pricePerDay = widget.item.pricePerDay;
     double totalPrice = pricePerDay;
     String durationText = "per day";
@@ -111,7 +165,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-         actions: [
+        actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black),
             onPressed: () {},
@@ -127,75 +181,84 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                 ),
                 onPressed: () {
                   setState(() {
-                    void saveToDB()async{
-                      if(!_isFavorite){
+                    void saveToDB() async {
+                      if (!_isFavorite) {
                         print("_isFavorite: ${_isFavorite}");
-                        // item havent save to wishlist 
-                              final bool isSuccess = await saveToWishlistDB(widget.item);
-                              if(isSuccess){
-                                _isFavorite = true;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item save to wishlist.',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.green.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item failed to save to wishlist. Please try again',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.red.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                              }
+                        // item havent save to wishlist
+                        final bool isSuccess = await saveToWishlistDB(
+                          widget.item,
+                        );
+                        if (isSuccess) {
+                          _isFavorite = true;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Item save to wishlist.',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.green.shade700,
+                              duration: const Duration(seconds: 4),
+                              behavior:
+                                  SnackBarBehavior.floating, // Looks cleaner
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Item failed to save to wishlist. Please try again',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.red.shade700,
+                              duration: const Duration(seconds: 4),
+                              behavior:
+                                  SnackBarBehavior.floating, // Looks cleaner
+                            ),
+                          );
+                        }
                       } else {
                         // remove the item from wishlist
                         print("_isFavorite: ${_isFavorite}");
-                        String itemId= widget.item.id;
-                        final bool isSuccess = await removeWishlistItemFromDB(itemId);
-                              if(isSuccess){
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item sucessfully remove from wishlit.',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.green.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                                _isFavorite=false;
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item failed to remove from wishlist. Please try again',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.red.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                              }
+                        String itemId = widget.item.id;
+                        final bool isSuccess = await removeWishlistItemFromDB(
+                          itemId,
+                        );
+                        if (isSuccess) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Item sucessfully remove from wishlit.',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.green.shade700,
+                              duration: const Duration(seconds: 4),
+                              behavior:
+                                  SnackBarBehavior.floating, // Looks cleaner
+                            ),
+                          );
+                          _isFavorite = false;
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Item failed to remove from wishlist. Please try again',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.red.shade700,
+                              duration: const Duration(seconds: 4),
+                              behavior:
+                                  SnackBarBehavior.floating, // Looks cleaner
+                            ),
+                          );
+                        }
                       }
                     }
+
                     saveToDB();
                   });
                 },
               );
-            }
+            },
           ),
         ],
       ),
@@ -316,22 +379,17 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         itemCount: imageCount,
                         onPageChanged:
                             (i) => setState(() => _currentImageIndex = i),
-                        itemBuilder:
-                            (_, i) => Container(
+                        itemBuilder: (_, i) {
+                          return GestureDetector(
+                            onTap:
+                                () =>
+                                    _openFullScreen(context, displayImages, i),
+                            child: Container(
                               color: Colors.grey[100],
-                              child: Image.network(
-                                widget.item.imageUrls[i],
-                                fit: BoxFit.cover,
-                                errorBuilder:
-                                    (context, error, stackTrace) => Center(
-                                      child: Icon(
-                                        Icons.broken_image,
-                                        color: Colors.grey[300],
-                                        size: 60,
-                                      ),
-                                    ),
-                              ),
+                              child: _buildImage(displayImages[i]),
                             ),
+                          );
+                        },
                       ),
                       Positioned(
                         bottom: 20,
@@ -780,6 +838,125 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ==========================================
+//    REUSABLE OVERLAY CLASS (Copy-Paste)
+// ==========================================
+
+class FullScreenImageViewer extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+
+  const FullScreenImageViewer({
+    super.key,
+    required this.images,
+    required this.initialIndex,
+  });
+
+  @override
+  State<FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
+  late PageController _controller;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  void _movePage(int delta) {
+    _controller.animateToPage(
+      _currentIndex + delta,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  Widget _buildFullImage(String imageUrl) {
+    if (imageUrl.isEmpty) return const SizedBox();
+    if (imageUrl.startsWith('http')) {
+      return Image.network(imageUrl, fit: BoxFit.contain);
+    }
+    try {
+      Uint8List bytes = base64Decode(imageUrl);
+      return Image.memory(bytes, fit: BoxFit.contain);
+    } catch (e) {
+      return const Center(child: Icon(Icons.error, color: Colors.white));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            PageView.builder(
+              controller: _controller,
+              itemCount: widget.images.length,
+              onPageChanged: (index) => setState(() => _currentIndex = index),
+              itemBuilder: (context, index) {
+                return InteractiveViewer(
+                  child: Center(child: _buildFullImage(widget.images[index])),
+                );
+              },
+            ),
+            if (_currentIndex > 0)
+              Positioned(
+                left: 10,
+                child: IconButton(
+                  onPressed: () => _movePage(-1),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black26,
+                    shape: const CircleBorder(),
+                  ),
+                ),
+              ),
+            if (_currentIndex < widget.images.length - 1)
+              Positioned(
+                right: 10,
+                child: IconButton(
+                  onPressed: () => _movePage(1),
+                  icon: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.white,
+                    size: 30,
+                  ),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black26,
+                    shape: const CircleBorder(),
+                  ),
+                ),
+              ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black26,
+                  shape: const CircleBorder(),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
