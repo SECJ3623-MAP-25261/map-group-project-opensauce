@@ -14,13 +14,6 @@ class RenterAddItem extends StatefulWidget {
   State<RenterAddItem> createState() => _RenterAddItemState();
 }
 
-class LatLng {
-    final double latitude;
-    final double longitude;
-
-    LatLng(this.latitude, this.longitude);
-  }
-
 class _RenterAddItemState extends State<RenterAddItem> {
   // --- CONTROLLERS ---
   final TextEditingController _nameController = TextEditingController();
@@ -161,7 +154,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
         _priceController.text.isEmpty || 
         _depositController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
-        _locationController.text.isEmpty) {
+       selectedLocations.isEmpty || selectedLatLngs.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill in all fields")),
       );
@@ -187,13 +180,14 @@ class _RenterAddItemState extends State<RenterAddItem> {
       price: _priceController.text,
       deposit: _depositController.text,
       description: _descriptionController.text,
-      location: _locationController.text,
       category: _selectedCategory ?? "Other",
       rentalInfo: "1 day | Total RM ${_priceController.text}",
       imageUrl: mainImage,
       additionalImages: additionalImages,
       rating: 0.0,
       status: "pending",
+      location: selectedLocations,
+      locationLatLong: selectedLatLngs,
     );
 
     Provider.of<ListingNotifier>(context, listen: false).addItem(newItem);
@@ -428,11 +422,35 @@ class _RenterAddItemState extends State<RenterAddItem> {
   Widget _buildAddLocation() {
     return Column(
       children: [
-         Text("${selectedLocations.isEmpty ? "No location selected" : selectedLocations}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        if (selectedLocations.isNotEmpty) 
+      // Use .indexed to get (index, location) for each item
+      ...selectedLocations.indexed.map((indexedItem) {
+        // Destructure the tuple to get index and location
+        final index = indexedItem.$1 + 1;
+        final location = indexedItem.$2;
+        
+        // You now have access to 'index' and 'location'
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Row(
+            children: [
+              Text(
+                '$index: $location', // Example of using the index
+                style: const TextStyle(fontSize: 14, color: Colors.black54),
+              ),
+              IconButton(onPressed: () {
+                setState(() {
+                  selectedLocations.removeAt(index - 1);
+                  selectedLatLngs.removeAt(index - 1);
+                });
+              }, icon: Icon(Icons.delete, color: Colors.red, size: 18)),
+            ],
+          ),
+        );
+      }).toList(),
         const SizedBox(height: 10),
         ElevatedButton(
           onPressed: () {
-
             Navigator.push(
               context,
               MaterialPageRoute(

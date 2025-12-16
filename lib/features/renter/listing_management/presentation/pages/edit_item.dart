@@ -42,7 +42,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
     _priceController = TextEditingController(text: widget.item.price);
     _depositController = TextEditingController(text: widget.item.deposit); 
     _descriptionController = TextEditingController(text: widget.item.description);
-    _locationController = TextEditingController(text: widget.item.location);
+    // _locationController = TextEditingController(text: widget.item.location);
     
     if (_categories.contains(widget.item.category)) {
       _selectedCategory = widget.item.category;
@@ -189,7 +189,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
       name: _nameController.text,
       price: _priceController.text,
       description: _descriptionController.text,
-      location: _locationController.text,
+      // location: _locationController.text,
       category: _selectedCategory,
       imageUrl: newMainImage,
       additionalImages: newAdditionalImages,

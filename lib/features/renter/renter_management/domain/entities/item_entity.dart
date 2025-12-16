@@ -1,3 +1,10 @@
+class LatLng {
+    final double latitude;
+    final double longitude;
+
+    LatLng(this.latitude, this.longitude);
+  }
+
 class ItemEntity {
   final String id;
   final String name;
@@ -9,10 +16,14 @@ class ItemEntity {
   // new
   final String deposit;
   final String description;
-  final String location;
   final String category;
   final double rating;
   final List<String> additionalImages; 
+
+  // geolocation
+  final List<String> location;
+  final List<LatLng> locationLatLong;
+
 
   ItemEntity({
     required this.id,
@@ -24,10 +35,11 @@ class ItemEntity {
     
     this.deposit = "0",
     this.description = "",
-    this.location = "",
+    this.location = const [],
     this.category = "Other",
     this.rating = 0.0,
     this.additionalImages = const [],
+    this.locationLatLong = const [],
   });
 
   ItemEntity copyWith({
@@ -39,7 +51,8 @@ class ItemEntity {
     String? status,
     String? deposit,
     String? description,
-    String? location,
+    List<String>? location, // new
+    List<LatLng>? locationLatLong, // new
     String? category,
     double? rating,
     List<String>? additionalImages,
@@ -53,10 +66,11 @@ class ItemEntity {
       status: status ?? this.status,
       deposit: deposit ?? this.deposit,
       description: description ?? this.description,
-      location: location ?? this.location,
       category: category ?? this.category,
       rating: rating ?? this.rating,
       additionalImages: additionalImages ?? this.additionalImages,
+      location: location ?? this.location,
+      locationLatLong: locationLatLong ?? this.locationLatLong,
     );
   }
 }
