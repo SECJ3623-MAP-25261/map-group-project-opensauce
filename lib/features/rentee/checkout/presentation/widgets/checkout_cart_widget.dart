@@ -5,11 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class CheckoutCartWidget extends ConsumerStatefulWidget {
-  const CheckoutCartWidget({super.key, required this.item,required this.duration});
+  const CheckoutCartWidget({
+    super.key,
+    required this.item,
+    required this.duration,
+  });
 
   final Item item;
   final int duration;
-
 
   @override
   ConsumerState<CheckoutCartWidget> createState() => _CheckoutCartWidgetState();
@@ -18,7 +21,7 @@ class CheckoutCartWidget extends ConsumerStatefulWidget {
 class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
   @override
   Widget build(BuildContext context) {
-    final id = widget.item.id as String;
+    final id = widget.item.id;
     // Helper function to create the star rating row
     Widget buildRatingRow() {
       return Row(
@@ -47,7 +50,8 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
           children: [
             IconButton(
               onPressed: () {
-                if (ref.watch(checkoutProvider.notifier).getItemQuantity(id) > 0) {
+                if (ref.watch(checkoutProvider.notifier).getItemQuantity(id) >
+                    0) {
                   ref.read(checkoutProvider.notifier).decrementItemQuantity();
                 }
               },
@@ -57,7 +61,10 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
             ),
             const SizedBox(width: 4),
             Text(
-              ref.watch(checkoutProvider.notifier).getItemQuantity(id).toString(),
+              ref
+                  .watch(checkoutProvider.notifier)
+                  .getItemQuantity(id)
+                  .toString(),
               style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(width: 4),
@@ -100,12 +107,13 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
               width: 80,
               height: 80,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 80,
-                height: 80,
-                color: Colors.grey[200],
-                child: const Icon(Icons.image, color: Colors.grey),
-              ),
+              errorBuilder:
+                  (context, error, stackTrace) => Container(
+                    width: 80,
+                    height: 80,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.image, color: Colors.grey),
+                  ),
             ),
           ),
           const SizedBox(width: 17),

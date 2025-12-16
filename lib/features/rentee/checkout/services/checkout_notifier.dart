@@ -7,30 +7,29 @@ import 'package:flutter_riverpod/legacy.dart';
 
 // The StateNotifier must take your immutable state class as itse
 class CheckoutNotifier extends StateNotifier<CheckoutState> {
-
   static final DocumentReference ownerRef = FirebaseFirestore.instance
-    .collection('user') // Use the correct collection name for owners/users
-    .doc('UAPrpMnRHvfu47xvzh7L');
+      .collection('user') // Use the correct collection name for owners/users
+      .doc('UAPrpMnRHvfu47xvzh7L');
 
   // Initial state of items
-  static final Item dummyItem  = Item(
-  id: 'product_456',
-  ownerRef: ownerRef,
-  ownerId: 'owner_456',
-  ownerName: 'Jane Doe',
-  ownerImage: 'jane_profile.jpg',
-  productName: '4K Camera',
-  pricePerDay: 50.0,
-  imageUrl: 'camera_main.jpg',
-  imageUrls: ['camera_1.jpg', 'camera_2.jpg'],
-  description: 'A professional camera for rent.',
-  quantity: 1,
-  rentingDuration: 'Daily',
-  deliveryMethods: 'Courier Only',
-  averageRating: 4.8,
-  reviews: [],
-  location: 'Kuala Lumpur',
-);
+  static final Item dummyItem = Item(
+    id: 'product_456',
+    ownerRef: ownerRef,
+    ownerId: 'owner_456',
+    ownerName: 'Jane Doe',
+    ownerImage: 'jane_profile.jpg',
+    productName: '4K Camera',
+    pricePerDay: 50.0,
+    imageUrl: 'camera_main.jpg',
+    imageUrls: ['camera_1.jpg', 'camera_2.jpg'],
+    description: 'A professional camera for rent.',
+    quantity: 1,
+    rentingDuration: 'Daily',
+    deliveryMethods: 'Courier Only',
+    averageRating: 4.8,
+    reviews: [],
+    location: 'Kuala Lumpur',
+  );
 
   // Initialize with the starting state (matching your ValueNotifiers)
   CheckoutNotifier()
@@ -47,7 +46,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
           duration: 0,
           isDBSuccess: false,
           isOrderComplete: false,
-          userId: ''
+          userId: '',
         ),
       );
 
@@ -69,7 +68,12 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
   }
 
   void setItems(Item selectedItems, int duration) {
-    state = state.copyWith(items: selectedItems, renteeFee: selectedItems.pricePerDay, totalFee: selectedItems.pricePerDay * 1.3 * selectedItems.quantity * duration);
+    state = state.copyWith(
+      items: selectedItems,
+      renteeFee: selectedItems.pricePerDay,
+      totalFee:
+          selectedItems.pricePerDay * 1.3 * selectedItems.quantity * duration,
+    );
   }
 
   // Business Logic: Calculates the delivery fee based on the option
@@ -84,9 +88,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
     final double newDeliveryFee = _calculateDeliveryFee(newOption);
 
     // 2. Update the state with the new delivery data first
-    state = state.copyWith(
-      deliveryOption: newOption,
-    );
+    state = state.copyWith(deliveryOption: newOption);
 
     // 3. Recalculate ALL fees now that the option is updated
     setTotalFee();
@@ -133,14 +135,12 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
     return state.items.quantity;
   }
 
-  void setInitialRenteeFee (double total) {
-      state=state.copyWith(
-        totalFee: total
-      );
+  void setInitialRenteeFee(double total) {
+    state = state.copyWith(totalFee: total);
   }
 
   // Update renteeFee based on items
-  void setRenteeFee() { 
+  void setRenteeFee() {
     double totalPrice = 0.0;
 
     Item currentItem = state.items;
@@ -151,8 +151,8 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
 
     // Calculate price for this single item and add it to the total
 
-    totalPrice += pricePerDay * quantity * state.duration!;
-    print("the totalPrice is ${totalPrice} and the duration ${state.duration}");
+    totalPrice += pricePerDay * quantity * state.duration;
+    print("the totalPrice is $totalPrice and the duration ${state.duration}");
 
     // print("total Price: ${totalPrice.toString()}"); // You can put your debug print back here
 
@@ -162,18 +162,16 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
   void setTotalFee() {
     // 1. ENSURE renteeFee is calculated first (This calls setRenteeFee, which updates state.renteeFee)
     setRenteeFee();
-  
+
     // 2. Calculate Delivery/Pickup Cost (Assuming _calculateDeliveryFee provides the cost)
     final double deliveryCost =
-        (state.deliveryOption == 'Self-Pickup'
-            ? 0.0
-            : 1.0);
-    
+        (state.deliveryOption == 'Self-Pickup' ? 0.0 : 1.0);
+
     double depositAmount =
         state.renteeFee * (state.depositRate / 100); // Deposit is a percentage
-        
+
     double totalFee = state.renteeFee + depositAmount + deliveryCost;
- 
+
     state = state.copyWith(totalFee: totalFee);
   }
 
@@ -190,7 +188,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
     final dbService = CheckoutDatabaseServices();
     try {
       // Assuming you have a function to convert your state to a map
-      final Map<String,dynamic> orderDetails = state.toJson();
+      final Map<String, dynamic> orderDetails = state.toJson();
       state = state.copyWith(isLoading: true);
       // Assuming you have access to the current user's ID
 

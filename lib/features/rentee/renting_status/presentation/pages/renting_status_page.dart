@@ -1,7 +1,6 @@
 import 'package:easyrent/core/constants/constants.dart';
 import 'package:easyrent/core/utils/parse_date.dart';
 import 'package:easyrent/features/models/item.dart';
-import 'package:easyrent/features/rentee/renting_status/data/dummy_data/renting_status_dummy.dart';
 import 'package:easyrent/features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/history_item_card_widgets.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/inRenting_item_card_widget.dart';
@@ -133,18 +132,21 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children:
                 orderingItems.map((item) {
-
                   final itemMap = item['items'];
                   // print("the main item is ${item}");
                   // print("the duration and endRenting and pending is : ${item['duration']} ${item['endRenting']} ${item['status']}");
                   // print("the id is ${item['id']}");
                   final Item itemDetails = Item.fromMap(itemMap, item['id']);
 
-                  if (itemDetails != null) {
-                    // comvert string to datetime 
-                    final endRenting = parseDate(item['endRenting']);
-                    return RentalItemCardWidget(item: itemDetails,orderDate: item['duration'], returnDate: (endRenting!), status: item['status'],totalFee: item['totalFee'],);
-                  }
+                  // comvert string to datetime
+                  final endRenting = parseDate(item['endRenting']);
+                  return RentalItemCardWidget(
+                    item: itemDetails,
+                    orderDate: item['duration'],
+                    returnDate: (endRenting!),
+                    status: item['status'],
+                    totalFee: item['totalFee'],
+                  );
                   return const SizedBox.shrink();
                 }).toList(),
           );
@@ -188,15 +190,19 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children:
                 inRentingItems.map((order) {
-                  
                   final itemMap = order['items'];
                   final Item itemDetails = Item.fromMap(itemMap, order['id']);
 
-                  if (itemDetails != null) {
-                    final startDate = parseDate(order['startRenting']);
-                    final endDate = parseDate(order['endRenting']);
-                    return InrentingItemCardWidget(item: itemDetails, status:order['status'] ,totalPrice: order['totalFee'],startDate: startDate!, endDate: endDate!, returnMethods: order['deliveryOption']);
-                  }
+                  final startDate = parseDate(order['startRenting']);
+                  final endDate = parseDate(order['endRenting']);
+                  return InrentingItemCardWidget(
+                    item: itemDetails,
+                    status: order['status'],
+                    totalPrice: order['totalFee'],
+                    startDate: startDate!,
+                    endDate: endDate!,
+                    returnMethods: order['deliveryOption'],
+                  );
 
                   // Return an empty widget if the data is corrupted or missing the 'items' field
                   return const SizedBox.shrink();
@@ -240,14 +246,18 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children:
                 historyItems.map((order) {
-
                   final itemMap = order['items'];
                   final Item itemDetails = Item.fromMap(itemMap, order['id']);
-                  if (itemDetails != null) {
-                    final endRenting = parseDate(order['endRenting']);
-                    final startRenting = parseDate(order['startRenting']);
-                    return HistoryItemCardWidgets(item: itemDetails, startDate: startRenting!, endDate: endRenting!, duration: order['duration'], status: order['status'], totalPrice: order['totalFee'], );
-                  }
+                  final endRenting = parseDate(order['endRenting']);
+                  final startRenting = parseDate(order['startRenting']);
+                  return HistoryItemCardWidgets(
+                    item: itemDetails,
+                    startDate: startRenting!,
+                    endDate: endRenting!,
+                    duration: order['duration'],
+                    status: order['status'],
+                    totalPrice: order['totalFee'],
+                  );
 
                   return const SizedBox.shrink();
                 }).toList(),

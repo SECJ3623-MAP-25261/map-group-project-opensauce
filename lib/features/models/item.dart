@@ -122,7 +122,7 @@ class Item {
       id: id,
 
       ownerRef: ownerRef!,
-      ownerId: ownerRef?.id ?? '',
+      ownerId: ownerRef.id ?? '',
 
       ownerName: map['ownerName'] ?? '',
       ownerImage: map['ownerImage'] ?? '',

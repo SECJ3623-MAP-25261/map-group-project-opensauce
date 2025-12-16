@@ -14,7 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class BottomSummaryWidget extends ConsumerStatefulWidget {
-  const BottomSummaryWidget({super.key,required this.duration});
+  const BottomSummaryWidget({super.key, required this.duration});
   final int duration;
   @override
   ConsumerState<BottomSummaryWidget> createState() =>
@@ -22,7 +22,7 @@ class BottomSummaryWidget extends ConsumerStatefulWidget {
 }
 
 class _BottomSummaryWidgetState extends ConsumerState<BottomSummaryWidget> {
-    String? selectedPaymentMethod;
+  String? selectedPaymentMethod;
   @override
   Widget build(BuildContext context) {
     final checkoutState = ref.read(checkoutProvider.notifier);
@@ -105,8 +105,11 @@ class _BottomSummaryWidgetState extends ConsumerState<BottomSummaryWidget> {
                         DropdownMenuItem(value: 'FPX', child: Text("FPX")),
                         DropdownMenuItem(value: 'Card', child: Text("Card")),
                       ],
-                       dropdownColor: Colors.white,
-                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
+                      dropdownColor: Colors.white,
+                      icon: const Icon(
+                        Icons.arrow_drop_down,
+                        color: Colors.black,
+                      ),
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 16,
@@ -134,14 +137,16 @@ class _BottomSummaryWidgetState extends ConsumerState<BottomSummaryWidget> {
                               .checkoutToDatabase();
 
                       if (success) {
-                        print(".................order success.................");
+                        print(
+                          ".................order success.................",
+                        );
                         navigatorKey.currentState!.pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => RentingStatusPage()),
+                          MaterialPageRoute(
+                            builder: (_) => RentingStatusPage(),
+                          ),
                           (route) => false,
                         );
-                      }
-                      
-                      else {
+                      } else {
                         // 3. FAILURE: Show the Snackbar
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -168,8 +173,7 @@ class _BottomSummaryWidgetState extends ConsumerState<BottomSummaryWidget> {
                       elevation: 5,
                     ),
                     child: Text(
-                      
-                      'Check Out (RM ${calculated})',
+                      'Check Out (RM $calculated)',
                       // {checkoutState.getTotalFee() == 0 ? ref.watch(checkoutProvider).items.pricePerDay + (ref.watch(checkoutProvider).items.pricePerDay * 30 / 100) * ref.watch(checkoutProvider).duration! : checkoutState.getTotalFee().toStringAsFixed(2)}
                       style: GoogleFonts.poppins(
                         fontSize: 18,

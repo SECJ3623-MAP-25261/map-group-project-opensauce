@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/core/constants/constants.dart';
 import 'package:easyrent/core/utils/convert_to_frontend_string.dart';
 import 'package:easyrent/features/models/item.dart';
@@ -21,7 +20,7 @@ class RentalItemCardWidget extends StatefulWidget {
     required this.returnDate,
     required this.orderDate,
     required this.status,
-    required this.totalFee
+    required this.totalFee,
   });
   @override
   State<RentalItemCardWidget> createState() => _RentalItemCardWidgetState();
@@ -46,7 +45,7 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
 
   // The function that performs the actual cancellation API call
   Future<void> _cancelOrderApiCall(String orderId, String newStatus) async {
-    print('Attempting to cancel order ${orderId}...');
+    print('Attempting to cancel order $orderId...');
     // Simulate API delay
     await RentingStatusDatabaseService().updateItemStatus(orderId, newStatus);
 
@@ -57,7 +56,7 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
     setState(() {
       cancelledItem = true;
     });
-    print('Order ${orderId} successfully cancelled.');
+    print('Order $orderId successfully cancelled.');
     // In a real app, you would typically refresh the order status here
   }
 
@@ -66,8 +65,8 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
     return DateFormat('dd MMM yyyy').format(widget.returnDate);
   }
 
+  @override
   Widget build(BuildContext context) {
-    
     return Card(
       color: Colors.white,
       elevation: 2,
@@ -129,7 +128,7 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                   Row(
                     children: [
                       Text(
-                        'Return Date: ${formattedReturnDate}',
+                        'Return Date: $formattedReturnDate',
                         style: TextStyle(
                           color: AppColors.primaryRed,
                           fontSize: 12,
@@ -258,7 +257,8 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                                             item: widget.item,
                                             onConfirm:
                                                 (item) => _cancelOrderApiCall(
-                                                  widget.item.id,"history"
+                                                  widget.item.id,
+                                                  "history",
                                                 ),
                                           );
                                         },

@@ -7,7 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/item.dart';
-import '../reviewPage/review_page.dart'; 
+import '../reviewPage/review_page.dart';
+
 class ProductDetailsPage extends ConsumerStatefulWidget {
   final Item item;
 
@@ -26,7 +27,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
   @override
   void initState() {
     super.initState();
-    isFavorite = isItemSaveToDB(widget.item.id,widget.item.ownerRef);
+    isFavorite = isItemSaveToDB(widget.item.id, widget.item.ownerRef);
   }
 
   @override
@@ -61,7 +62,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
               headerBackgroundColor: Colors.white,
               headerForegroundColor: Colors.black,
               confirmButtonStyle: ButtonStyle(
-                foregroundColor: MaterialStateProperty.all(
+                foregroundColor: WidgetStateProperty.all(
                   const Color(0xFF5C001F),
                 ),
               ),
@@ -115,7 +116,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-         actions: [
+        actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black),
             onPressed: () {},
@@ -123,87 +124,96 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
           FutureBuilder(
             future: isFavorite,
             builder: (context, asyncSnapshot) {
-              bool _isFavorite = asyncSnapshot.data ?? false;
+              bool isFavorite = asyncSnapshot.data ?? false;
               return IconButton(
                 icon: Icon(
-                  _isFavorite ? Icons.favorite : Icons.favorite_border,
-                  color: _isFavorite ? Colors.red : Colors.black,
+                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                  color: isFavorite ? Colors.red : Colors.black,
                 ),
                 onPressed: () {
                   setState(() {
-                    void saveToDB()async{
-                      if(!_isFavorite){
-                        print("_isFavorite: ${_isFavorite}");
-                        // item havent save to wishlist 
-                              final bool isSuccess = await saveToWishlistDB(widget.item,widget.item.ownerRef);
-                              if(isSuccess){
-                                _isFavorite = true;
-                                
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item save to wishlist.',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.green.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item failed to save to wishlist. Please try again',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.red.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                              }
+                    void saveToDB() async {
+                      if (!isFavorite) {
+                        print("_isFavorite: $isFavorite");
+                        // item havent save to wishlist
+                        final bool isSuccess = await saveToWishlistDB(
+                          widget.item,
+                          widget.item.ownerRef,
+                        );
+                        if (isSuccess) {
+                          isFavorite = true;
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Item save to wishlist.',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.green.shade700,
+                              duration: const Duration(seconds: 4),
+                              behavior:
+                                  SnackBarBehavior.floating, // Looks cleaner
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Item failed to save to wishlist. Please try again',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.red.shade700,
+                              duration: const Duration(seconds: 4),
+                              behavior:
+                                  SnackBarBehavior.floating, // Looks cleaner
+                            ),
+                          );
+                        }
                       } else {
                         // remove the item from wishlist
-                        print("_isFavorite: ${_isFavorite}");
-                        String itemId= widget.item.id;
-                        final bool isSuccess = await removeWishlistItemFromDB(itemId);
-                              if(isSuccess){
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item sucessfully remove from wishlit.',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.green.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                                setState(() {
-                      
-                                _isFavorite=false;
-                                });
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item failed to remove from wishlist. Please try again',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.red.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                              }
+                        print("_isFavorite: $isFavorite");
+                        String itemId = widget.item.id;
+                        final bool isSuccess = await removeWishlistItemFromDB(
+                          itemId,
+                        );
+                        if (isSuccess) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Item sucessfully remove from wishlit.',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.green.shade700,
+                              duration: const Duration(seconds: 4),
+                              behavior:
+                                  SnackBarBehavior.floating, // Looks cleaner
+                            ),
+                          );
+                          setState(() {
+                            isFavorite = false;
+                          });
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Item failed to remove from wishlist. Please try again',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.red.shade700,
+                              duration: const Duration(seconds: 4),
+                              behavior:
+                                  SnackBarBehavior.floating, // Looks cleaner
+                            ),
+                          );
+                        }
                       }
                     }
+
                     saveToDB();
                   });
                 },
               );
-            }
+            },
           ),
         ],
       ),
@@ -252,20 +262,34 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     );
                     _pickDateRange();
                   } else {
-                    Duration difference =Duration(days: 0);
+                    Duration difference = Duration(days: 0);
                     final DateTime? start = _selectedDateRange?.start;
                     final DateTime? end = _selectedDateRange?.end;
 
-                      if (start != null && end != null) {
-                        difference = end.difference(start);
-
-                      }
-                    ref.read(checkoutProvider.notifier).setItems(widget.item,difference.inDays);
-                    ref.read(checkoutProvider.notifier).setStartEndRenting(_selectedDateRange?.start, _selectedDateRange?.end);
+                    if (start != null && end != null) {
+                      difference = end.difference(start);
+                    }
+                    ref
+                        .read(checkoutProvider.notifier)
+                        .setItems(widget.item, difference.inDays);
+                    ref
+                        .read(checkoutProvider.notifier)
+                        .setStartEndRenting(
+                          _selectedDateRange?.start,
+                          _selectedDateRange?.end,
+                        );
                     // Proceed to checkout logic
-                    Navigator.push(context, MaterialPageRoute(builder: (context) {
-                      return CheckoutPage(items: widget.item,duration: difference.inDays,);
-                    },));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return CheckoutPage(
+                            items: widget.item,
+                            duration: difference.inDays,
+                          );
+                        },
+                      ),
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(

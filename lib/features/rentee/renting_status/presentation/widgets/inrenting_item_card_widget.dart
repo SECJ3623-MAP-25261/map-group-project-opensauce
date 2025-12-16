@@ -8,84 +8,94 @@ import 'package:easyrent/features/rentee/renting_status/services/database.dart';
 
 class InrentingItemCardWidget extends StatefulWidget {
   final Item item;
-  final String status; 
+  final String status;
   final double totalPrice;
   final DateTime startDate;
   final DateTime endDate;
   final String returnMethods;
-  const InrentingItemCardWidget({super.key,required this.item, required this.status, required this.totalPrice, required this.startDate, required this.endDate, required this.returnMethods});
+  const InrentingItemCardWidget({
+    super.key,
+    required this.item,
+    required this.status,
+    required this.totalPrice,
+    required this.startDate,
+    required this.endDate,
+    required this.returnMethods,
+  });
 
   @override
-  State<InrentingItemCardWidget> createState() => _InrentingItemCardWidgetState();
+  State<InrentingItemCardWidget> createState() =>
+      _InrentingItemCardWidgetState();
 }
 
 class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
   bool cancelledItem = false;
-    // This is the function that simulates the API call to report the item
+  // This is the function that simulates the API call to report the item
   Future<bool> _handleReportSubmission(String reason, Item item) async {
-
     // print('Reporting item: with ${item['product_name']} name and ${item['id']} id');
     // print('Reason: $reason');
-    
+
     // Simulate a network delay
-    await Future.delayed(const Duration(seconds: 2)); 
+    await Future.delayed(const Duration(seconds: 2));
 
     // Simulate a successful submission 80% of the time
-    final isSuccessful = DateTime.now().millisecond % 10 < 8; 
+    final isSuccessful = DateTime.now().millisecond % 10 < 8;
 
     return isSuccessful;
   }
-  
-   Future<void> _cancelOrderApiCall(String orderId, String newStatus) async {
-      print('Attempting to cancel order ${orderId}...');
-      await RentingStatusDatabaseService().updateItemStatus(orderId, newStatus);
 
-      if (DateTime.now().millisecond % 10 < 2) {
-        throw Exception('Server error: Could not process cancellation.');
-      }
-      setState(() {
-        cancelledItem = true;
-      });
-      print('Order ${orderId} successfully cancelled.');
+  Future<void> _cancelOrderApiCall(String orderId, String newStatus) async {
+    print('Attempting to cancel order $orderId...');
+    await RentingStatusDatabaseService().updateItemStatus(orderId, newStatus);
+
+    if (DateTime.now().millisecond % 10 < 2) {
+      throw Exception('Server error: Could not process cancellation.');
+    }
+    setState(() {
+      cancelledItem = true;
+    });
+    print('Order $orderId successfully cancelled.');
   }
+
   @override
   String get formattedEndDate {
     return DateFormat('dd MMM yyyy').format(widget.endDate);
   }
+
   String get formattedStartDate {
     return DateFormat('dd MMM yyyy').format(widget.startDate);
   }
 
+  @override
   Widget build(BuildContext context) {
     return Card(
       color: Colors.white,
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Left Side: Image
-              ClipRRect(
+            ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
                 widget.item.imageUrl,
                 width: 80,
                 height: 80,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  width: 80,
-                  height: 80,
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.image, color: Colors.grey),
-                ),
+                errorBuilder:
+                    (context, error, stackTrace) => Container(
+                      width: 80,
+                      height: 80,
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.image, color: Colors.grey),
+                    ),
               ),
             ),
             const SizedBox(width: 12),
-            
+
             // Right Side: Details and Actions
             Expanded(
               child: Column(
@@ -95,15 +105,15 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                       Expanded(
-                         child: Text(
+                      Expanded(
+                        child: Text(
                           widget.item.productName,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
-                                               ),
-                       ),
+                        ),
+                      ),
                       // Days Remaining
                       //TODO: Integrate remaining days
                       // Text(
@@ -117,9 +127,12 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                   Row(
                     children: [
                       Text(
-                        'Return Date: ${formattedEndDate}',
-                        style: TextStyle(color: AppColors.primaryRed, fontSize: 12),
-                      )
+                        'Return Date: $formattedEndDate',
+                        style: TextStyle(
+                          color: AppColors.primaryRed,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -130,10 +143,10 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                         'RM ${widget.item.pricePerDay} / day',
                         style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
-                      const SizedBox(width: 10,),
+                      const SizedBox(width: 10),
                     ],
                   ),
-                  const SizedBox(height: 10,),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
                       //TODO: Integrate returnMethods
@@ -142,59 +155,77 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                         // 1. Replace OutlinedButton with a Container to hold the styling.
                         child: Container(
                           // 2. Apply styling equivalent to OutlinedButton.styleFrom:
-                          padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                          ), // Padding
                           decoration: BoxDecoration(
-                            color: Colors.transparent, // Background color (optional, but good practice)
-                            border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
+                            color:
+                                Colors
+                                    .transparent, // Background color (optional, but good practice)
+                            border: Border.all(
+                              color: Colors.grey[400]!,
+                            ), // BorderSide (Outline)
                             borderRadius: BorderRadius.circular(4), // Shape
                           ),
-                          alignment: Alignment.center, // Center the text vertically within the container
+                          alignment:
+                              Alignment
+                                  .center, // Center the text vertically within the container
                           // 3. Place the Text widget inside the Container.
                           child: Text(
                             //TODO: Change the data format and use function to convert to readable type
                             widget.returnMethods,
                             style: TextStyle(
-                              fontSize: 12, 
+                              fontSize: 12,
                               color: Colors.black,
                               // Optional: Ensure text height aligns well with the 28px height constraint
-                              // height: 1.0, 
+                              // height: 1.0,
                             ),
                           ),
                         ),
                       ),
                       // TODO: Integrate currentStatus
-                      const SizedBox(width: 10,),
-                        SizedBox(
+                      const SizedBox(width: 10),
+                      SizedBox(
                         height: 28,
                         // 1. Replace OutlinedButton with a Container to hold the styling.
                         child: Container(
                           // 2. Apply styling equivalent to OutlinedButton.styleFrom:
-                          padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                          ), // Padding
                           decoration: BoxDecoration(
-                            color: Colors.transparent, // Background color (optional, but good practice)
-                            border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
+                            color:
+                                Colors
+                                    .transparent, // Background color (optional, but good practice)
+                            border: Border.all(
+                              color: Colors.grey[400]!,
+                            ), // BorderSide (Outline)
                             borderRadius: BorderRadius.circular(4), // Shape
                           ),
-                          alignment: Alignment.center, // Center the text vertically within the container
+                          alignment:
+                              Alignment
+                                  .center, // Center the text vertically within the container
                           // 3. Place the Text widget inside the Container.
                           child: Text(
-                            
                             widget.status,
                             style: TextStyle(
-                              fontSize: 12, 
+                              fontSize: 12,
                               color: Colors.black,
                               // Optional: Ensure text height aligns well with the 28px height constraint
-                              // height: 1.0, 
+                              // height: 1.0,
                             ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10,),
+                  const SizedBox(height: 10),
                   // Total Rental Summary (The Yellow Section)
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.yellow[100], // Light yellow background
                       borderRadius: BorderRadius.circular(4),
@@ -216,15 +247,30 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             // Cancel Order Button
-                             SizedBox(
+                            SizedBox(
                               height: 28,
                               child: ElevatedButton(
-                                onPressed: widget.status == 'cancelled' || cancelledItem == true? null : () {
-                                    showCancelConfirmationModal(context: context, item: widget.item, onConfirm: (item) => _cancelOrderApiCall(widget.item.id,'cancel'));
-                                },
+                                onPressed:
+                                    widget.status == 'cancelled' ||
+                                            cancelledItem == true
+                                        ? null
+                                        : () {
+                                          showCancelConfirmationModal(
+                                            context: context,
+                                            item: widget.item,
+                                            onConfirm:
+                                                (item) => _cancelOrderApiCall(
+                                                  widget.item.id,
+                                                  'cancel',
+                                                ),
+                                          );
+                                        },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[300], // Grey color
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  backgroundColor:
+                                      Colors.grey[300], // Grey color
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                  ),
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(4),
@@ -232,7 +278,14 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                                 ),
                                 child: Text(
                                   'Cancel Order',
-                                  style: TextStyle(fontSize: 12, color: widget.status == 'cancelled' || cancelledItem == true ? Colors.grey : Colors.black),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color:
+                                        widget.status == 'cancelled' ||
+                                                cancelledItem == true
+                                            ? Colors.grey
+                                            : Colors.black,
+                                  ),
                                 ),
                               ),
                             ),
@@ -240,7 +293,10 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                             // Report Button (Red)
                             SizedBox(
                               height: 28,
-                              child: ReportItemWidget(onSubmitReport: _handleReportSubmission, item: widget.item)                                                    
+                              child: ReportItemWidget(
+                                onSubmitReport: _handleReportSubmission,
+                                item: widget.item,
+                              ),
                             ),
                           ],
                         ),
