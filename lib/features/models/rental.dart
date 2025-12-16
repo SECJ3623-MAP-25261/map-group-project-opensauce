@@ -1,6 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:easyrent/features/models/item.dart';
-import 'package:easyrent/features/rentee/rentee_profile/domain/user.dart';
 
 class Rental {
   final String id;
@@ -60,8 +58,9 @@ class Rental {
     final data = snapshot.data();
     if (data == null) throw StateError('Rental data missing.');
 
-    DateTime toDate(dynamic ts) => (ts is Timestamp) ? ts.toDate() : DateTime.now();
-    
+    DateTime toDate(dynamic ts) =>
+        (ts is Timestamp) ? ts.toDate() : DateTime.now();
+
     // Helper to extract ID
     String getId(dynamic value) {
       if (value is DocumentReference) return value.id;

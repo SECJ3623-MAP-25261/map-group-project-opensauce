@@ -158,8 +158,9 @@ class _ReviewPageState extends State<ReviewPage> {
       body: StreamBuilder<DocumentSnapshot>(
         stream: _productRef.snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
+          }
 
           List<dynamic> reviewsList = [];
 

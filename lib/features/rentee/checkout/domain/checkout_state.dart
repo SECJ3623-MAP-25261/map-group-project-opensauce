@@ -1,22 +1,21 @@
 import 'package:easyrent/features/models/item.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-  class CheckoutState {
-    final double totalFee;
-    final double renteeFee;
-    final String deliveryOption;
-    final double depositRate;
-    final bool isLoading ;
-    final bool isDBSuccess;
-    final Item items;
-    final DateTime? startRenting;
-    final DateTime? endRenting;
-    final int duration;
-    final bool? isOrderComplete; // if the user receive the order, it will be true
-    final String userId;
-    final String location;
-    final double locationLat;
-    final double locationLong;
+class CheckoutState {
+  final double totalFee;
+  final double renteeFee;
+  final String deliveryOption;
+  final double depositRate;
+  final bool isLoading;
+  final bool isDBSuccess;
+  final Item items;
+  final DateTime? startRenting;
+  final DateTime? endRenting;
+  final int duration;
+  final bool? isOrderComplete; // if the user receive the order, it will be true
+  final String userId;
+  final String location;
+  final double locationLat;
+  final double locationLong;
 
   // Constructor for the initial state
   const CheckoutState({
@@ -34,7 +33,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
     required this.userId,
     required this.location,
     required this.locationLat,
-    required this.locationLong
+    required this.locationLong,
   });
 
   // // change to JSON to store in db
@@ -44,16 +43,16 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
       'renteeFee': renteeFee,
       'deliveryOption': deliveryOption,
       // The items Map is already in the correct format
-      'items': items.toMap(), 
+      'items': items.toMap(),
       'depositRate': depositRate,
       'isLoading': isLoading,
       'startRenting': startRenting?.toIso8601String(),
-      'endRenting': endRenting?.toIso8601String(), 
+      'endRenting': endRenting?.toIso8601String(),
       'duration': duration,
       'isOrderComplete': duration,
-      'location':location,
+      'location': location,
       'locationLat': locationLat,
-      'locationLong': locationLong
+      'locationLong': locationLong,
     };
   }
 
@@ -70,7 +69,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
     int? duration,
     bool? isDBSuccess,
     bool? isOrderComplete,
-    String?userId,
+    String? userId,
     String? location,
     double? locationLat,
     double? locationLong,
@@ -84,13 +83,13 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
       isLoading: isLoading ?? this.isLoading,
       startRenting: startRenting ?? this.startRenting,
       endRenting: endRenting ?? this.endRenting,
-      duration: duration?? this.duration,
+      duration: duration ?? this.duration,
       isDBSuccess: isDBSuccess ?? this.isDBSuccess,
       isOrderComplete: isOrderComplete ?? this.isOrderComplete,
       userId: userId ?? this.userId,
       location: location ?? this.location,
       locationLat: locationLat ?? this.locationLat,
-      locationLong: locationLong ?? this.locationLong
+      locationLong: locationLong ?? this.locationLong,
     );
   }
 }

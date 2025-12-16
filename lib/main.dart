@@ -1,20 +1,12 @@
-import 'package:easyrent/features/rentee/renting_status/presentation/pages/renting_status_page.dart';
 import 'package:easyrent/features/renter/renter_management/presentation/pages/dummy_select_role.dart';
-import 'package:easyrent/features/message/messages.dart';
 import 'package:easyrent/features/rentee/services/notifiers.dart';
-import 'package:easyrent/features/rentee/my_profile_page.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/page/wishlist_page.dart';
-import 'package:easyrent/features/renter/renter_management/presentation/pages/dummy_select_role.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'features/rentee/homePage/home_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'features/rentee/homePage/home_page.dart';
-import 'features/rentee/wishlist/presentation/page/wishlist_page.dart';
 import 'features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
-import 'features/rentee/services/notifiers.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,6 +20,7 @@ class MyApp extends StatefulWidget {
   @override
   State<MyApp> createState() => _MyAppState();
 }
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class _MyAppState extends State<MyApp> {

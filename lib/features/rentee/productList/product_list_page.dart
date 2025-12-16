@@ -1,4 +1,3 @@
-import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../productDetails/product_details_page.dart';
@@ -23,7 +22,9 @@ class _ProductListPageState extends ConsumerState<ProductListPage> {
     if (imageUrl.isEmpty) {
       return Container(
         color: Colors.grey[100],
-        child: const Center(child: Icon(Icons.image_not_supported, color: Colors.grey, size: 40)),
+        child: const Center(
+          child: Icon(Icons.image_not_supported, color: Colors.grey, size: 40),
+        ),
       );
     }
 
@@ -36,18 +37,22 @@ class _ProductListPageState extends ConsumerState<ProductListPage> {
           if (loadingProgress == null) return child;
           return Center(
             child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                      loadingProgress.expectedTotalBytes!
-                  : null,
+              value:
+                  loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
               color: const Color(0xFF5C001F),
             ),
           );
         },
-        errorBuilder: (ctx, err, stack) => Container(
-          color: Colors.grey[100],
-          child: const Center(child: Icon(Icons.broken_image, color: Colors.grey, size: 40)),
-        ),
+        errorBuilder:
+            (ctx, err, stack) => Container(
+              color: Colors.grey[100],
+              child: const Center(
+                child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+              ),
+            ),
       );
     }
 
@@ -57,15 +62,20 @@ class _ProductListPageState extends ConsumerState<ProductListPage> {
         bytes,
         fit: BoxFit.cover,
         width: double.infinity,
-        errorBuilder: (ctx, err, stack) => Container(
-          color: Colors.grey[100],
-          child: const Center(child: Icon(Icons.broken_image, color: Colors.grey, size: 40)),
-        ),
+        errorBuilder:
+            (ctx, err, stack) => Container(
+              color: Colors.grey[100],
+              child: const Center(
+                child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+              ),
+            ),
       );
     } catch (e) {
       return Container(
         color: Colors.grey[100],
-        child: const Center(child: Icon(Icons.error, color: Colors.red, size: 40)),
+        child: const Center(
+          child: Icon(Icons.error, color: Colors.red, size: 40),
+        ),
       );
     }
   }
@@ -92,8 +102,7 @@ class _ProductListPageState extends ConsumerState<ProductListPage> {
         centerTitle: true,
       ),
       body: StreamBuilder<List<Item>>(
-        stream:
-            _dbService.getProducts(),
+        stream: _dbService.getProducts(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
@@ -162,7 +171,7 @@ class _ProductListPageState extends ConsumerState<ProductListPage> {
                 mainAxisSpacing: 15,
               ),
               itemBuilder: (context, index) {
-                //TODO: Need to fix when integrating wiht Kai Bin auth 
+                //TODO: Need to fix when integrating wiht Kai Bin auth
                 print("userId is ${items[0].ownerId}");
                 final item = items[index];
                 return GestureDetector(
