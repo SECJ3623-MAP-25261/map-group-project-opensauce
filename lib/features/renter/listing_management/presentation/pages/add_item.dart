@@ -191,7 +191,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
         quantity: 1,
         rentingDuration: "Daily",
         deliveryMethods: "Pickup",
-        averageRating: 0.0,
+        averageRating: 5.0,
         reviews: [],
         currentRenterId: null,
       );

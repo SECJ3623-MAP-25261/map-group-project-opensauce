@@ -50,7 +50,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
     }
   }
 
-  // --- 2. OPEN DIMMED OVERLAY ---
   void _openFullScreen(BuildContext context, List<String> images, int index) {
     Navigator.of(context).push(
       PageRouteBuilder(
@@ -97,7 +96,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
     );
   }
 
-  // ... (Your existing Review Widget code remains unchanged) ...
   Widget _buildReviewCard(Map<String, dynamic> data) {
     String dateStr = "";
     if (data['date'] != null && data['date'] is Timestamp) {
@@ -342,7 +340,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text("Reviews", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101828))),
-                    if (reviewCount > 0)
+                    //if (reviewCount > 0)
                       TextButton(
                         onPressed: () {
                           Navigator.push(
@@ -442,11 +440,21 @@ class FullScreenImageViewer extends StatefulWidget {
 
 class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
   late PageController _controller;
+  int _currentIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _currentIndex = widget.initialIndex;
     _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  void _movePage(int delta) {
+    _controller.animateToPage(
+      _currentIndex + delta,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   Widget _buildFullImage(String imageUrl) {
@@ -467,13 +475,19 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: Colors.transparent, 
       body: SafeArea(
         child: Stack(
+          alignment: Alignment.center,
           children: [
             PageView.builder(
               controller: _controller,
               itemCount: widget.images.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
               itemBuilder: (context, index) {
                 return InteractiveViewer(
                   child: Center(
@@ -482,6 +496,32 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                 );
               },
             ),
+
+            if (_currentIndex > 0)
+              Positioned(
+                left: 10,
+                child: IconButton(
+                  onPressed: () => _movePage(-1),
+                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 30),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black26, 
+                    shape: const CircleBorder(),
+                  ),
+                ),
+              ),
+
+            if (_currentIndex < widget.images.length - 1)
+              Positioned(
+                right: 10,
+                child: IconButton(
+                  onPressed: () => _movePage(1),
+                  icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 30),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black26, 
+                    shape: const CircleBorder(),
+                  ),
+                ),
+              ),
 
             Positioned(
               top: 10,

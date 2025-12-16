@@ -44,7 +44,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
     _depositController = TextEditingController(text: widget.item.deposit.toString()); 
 
     _descriptionController = TextEditingController(text: widget.item.description);
-    _locationController = TextEditingController(text: "UTM"); 
+    _locationController = TextEditingController(text: widget.item.location); 
     
     if (_categories.contains(widget.item.category)) {
       _selectedCategory = widget.item.category;
