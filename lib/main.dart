@@ -7,6 +7,7 @@ import 'features/rentee/homePage/home_page.dart';
 import 'features/rentee/wishlist/presentation/page/wishlist_page.dart';
 import 'features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
 import 'features/rentee/services/notifiers.dart';
+import 'features/rentee/qr_scanner_page/qr_scanner_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,7 @@ class MyApp extends StatefulWidget {
   @override
   State<MyApp> createState() => _MyAppState();
 }
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class _MyAppState extends State<MyApp> {
@@ -36,8 +38,8 @@ class _MyAppState extends State<MyApp> {
       ),
       home: const MainScreen(),
       routes: {
-        '/home' : (_) => HomePage(),
-        '/renting-status' : (_) => RentingStatusPage(),
+        '/home': (_) => HomePage(),
+        '/renting-status': (_) => RentingStatusPage(),
       },
     );
   }
@@ -54,7 +56,7 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const HomePage(), // Index 0
     const WishlistPage(), // Index 1 (Make sure this is imported!)
-    const Center(child: Text("Scan Page")),
+    const QRScannerPage(), // Index 2
     const Center(child: Text("Messages Page")),
     const Center(child: Text("Account Page")),
   ];

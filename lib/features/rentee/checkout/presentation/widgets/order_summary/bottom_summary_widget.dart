@@ -1,12 +1,10 @@
 import 'package:easyrent/core/constants/constants.dart';
-import 'package:easyrent/features/rentee/checkout/data/checkout_dummy_data.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/delivery_options_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/delivery_place_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/start_end_date_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/summary_row_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/total_section_widget.dart';
-import 'package:easyrent/features/rentee/homePage/home_page.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/pages/renting_status_page.dart';
 import 'package:easyrent/main.dart';
 import 'package:flutter/material.dart';

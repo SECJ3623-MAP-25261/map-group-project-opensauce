@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/pages/checkout_page.dart';
-import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
 import 'package:easyrent/features/rentee/wishlist/services/wishlist_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

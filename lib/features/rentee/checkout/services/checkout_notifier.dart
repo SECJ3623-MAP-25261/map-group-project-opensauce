@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:easyrent/core/constants/constants.dart';
 import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/checkout/domain/checkout_state.dart';
 import 'package:easyrent/features/rentee/checkout/services/database.dart';
