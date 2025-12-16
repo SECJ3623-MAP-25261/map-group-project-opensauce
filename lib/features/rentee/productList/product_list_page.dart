@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../productDetails/product_details_page.dart';
 import '../../../features/models/item.dart';
 import '../services/database_service.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 
 class ProductListPage extends StatefulWidget {
   final String title;
