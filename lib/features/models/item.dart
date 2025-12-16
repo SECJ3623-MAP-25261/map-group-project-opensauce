@@ -18,6 +18,8 @@ class Item {
   final double averageRating;
   final List<Review> reviews;
   final String location;
+  final double locationLat;
+  final double locationLong;
 
   Item({
     required this.id,
@@ -36,6 +38,8 @@ class Item {
     required this.averageRating,
     required this.reviews,
     required this.location,
+    required this.locationLat,
+    required this.locationLong,
   });
 
   // --- 1. Serialization (Dart Object -> Firestore Map) ---
@@ -143,6 +147,9 @@ class Item {
 
       reviews: loadedReviews,
       location: map['location'] ?? '',
+      locationLat: (map['locationLat'] as num?)?.toDouble() ?? 0.0,
+      locationLong: (map['locationLong'] as num?)?.toDouble() ?? 0.0
+
     );
   }
 
@@ -229,6 +236,8 @@ class Item {
       averageRating: averageRating,
       reviews: reviews,
       location: location,
+      locationLat: _safeDouble(data['locationLat']),
+      locationLong: _safeDouble(data['locationLong'])
     );
   }
 
@@ -302,6 +311,8 @@ class Item {
       averageRating: averageRating ?? this.averageRating,
       reviews: reviews ?? this.reviews,
       location: location,
+      locationLat: locationLat,
+      locationLong: locationLong
     );
   }
 }

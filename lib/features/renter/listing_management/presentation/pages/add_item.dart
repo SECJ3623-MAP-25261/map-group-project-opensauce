@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:easyrent/features/rentee/geolocation/geolocation.dart';
+import 'package:easyrent/features/renter/geolocation/geolocation_renter.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -11,6 +13,13 @@ class RenterAddItem extends StatefulWidget {
   @override
   State<RenterAddItem> createState() => _RenterAddItemState();
 }
+
+class LatLng {
+    final double latitude;
+    final double longitude;
+
+    LatLng(this.latitude, this.longitude);
+  }
 
 class _RenterAddItemState extends State<RenterAddItem> {
   // --- CONTROLLERS ---
@@ -28,6 +37,22 @@ class _RenterAddItemState extends State<RenterAddItem> {
   final ImagePicker _picker = ImagePicker();
   
   int _currentImageIndex = 0; 
+
+  // final list location and latlng (save db)
+  List <String> selectedLocations = [];
+  List <LatLng> selectedLatLngs = [];
+
+  String selectedLocation = '';
+  double selectedLat = 0;
+  double selectedLong = 0;
+
+  void _updateLocation(String location, double lat, double long) {
+    setState(() {
+      selectedLocations.add(location);
+      selectedLatLngs.add(LatLng(lat, long));
+    });
+    print("---------the locations: ${selectedLocations.last} lat: ${selectedLatLngs.last.latitude} long: ${selectedLatLngs.last.longitude}----------");
+  }
   
   final PageController _pageController = PageController();
 
@@ -353,7 +378,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
             _buildLabel("Description"),
             _buildTextField(controller: _descriptionController, hint: "Insert here", maxLines: 5),
             _buildLabel("Location"),
-            _buildTextField(controller: _locationController, hint: "Location"),
+            _buildAddLocation(),
             const SizedBox(height: 30),
 
             // --- BUTTONS ---
@@ -397,6 +422,42 @@ class _RenterAddItemState extends State<RenterAddItem> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, top: 12.0),
       child: Text(text, style: const TextStyle(fontSize: 16, color: Colors.black87)),
+    );
+  }
+
+  Widget _buildAddLocation() {
+    return Column(
+      children: [
+         Text("${selectedLocations.isEmpty ? "No location selected" : selectedLocations}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: () {
+
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return GeolocationRenter(
+                    onLocationSelected: _updateLocation,
+                    // location: selectedLocation,
+                    // locationLat: selectedLat,
+                    // locationLong: selectedLong,
+                    latitude: 1.488889,
+                    longitude: 103.761111,
+                  );
+                },
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF5C001F),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            elevation: 0,
+          ),
+          child: const Text("Add Location", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+        ),
+      ],
     );
   }
 

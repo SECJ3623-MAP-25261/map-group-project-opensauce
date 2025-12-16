@@ -1,4 +1,5 @@
 import 'package:easyrent/features/rentee/renting_status/presentation/pages/renting_status_page.dart';
+import 'package:easyrent/features/renter/renter_management/presentation/pages/dummy_select_role.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -34,11 +35,12 @@ class _MyAppState extends State<MyApp> {
         fontFamily: 'Roboto',
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF800000)),
       ),
-      home: const MainScreen(),
-      routes: {
-        '/home' : (_) => HomePage(),
-        '/renting-status' : (_) => RentingStatusPage(),
-      },
+      home: DummySelectRole(),
+      // home: const MainScreen(),
+      // routes: {
+      //   '/home' : (_) => HomePage(),
+      //   '/renting-status' : (_) => RentingStatusPage(),
+      // },
     );
   }
 }
