@@ -43,7 +43,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
 
 
     _descriptionController = TextEditingController(text: widget.item.description);
-    _locationController = TextEditingController(text: "UTM");
+    _locationController = TextEditingController(text: widget.item.location);
     
     if (_categories.contains(widget.item.category)) {
       _selectedCategory = widget.item.category;
@@ -222,6 +222,12 @@ class _RenterEditItemState extends State<RenterEditItem> {
         
         description: _descriptionController.text,
         location: _locationController.text,
+        
+        // --- ADDED THESE TWO LINES TO FIX THE ERROR ---
+        locationLat: widget.item.locationLat,
+        locationLong: widget.item.locationLong,
+        // ----------------------------------------------
+
         category: _selectedCategory ?? "Other",
         
         imageUrl: newMainImage,

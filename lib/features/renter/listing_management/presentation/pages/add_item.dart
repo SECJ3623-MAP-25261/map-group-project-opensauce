@@ -1,7 +1,8 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easyrent/features/models/item.dart'; // UPDATED IMPORT
 import 'package:easyrent/features/rentee/geolocation/geolocation.dart';
 import 'package:easyrent/features/renter/geolocation/geolocation_renter.dart';
-import 'package:easyrent/features/renter/renter_management/domain/repositories/entites/item_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -50,6 +51,8 @@ class _RenterAddItemState extends State<RenterAddItem> {
     setState(() {
       selectedLocations.add(location);
       selectedLatLngs.add(LatLng(lat, long));
+      // Update the text controller to show the latest location
+      _locationController.text = location; 
     });
     print("---------the locations: ${selectedLocations.last} lat: ${selectedLatLngs.last.latitude} long: ${selectedLatLngs.last.longitude}----------");
   }
@@ -181,19 +184,37 @@ class _RenterAddItemState extends State<RenterAddItem> {
       additionalImages.add(_selectedImages[i].path);
     }
 
-    final newItem = ItemEntity(
-      id: DateTime.now().millisecondsSinceEpoch.toString(), 
-      name: _nameController.text,
-      price: _priceController.text,
-      deposit: _depositController.text,
-      description: _descriptionController.text,
-      location: _locationController.text,
+    // Get Lat/Long. Default to 0.0 if not selected via map
+    double lat = selectedLatLngs.isNotEmpty ? selectedLatLngs.last.latitude : 0.0;
+    double long = selectedLatLngs.isNotEmpty ? selectedLatLngs.last.longitude : 0.0;
+
+    // UPDATED: Using Item instead of ItemEntity
+    final newItem = Item(
+      id: '', // Empty ID, database/repo will handle it
+      ownerRef: FirebaseFirestore.instance.doc('user/unknown'), // Repo will overwrite
+      ownerId: '',
+      ownerName: '',
+      ownerImage: '',
+      
+      productName: _nameController.text,
+      pricePerDay: double.tryParse(_priceController.text) ?? 0.0,
+      deposit: double.tryParse(_depositController.text) ?? 0.0,
       category: _selectedCategory ?? "Other",
-      rentalInfo: "1 day | Total RM ${_priceController.text}",
+      
+      description: _descriptionController.text,
+      
       imageUrl: mainImage,
-      additionalImages: additionalImages,
-      rating: 0.0,
-      status: "pending",
+      imageUrls: additionalImages,
+      
+      location: _locationController.text,
+      locationLat: lat,
+      locationLong: long,
+      
+      quantity: 1, // Default
+      rentingDuration: "1 day", // Default or add field
+      deliveryMethods: "Pickup", // Default or add field
+      averageRating: 0.0,
+      reviews: [],
     );
 
     Provider.of<ListingNotifier>(context, listen: false).addItem(newItem);
@@ -220,7 +241,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
             // --- IMAGE CAROUSEL SECTION ---
             Center(
               child: Stack(
@@ -264,8 +284,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
                             ),
                     ),
                   ),
-
-                  // LEFT ARROW
+                  // ARROWS & BUTTONS (Same as your original code)
                   if (_currentImageIndex > 0)
                     Positioned(
                       left: 10,
@@ -282,8 +301,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         ),
                       ),
                     ),
-
-                  // RIGHT ARROW
                   if (_currentImageIndex < _selectedImages.length - 1)
                     Positioned(
                       right: 10,
@@ -300,8 +317,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         ),
                       ),
                     ),
-
-                  // INDICATOR
                   if (_selectedImages.isNotEmpty)
                     Positioned(
                       bottom: 16,
@@ -322,7 +337,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         ),
                       ),
                     ),
-
                   Positioned(
                     bottom: 16,
                     right: 16,
@@ -338,8 +352,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
                       ),
                     ),
                   ),
-
-                  // DELETE BUTTON
                   if (_selectedImages.isNotEmpty)
                     Positioned(
                       top: 16,
@@ -359,7 +371,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         ),
                       ),
                     ),
-
                 ],
               ),
             ),
@@ -428,20 +439,22 @@ class _RenterAddItemState extends State<RenterAddItem> {
   Widget _buildAddLocation() {
     return Column(
       children: [
-         Text("${selectedLocations.isEmpty ? "No location selected" : selectedLocations}", style: const TextStyle(color: Colors.grey, fontSize: 12)),
+         // Display only the latest selected location for clarity, or join them if needed
+         Text(
+           _locationController.text.isEmpty 
+             ? "No location selected" 
+             : _locationController.text, 
+           style: const TextStyle(color: Colors.grey, fontSize: 12)
+         ),
         const SizedBox(height: 10),
         ElevatedButton(
           onPressed: () {
-
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) {
                   return GeolocationRenter(
                     onLocationSelected: _updateLocation,
-                    // location: selectedLocation,
-                    // locationLat: selectedLat,
-                    // locationLong: selectedLong,
                     latitude: 1.488889,
                     longitude: 103.761111,
                   );
