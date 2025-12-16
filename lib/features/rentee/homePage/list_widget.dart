@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../../../features/models/item.dart';
 import '../productDetails/product_details_page.dart';
-import '../productList/product_list_page.dart'; // ADD THIS IMPORT
+import '../productList/product_list_page.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 
 class ProductSectionWidget extends StatefulWidget {
   final String title;
@@ -190,6 +192,55 @@ class ProductCard extends StatefulWidget {
 class _ProductCardState extends State<ProductCard> {
   bool _isFavorite = false;
 
+  Widget _buildProductImage(String imageUrl) {
+    if (imageUrl.isEmpty) {
+      return const Center(child: Icon(Icons.image_not_supported, color: Colors.grey));
+    }
+
+    if (imageUrl.startsWith('http')) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+              color: const Color(0xFF5C001F),
+            ),
+          );
+        },
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(
+            child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+          );
+        },
+      );
+    }
+
+    try {
+      Uint8List bytes = base64Decode(imageUrl);
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+        errorBuilder: (context, error, stackTrace) {
+          return const Center(
+            child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+          );
+        },
+      );
+    } catch (e) {
+      return const Center(child: Icon(Icons.error, color: Colors.red));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -231,32 +282,7 @@ class _ProductCardState extends State<ProductCard> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        widget.item.imageUrl,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value:
-                                  loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                      : null,
-                              color: const Color(0xFF5C001F),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(
-                            child: Icon(
-                              Icons.broken_image,
-                              color: Colors.grey,
-                              size: 40,
-                            ),
-                          );
-                        },
-                      ),
+                      child: _buildProductImage(widget.item.imageUrl),
                     ),
                   ),
                   Positioned(

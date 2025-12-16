@@ -1,9 +1,11 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:io';
-import 'package:easyrent/features/rentee/reviewPage/review_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:easyrent/features/rentee/reviewPage/review_page.dart';
 import '../../../../models/item.dart'; 
 import '../../services/notifier/listing_notifier.dart';
 import 'edit_item.dart';
@@ -20,6 +22,46 @@ class RenterItemDetail extends StatefulWidget {
 class _RenterItemDetailState extends State<RenterItemDetail> {
   int _currentImageIndex = 0;
   final PageController _pageController = PageController();
+
+  Widget _buildImage(String imageUrl, {BoxFit fit = BoxFit.contain}) {
+    if (imageUrl.isEmpty) {
+      return const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey));
+    }
+
+    if (imageUrl.startsWith('http')) {
+      return Image.network(
+        imageUrl,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => 
+            const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+      );
+    }
+
+    try {
+      Uint8List bytes = base64Decode(imageUrl);
+      return Image.memory(
+        bytes,
+        fit: fit,
+        errorBuilder: (context, error, stackTrace) => 
+            const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+      );
+    } catch (e) {
+      return const Center(child: Icon(Icons.error, size: 50, color: Colors.red));
+    }
+  }
+
+  void _openFullScreen(BuildContext context, List<String> images, int index) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black.withOpacity(0.8),
+        barrierDismissible: true,
+        pageBuilder: (BuildContext context, _, __) {
+          return FullScreenImageViewer(images: images, initialIndex: index);
+        },
+      ),
+    );
+  }
 
   void _confirmDelete() {
     showDialog(
@@ -178,7 +220,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
               icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
               onPressed: () => Navigator.pop(context),
             ),
-            title: const Text("Product Detial", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+            title: const Text("Product Detail", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
             centerTitle: true,
           ),
           body: SingleChildScrollView(
@@ -204,13 +246,10 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                           itemCount: displayImages.length,
                           onPageChanged: (index) => setState(() => _currentImageIndex = index),
                           itemBuilder: (context, index) {
-                            final String imagePath = displayImages[index];
-                            bool isNetwork = imagePath.startsWith('http');
-                            if (isNetwork) {
-                              return Image.network(imagePath, fit: BoxFit.contain, errorBuilder: (_,__,___) => const Icon(Icons.broken_image));
-                            } else {
-                              return Image.file(File(imagePath), fit: BoxFit.contain);
-                            }
+                            return GestureDetector(
+                              onTap: () => _openFullScreen(context, displayImages, index),
+                              child: _buildImage(displayImages[index]),
+                            );
                           },
                         ),
                       ),
@@ -301,7 +340,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text("Reviews", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101828))),
-                    if (reviewCount > 0)
+                    //if (reviewCount > 0)
                       TextButton(
                         onPressed: () {
                           Navigator.push(
@@ -381,6 +420,124 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
           ),
         );
       }
+    );
+  }
+}
+
+class FullScreenImageViewer extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+
+  const FullScreenImageViewer({
+    super.key,
+    required this.images,
+    required this.initialIndex,
+  });
+
+  @override
+  State<FullScreenImageViewer> createState() => _FullScreenImageViewerState();
+}
+
+class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
+  late PageController _controller;
+  int _currentIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  void _movePage(int delta) {
+    _controller.animateToPage(
+      _currentIndex + delta,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  Widget _buildFullImage(String imageUrl) {
+    if (imageUrl.isEmpty) return const SizedBox();
+
+    if (imageUrl.startsWith('http')) {
+      return Image.network(imageUrl, fit: BoxFit.contain);
+    }
+
+    try {
+      Uint8List bytes = base64Decode(imageUrl);
+      return Image.memory(bytes, fit: BoxFit.contain);
+    } catch (e) {
+      return const Center(child: Icon(Icons.error, color: Colors.white));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent, 
+      body: SafeArea(
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            PageView.builder(
+              controller: _controller,
+              itemCount: widget.images.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentIndex = index;
+                });
+              },
+              itemBuilder: (context, index) {
+                return InteractiveViewer(
+                  child: Center(
+                    child: _buildFullImage(widget.images[index]),
+                  ),
+                );
+              },
+            ),
+
+            if (_currentIndex > 0)
+              Positioned(
+                left: 10,
+                child: IconButton(
+                  onPressed: () => _movePage(-1),
+                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 30),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black26, 
+                    shape: const CircleBorder(),
+                  ),
+                ),
+              ),
+
+            if (_currentIndex < widget.images.length - 1)
+              Positioned(
+                right: 10,
+                child: IconButton(
+                  onPressed: () => _movePage(1),
+                  icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 30),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black26, 
+                    shape: const CircleBorder(),
+                  ),
+                ),
+              ),
+
+            Positioned(
+              top: 10,
+              right: 10,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black26, 
+                  shape: const CircleBorder(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

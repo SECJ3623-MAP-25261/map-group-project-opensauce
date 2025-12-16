@@ -1,11 +1,12 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:io' as io; 
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:easyrent/features/models/item.dart'; // UPDATED IMPORT
-import 'package:easyrent/features/rentee/geolocation/geolocation.dart';
-import 'package:easyrent/features/renter/geolocation/geolocation_renter.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../../../../models/item.dart'; 
 import '../../services/notifier/listing_notifier.dart';
 
 class RenterAddItem extends StatefulWidget {
@@ -15,15 +16,7 @@ class RenterAddItem extends StatefulWidget {
   State<RenterAddItem> createState() => _RenterAddItemState();
 }
 
-class LatLng {
-    final double latitude;
-    final double longitude;
-
-    LatLng(this.latitude, this.longitude);
-  }
-
 class _RenterAddItemState extends State<RenterAddItem> {
-  // --- CONTROLLERS ---
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _depositController = TextEditingController();
@@ -33,33 +26,14 @@ class _RenterAddItemState extends State<RenterAddItem> {
   String? _selectedCategory;
   final List<String> _categories = ['Electronic', 'Stationary', 'Clothing', 'Sports', 'Other'];
 
-  // --- IMAGE STATE ---
-  final List<File> _selectedImages = [];
+  final List<XFile> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
   
   int _currentImageIndex = 0; 
-
-  // final list location and latlng (save db)
-  List <String> selectedLocations = [];
-  List <LatLng> selectedLatLngs = [];
-
-  String selectedLocation = '';
-  double selectedLat = 0;
-  double selectedLong = 0;
-
-  void _updateLocation(String location, double lat, double long) {
-    setState(() {
-      selectedLocations.add(location);
-      selectedLatLngs.add(LatLng(lat, long));
-      // Update the text controller to show the latest location
-      _locationController.text = location; 
-    });
-    print("---------the locations: ${selectedLocations.last} lat: ${selectedLatLngs.last.latitude} long: ${selectedLatLngs.last.longitude}----------");
-  }
-  
   final PageController _pageController = PageController();
+  
+  bool _isSaving = false;
 
-  // --- IMAGE LOGIC ---
   Future<void> _pickImage(ImageSource source) async {
     if (_selectedImages.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,8 +46,9 @@ class _RenterAddItemState extends State<RenterAddItem> {
       final XFile? pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
         setState(() {
-          _selectedImages.add(File(pickedFile.path));
+          _selectedImages.add(pickedFile);
           _currentImageIndex = _selectedImages.length - 1;
+          
           // Jump to new image
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageController.hasClients) {
@@ -85,6 +60,12 @@ class _RenterAddItemState extends State<RenterAddItem> {
     } catch (e) {
       print("Error picking image: $e");
     }
+  }
+
+  Future<String> _imageToBase64(XFile imageFile) async {
+    Uint8List imageBytes = await imageFile.readAsBytes();
+    String base64Image = base64Encode(imageBytes);
+    return base64Image;
   }
 
   void _confirmDelete() {
@@ -150,7 +131,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  // --- MOVE ARROW HELPER ---
   void _movePage(int delta) {
     _pageController.animateToPage(
       _currentImageIndex + delta,
@@ -159,7 +139,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  void _saveItem() {
+  Future<void> _saveItem() async {
     if (_nameController.text.isEmpty || 
         _priceController.text.isEmpty || 
         _depositController.text.isEmpty ||
@@ -178,48 +158,67 @@ class _RenterAddItemState extends State<RenterAddItem> {
       return;
     }
 
-    String mainImage = _selectedImages[0].path;
-    List<String> additionalImages = [];
-    for (int i = 1; i < _selectedImages.length; i++) {
-      additionalImages.add(_selectedImages[i].path);
+    setState(() { _isSaving = true; });
+
+    try {
+      List<String> base64Images = [];
+      for (XFile img in _selectedImages) {
+        String base64String = await _imageToBase64(img);
+        base64Images.add(base64String);
+      }
+
+      String mainImageUrl = base64Images[0];
+      List<String> additionalImages = [];
+      if (base64Images.length > 1) {
+        additionalImages = base64Images.sublist(1);
+      }
+
+      final newItem = Item(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        ownerRef: FirebaseFirestore.instance.collection('user').doc('temp_user'),
+        ownerId: "temp",
+        ownerName: "temp",
+        ownerImage: "temp",
+        
+        productName: _nameController.text,
+        pricePerDay: double.tryParse(_priceController.text) ?? 0.0,
+        deposit: double.tryParse(_depositController.text) ?? 0.0,
+        
+        description: _descriptionController.text,
+        category: _selectedCategory ?? "Other",        
+        imageUrl: mainImageUrl,
+        imageUrls: additionalImages,
+        
+        location: _locationController.text, 
+        
+        locationLat: 0.0,
+        locationLong: 0.0,
+
+        quantity: 1,
+        rentingDuration: "Daily",
+        deliveryMethods: "Pickup",
+        averageRating: 5.0,
+        reviews: [],
+        currentRenterId: "",
+      );
+
+      if (!mounted) return;
+      await Provider.of<ListingNotifier>(context, listen: false).addItem(newItem);
+
+      if (mounted) Navigator.pop(context);
+
+    } catch (e) {
+      print("Error saving: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving item: $e")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() { _isSaving = false; });
+      }
     }
-
-    // Get Lat/Long. Default to 0.0 if not selected via map
-    double lat = selectedLatLngs.isNotEmpty ? selectedLatLngs.last.latitude : 0.0;
-    double long = selectedLatLngs.isNotEmpty ? selectedLatLngs.last.longitude : 0.0;
-
-    // UPDATED: Using Item instead of ItemEntity
-    final newItem = Item(
-      id: '', // Empty ID, database/repo will handle it
-      ownerRef: FirebaseFirestore.instance.doc('user/unknown'), // Repo will overwrite
-      ownerId: '',
-      ownerName: '',
-      ownerImage: '',
-      
-      productName: _nameController.text,
-      pricePerDay: double.tryParse(_priceController.text) ?? 0.0,
-      deposit: double.tryParse(_depositController.text) ?? 0.0,
-      category: _selectedCategory ?? "Other",
-      
-      description: _descriptionController.text,
-      
-      imageUrl: mainImage,
-      imageUrls: additionalImages,
-      
-      location: _locationController.text,
-      locationLat: lat,
-      locationLong: long,
-      
-      quantity: 1, // Default
-      rentingDuration: "1 day", // Default or add field
-      deliveryMethods: "Pickup", // Default or add field
-      averageRating: 0.0,
-      reviews: [],
-    );
-
-    Provider.of<ListingNotifier>(context, listen: false).addItem(newItem);
-
-    Navigator.pop(context);
   }
 
   @override
@@ -241,7 +240,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- IMAGE CAROUSEL SECTION ---
             Center(
               child: Stack(
                 alignment: Alignment.center,
@@ -276,15 +274,17 @@ class _RenterAddItemState extends State<RenterAddItem> {
                                 });
                               },
                               itemBuilder: (context, index) {
-                                return Image.file(
-                                  _selectedImages[index],
-                                  fit: BoxFit.cover,
-                                );
+                                // FIXED: WEB & MOBILE DISPLAY
+                                final image = _selectedImages[index];
+                                if (kIsWeb) {
+                                  return Image.network(image.path, fit: BoxFit.cover);
+                                } else {
+                                  return Image.file(io.File(image.path), fit: BoxFit.cover);
+                                }
                               },
                             ),
                     ),
                   ),
-                  // ARROWS & BUTTONS (Same as your original code)
                   if (_currentImageIndex > 0)
                     Positioned(
                       left: 10,
@@ -292,11 +292,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         onTap: () => _movePage(-1),
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                          ),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
                           child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black87),
                         ),
                       ),
@@ -308,11 +304,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         onTap: () => _movePage(1),
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.8),
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                          ),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
                           child: const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.black87),
                         ),
                       ),
@@ -323,18 +315,8 @@ class _RenterAddItemState extends State<RenterAddItem> {
                       left: 16,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "${_currentImageIndex + 1} / ${_selectedImages.length}",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
+                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(12)),
+                        child: Text("${_currentImageIndex + 1} / ${_selectedImages.length}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                       ),
                     ),
                   Positioned(
@@ -344,10 +326,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
                       onTap: _showImagePickerOptions,
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF5C001F),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        decoration: BoxDecoration(color: const Color(0xFF5C001F), borderRadius: BorderRadius.circular(12)),
                         child: const Icon(Icons.edit, color: Colors.white, size: 20),
                       ),
                     ),
@@ -360,13 +339,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         onTap: _confirmDelete, 
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9), 
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
-                            ]
-                          ),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)]),
                           child: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
                         ),
                       ),
@@ -374,42 +347,39 @@ class _RenterAddItemState extends State<RenterAddItem> {
                 ],
               ),
             ),
-            
             const SizedBox(height: 24),
-
-            // --- FORM FIELDS ---
+            // FIELDS
             _buildLabel("Name"),
             _buildTextField(controller: _nameController, hint: "Insert here"),
             _buildLabel("Category"),
             _buildDropdown(),
             _buildLabel("Price"),
-            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day", inputType: TextInputType.number,),
+            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day", inputType: TextInputType.number),
             _buildLabel("Deposit"),
-            _buildTextField(controller: _depositController, hint: "e.g: 20", inputType: TextInputType.number,),
+            _buildTextField(controller: _depositController, hint: "e.g: 20", inputType: TextInputType.number),
             _buildLabel("Description"),
             _buildTextField(controller: _descriptionController, hint: "Insert here", maxLines: 5),
             _buildLabel("Location"),
-            _buildAddLocation(),
+            _buildTextField(controller: _locationController, hint: "Location"),
             const SizedBox(height: 30),
-
-            // --- BUTTONS ---
+            // BUTTONS
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _saveItem,
+                    onPressed: _isSaving ? null : _saveItem,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       side: const BorderSide(color: Color(0xFF5C001F)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text("SAVE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                    child: _isSaving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Color(0xFF5C001F), strokeWidth: 2)) : const Text("SAVE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5C001F),
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -428,53 +398,11 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  // --- HELPER WIDGETS ---
   Widget _buildLabel(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0, top: 12.0),
-      child: Text(text, style: const TextStyle(fontSize: 16, color: Colors.black87)),
-    );
+    return Padding(padding: const EdgeInsets.only(bottom: 8.0, top: 12.0), child: Text(text, style: const TextStyle(fontSize: 16, color: Colors.black87)));
   }
 
-  Widget _buildAddLocation() {
-    return Column(
-      children: [
-         // Display only the latest selected location for clarity, or join them if needed
-         Text(
-           _locationController.text.isEmpty 
-             ? "No location selected" 
-             : _locationController.text, 
-           style: const TextStyle(color: Colors.grey, fontSize: 12)
-         ),
-        const SizedBox(height: 10),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) {
-                  return GeolocationRenter(
-                    onLocationSelected: _updateLocation,
-                    latitude: 1.488889,
-                    longitude: 103.761111,
-                  );
-                },
-              ),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5C001F),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            elevation: 0,
-          ),
-          child: const Text("Add Location", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType,}) {
+  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,

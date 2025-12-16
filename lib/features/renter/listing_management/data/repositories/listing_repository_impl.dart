@@ -7,7 +7,7 @@ class ListingRepositoryImpl implements ListingRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // String? get _currentUserId => _auth.currentUser?.uid;
+  //String? get _currentUserId => _auth.currentUser?.uid;
   String? get _currentUserId => "UAPrpMnRHvfu47xvzh7L"; // TEST
 
   @override

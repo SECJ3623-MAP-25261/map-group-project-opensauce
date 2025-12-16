@@ -1,8 +1,10 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:io' as io;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_storage/firebase_storage.dart'; 
 import '../../../../models/item.dart'; 
 import '../../services/notifier/listing_notifier.dart';
 
@@ -41,9 +43,8 @@ class _RenterEditItemState extends State<RenterEditItem> {
     _priceController = TextEditingController(text: widget.item.pricePerDay.toStringAsFixed(0));
     _depositController = TextEditingController(text: widget.item.deposit.toString()); 
 
-
     _descriptionController = TextEditingController(text: widget.item.description);
-    _locationController = TextEditingController(text: widget.item.location);
+    _locationController = TextEditingController(text: widget.item.location); 
     
     if (_categories.contains(widget.item.category)) {
       _selectedCategory = widget.item.category;
@@ -79,7 +80,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
       final XFile? pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
         setState(() {
-          _itemImages.add(File(pickedFile.path));
+          _itemImages.add(pickedFile);
           _currentImageIndex = _itemImages.length - 1;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageController.hasClients) {
@@ -93,17 +94,9 @@ class _RenterEditItemState extends State<RenterEditItem> {
     }
   }
 
-  Future<String> _uploadImage(File imageFile, String folderName) async {
-    try {
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      Reference storageRef = FirebaseStorage.instance.ref().child('$folderName/$fileName.jpg');
-      UploadTask uploadTask = storageRef.putFile(imageFile);
-      TaskSnapshot snapshot = await uploadTask;
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      print("Error uploading image: $e");
-      throw Exception("Image upload failed");
-    }
+  Future<String> _imageToBase64(XFile imageFile) async {
+    Uint8List imageBytes = await imageFile.readAsBytes();
+    return base64Encode(imageBytes);
   }
 
   void _confirmDelete() {
@@ -188,24 +181,24 @@ class _RenterEditItemState extends State<RenterEditItem> {
     setState(() { _isSaving = true; });
 
     try {
-      List<String> finalImageUrls = [];
+      List<String> finalImageStrings = [];
 
       for (var img in _itemImages) {
-        if (img is File) {
-          String url = await _uploadImage(img, 'item_images');
-          finalImageUrls.add(url);
+        if (img is XFile) {
+          String base64String = await _imageToBase64(img);
+          finalImageStrings.add(base64String);
         } else if (img is String) {
-          finalImageUrls.add(img);
+          finalImageStrings.add(img);
         }
       }
 
       String newMainImage = "";
       List<String> newAdditionalImages = [];
 
-      if (finalImageUrls.isNotEmpty) {
-        newMainImage = finalImageUrls[0];
-        if (finalImageUrls.length > 1) {
-          newAdditionalImages = finalImageUrls.sublist(1);
+      if (finalImageStrings.isNotEmpty) {
+        newMainImage = finalImageStrings[0];
+        if (finalImageStrings.length > 1) {
+          newAdditionalImages = finalImageStrings.sublist(1);
         }
       }
 
@@ -258,6 +251,38 @@ class _RenterEditItemState extends State<RenterEditItem> {
         setState(() { _isSaving = false; });
       }
     }
+  }
+
+  Widget _buildImageDisplay(dynamic image) {
+    if (image is XFile) {
+      if (kIsWeb) {
+        return Image.network(image.path, fit: BoxFit.cover);
+      } else {
+        return Image.file(io.File(image.path), fit: BoxFit.cover);
+      }
+    }
+    else if (image is String) {
+      if (image.startsWith('http')) {
+        return Image.network(
+          image, 
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image),
+        );
+      } 
+      else {
+        try {
+          Uint8List bytes = base64Decode(image);
+          return Image.memory(
+            bytes, 
+            fit: BoxFit.cover,
+            errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image),
+          );
+        } catch (e) {
+          return const Icon(Icons.error);
+        }
+      }
+    }
+    return const SizedBox();
   }
 
   @override
@@ -314,29 +339,13 @@ class _RenterEditItemState extends State<RenterEditItem> {
                                 });
                               },
                               itemBuilder: (context, index) {
-                                final image = _itemImages[index];
-                                
-                                if (image is File) {
-                                  return Image.file(image, fit: BoxFit.cover);
-                                } else if (image is String) {
-                                  if (image.startsWith('http')) {
-                                    return Image.network(
-                                      image, 
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image),
-                                    );
-                                  } else {
-                                    // Fallback
-                                    return const Icon(Icons.image);
-                                  }
-                                }
-                                return const SizedBox();
+                                // USE NEW HELPER FUNCTION
+                                return _buildImageDisplay(_itemImages[index]);
                               },
                             ),
                     ),
                   ),
 
-                  // LEFT ARROW
                   if (_currentImageIndex > 0)
                     Positioned(
                       left: 10,
@@ -354,7 +363,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
                       ),
                     ),
 
-                  // RIGHT ARROW
                   if (_currentImageIndex < _itemImages.length - 1)
                     Positioned(
                       right: 10,
@@ -455,9 +463,9 @@ class _RenterEditItemState extends State<RenterEditItem> {
                       side: const BorderSide(color: Color(0xFF5C001F)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: _isSaving
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Color(0xFF5C001F), strokeWidth: 2))
-                        : const Text("UPDATE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                    child: _isSaving 
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF5C001F)))
+                      : const Text("UPDATE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 16),

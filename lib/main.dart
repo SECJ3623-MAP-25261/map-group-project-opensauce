@@ -65,7 +65,7 @@ class _MainScreenState extends State<MainScreen> {
     const WishlistPage(), // Index 1 (Make sure this is imported!)
     const Center(child: Text("Scan Page")),
     const Center(child: Text("Messages Page")),
-    const Center(child: Text("Account Page")),
+    const DummySelectRole(),
   ];
 
   @override
