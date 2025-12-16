@@ -1,3 +1,5 @@
+import 'dart:convert'; 
+import 'dart:typed_data'; 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../../models/item.dart';
@@ -11,6 +13,37 @@ class ListingItemCard extends StatelessWidget {
     required this.item,
     required this.onTap,
   });
+
+  Widget _buildImage(String imageUrl) {
+    if (imageUrl.isEmpty) {
+      return const Center(child: Icon(Icons.image_not_supported, color: Colors.grey));
+    }
+
+    if (imageUrl.startsWith('http')) {
+      return Image.network(
+        imageUrl,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, error, stack) => const Center(
+          child: Icon(Icons.broken_image, color: Colors.grey),
+        ),
+      );
+    }
+
+    try {
+      Uint8List bytes = base64Decode(imageUrl);
+      return Image.memory(
+        bytes,
+        width: double.infinity,
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, error, stack) => const Center(
+          child: Icon(Icons.broken_image, color: Colors.grey),
+        ),
+      );
+    } catch (e) {
+      return const Center(child: Icon(Icons.error, color: Colors.red));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,22 +99,13 @@ class ListingItemCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // IMAGE
                 Expanded(
                   child: ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                    child: Image.network(
-                      currentItem.imageUrl, 
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (ctx, error, stack) => const Center(
-                        child: Icon(Icons.broken_image, color: Colors.grey),
-                      ),
-                    ),
+                    child: _buildImage(currentItem.imageUrl), 
                   ),
                 ),
                 
-                // TEXT INFO
                 Padding(
                   padding: const EdgeInsets.all(10.0),
                   child: Column(

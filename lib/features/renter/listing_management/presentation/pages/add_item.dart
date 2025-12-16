@@ -1,9 +1,11 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:io' as io; 
+import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_storage/firebase_storage.dart'; 
 import '../../../../models/item.dart'; 
 import '../../services/notifier/listing_notifier.dart';
 
@@ -15,7 +17,6 @@ class RenterAddItem extends StatefulWidget {
 }
 
 class _RenterAddItemState extends State<RenterAddItem> {
-  // --- CONTROLLERS ---
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _depositController = TextEditingController();
@@ -25,7 +26,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
   String? _selectedCategory;
   final List<String> _categories = ['Electronic', 'Stationary', 'Clothing', 'Sports', 'Other'];
 
-  final List<File> _selectedImages = [];
+  final List<XFile> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
   
   int _currentImageIndex = 0; 
@@ -45,8 +46,9 @@ class _RenterAddItemState extends State<RenterAddItem> {
       final XFile? pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
         setState(() {
-          _selectedImages.add(File(pickedFile.path));
+          _selectedImages.add(pickedFile);
           _currentImageIndex = _selectedImages.length - 1;
+          
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageController.hasClients) {
               _pageController.jumpToPage(_currentImageIndex);
@@ -59,17 +61,10 @@ class _RenterAddItemState extends State<RenterAddItem> {
     }
   }
 
-  Future<String> _uploadImage(File imageFile, String folderName) async {
-    try {
-      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
-      Reference storageRef = FirebaseStorage.instance.ref().child('$folderName/$fileName.jpg');
-      UploadTask uploadTask = storageRef.putFile(imageFile);
-      TaskSnapshot snapshot = await uploadTask;
-      return await snapshot.ref.getDownloadURL();
-    } catch (e) {
-      print("Error uploading image: $e");
-      throw Exception("Image upload failed");
-    }
+  Future<String> _imageToBase64(XFile imageFile) async {
+    Uint8List imageBytes = await imageFile.readAsBytes();
+    String base64Image = base64Encode(imageBytes);
+    return base64Image;
   }
 
   void _confirmDelete() {
@@ -165,16 +160,16 @@ class _RenterAddItemState extends State<RenterAddItem> {
     setState(() { _isSaving = true; });
 
     try {
-      List<String> uploadedUrls = [];
-      for (File img in _selectedImages) {
-        String url = await _uploadImage(img, 'item_images');
-        uploadedUrls.add(url);
+      List<String> base64Images = [];
+      for (XFile img in _selectedImages) {
+        String base64String = await _imageToBase64(img);
+        base64Images.add(base64String);
       }
 
-      String mainImageUrl = uploadedUrls[0];
+      String mainImageUrl = base64Images[0];
       List<String> additionalImages = [];
-      if (uploadedUrls.length > 1) {
-        additionalImages = uploadedUrls.sublist(1);
+      if (base64Images.length > 1) {
+        additionalImages = base64Images.sublist(1);
       }
 
       final newItem = Item(
@@ -192,7 +187,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
         category: _selectedCategory ?? "Other",        
         imageUrl: mainImageUrl,
         imageUrls: additionalImages,
-        location: _depositController.text,
+        location: _locationController.text, 
         quantity: 1,
         rentingDuration: "Daily",
         deliveryMethods: "Pickup",
@@ -273,10 +268,13 @@ class _RenterAddItemState extends State<RenterAddItem> {
                                 });
                               },
                               itemBuilder: (context, index) {
-                                return Image.file(
-                                  _selectedImages[index],
-                                  fit: BoxFit.cover,
-                                );
+                                // FIXED: WEB & MOBILE DISPLAY
+                                final image = _selectedImages[index];
+                                if (kIsWeb) {
+                                  return Image.network(image.path, fit: BoxFit.cover);
+                                } else {
+                                  return Image.file(io.File(image.path), fit: BoxFit.cover);
+                                }
                               },
                             ),
                     ),
