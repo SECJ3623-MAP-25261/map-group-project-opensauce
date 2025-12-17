@@ -71,7 +71,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
   @override
   void initState() {
     super.initState();
-    isFavorite = isItemSaveToDB(widget.item.id);
+    isFavorite = isItemSaveToDB(widget.item.id, widget.item.ownerRef);
   }
 
   @override
@@ -186,7 +186,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage> {
                         print("_isFavorite: ${_isFavorite}");
                         // item havent save to wishlist
                         final bool isSuccess = await saveToWishlistDB(
-                          widget.item,
+                          widget.item, widget.item.ownerRef,
                         );
                         if (isSuccess) {
                           _isFavorite = true;
