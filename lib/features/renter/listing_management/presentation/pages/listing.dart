@@ -104,17 +104,7 @@ class _RenterListingPageState extends State<RenterListingPage> {
           ),
         );
         break;
-      case 3:
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const MessagesApp(),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
-        break;
+
     }
   }
 
