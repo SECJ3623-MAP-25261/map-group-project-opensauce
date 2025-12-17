@@ -195,7 +195,7 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
                   return InrentingItemCardWidget(
                     item: itemDetails,
                     status: order['status'],
-                    totalPrice: order['totalFee'],
+                    totalPrice: (order['totalFee'] as num?)?.toDouble() ?? 0.0,
                     startDate: startDate!,
                     endDate: endDate!,
                     returnMethods: order['deliveryOption'],

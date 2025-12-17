@@ -71,6 +71,7 @@ class _GeolocationState extends ConsumerState<Geolocation> {
         newLocation =
             "${place.name}, ${place.street}, ${place.locality}, "
             "${place.postalCode}, ${place.country}";
+            print("----------- the new location is from _getAddressFromLatLng ${newLocation} ------------");
       } else {
         // Handle case where address cannot be resolved
         newLocation = "Location selected: Lat: ${latLng.latitude.toStringAsFixed(4)}, Long: ${latLng.longitude.toStringAsFixed(4)} (Address not found)";
