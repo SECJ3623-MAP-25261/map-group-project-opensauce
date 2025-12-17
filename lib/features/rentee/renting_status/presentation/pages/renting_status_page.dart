@@ -9,7 +9,6 @@ import 'package:easyrent/features/rentee/renting_status/services/database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-// 1. Convert to DefaultTabController and implement tabs
 class RentingStatusPage extends ConsumerStatefulWidget {
   const RentingStatusPage({super.key});
 
@@ -18,15 +17,12 @@ class RentingStatusPage extends ConsumerStatefulWidget {
 }
 
 class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
-    with
-        TickerProviderStateMixin // Add TickerProviderStateMixin for TabController
-        {
+    with TickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    // Initialize the TabController with the correct number of tabs (3)
     _tabController = TabController(length: 3, vsync: this);
   }
 
@@ -38,11 +34,8 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
 
   @override
   Widget build(BuildContext context) {
-    // Scaffold wraps the entire page
-
     return Scaffold(
       backgroundColor: Colors.grey[100],
-
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -52,19 +45,14 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
             Navigator.pop(context);
           },
         ),
-
         title: const Text('Renting', style: KTextStyle.appBarTitle),
         centerTitle: true,
-
-        // 2. Implement the TabBar in the AppBar's bottom property
         bottom: TabBar(
           controller: _tabController,
-          // Customizing tab indicator and text color
-          indicatorColor: AppColors.primaryRed, // Red line beneath active tab
+          indicatorColor: AppColors.primaryRed,
           labelColor: Colors.black,
           unselectedLabelColor: Colors.grey,
-          indicatorWeight: 2, // Thickness of the indicator line
-
+          indicatorWeight: 2,
           tabs: const [
             Tab(text: 'Ordering'),
             Tab(text: 'In Renting'),
@@ -72,83 +60,59 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
           ],
         ),
       ),
-
-      // 3. Implement the TabBarView in the body
-      // MAIN
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Content for the 'Ordering' tab (The main view from the screenshot)
           _buildOrderingTabContent(),
-          // Placeholder for the other tabs
           _buildInRentingTabContent(),
           _buildHistoryTabContent(),
         ],
       ),
-
-      // Bottom Navigation Bar
       bottomNavigationBar: const RenteeBottomNavBar(),
     );
   }
 
-  // --- WIDGET METHOD TO BUILD THE CONTENT ---
   Widget _buildOrderingTabContent() {
-    // 1. Define the stream variable with the correct type: Stream<List<Map<String, dynamic>>>
     final Stream<List<Map<String, dynamic>>> orderingItemsStream =
         RentingStatusDatabaseService().getOrderingItems(AppString.userSampleId);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
-
-      // 2. Switched from FutureBuilder to StreamBuilder
       child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: orderingItemsStream,
-
         builder: (context, asyncSnapshot) {
-          // --- Connection State Handling ---
           if (asyncSnapshot.connectionState == ConnectionState.waiting) {
-            // Show a loading indicator while the stream is waiting for its first item
             return const Center(child: CircularProgressIndicator());
           }
 
-          // --- Error Handling ---
           if (asyncSnapshot.hasError) {
-            // Display the error if the stream encounters one
             return Center(child: Text('Error: ${asyncSnapshot.error}'));
           }
 
-          // --- Data Handling ---
-          // Retrieve the data, which is now the latest list emitted by the stream
           final List<Map<String, dynamic>> orderingItems =
               asyncSnapshot.data ?? [];
 
           if (orderingItems.isEmpty) {
-            // Display message if the data list is empty
             return const Center(child: Text('No ordering items found.'));
           }
 
-          // 3. Build the UI using the latest data from the stream
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children:
-                orderingItems.map((item) {
-                  final itemMap = item['items'];
-                  // print("the main item is ${item}");
-                  // print("the duration and endRenting and pending is : ${item['duration']} ${item['endRenting']} ${item['status']}");
-                  // print("the id is ${item['id']}");
-                  final Item itemDetails = Item.fromMap(itemMap, item['id']);
+            children: orderingItems.map((item) {
+              final itemMap = item['items'];
+              final Item itemDetails = Item.fromMap(itemMap, item['id']);
 
-                  // comvert string to datetime
-                  final endRenting = parseDate(item['endRenting']);
-                  return RentalItemCardWidget(
-                    item: itemDetails,
-                    orderDate: item['duration'],
-                    returnDate: (endRenting!),
-                    status: item['status'],
-                    totalFee: item['totalFee'],
-                  );
-                  return const SizedBox.shrink();
-                }).toList(),
+              final endRenting = parseDate(item['endRenting']);
+              return RentalItemCardWidget(
+                item: itemDetails,
+                // Cast duration to int
+                orderDate: (item['duration'] as num).toInt(),
+                returnDate: (endRenting!),
+                status: item['status'],
+                // FIX: Cast to double to support 57.2
+                totalFee: (item['totalFee'] as num).toDouble(),
+              );
+            }).toList(),
           );
         },
       ),
@@ -156,7 +120,6 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
   }
 
   Widget _buildInRentingTabContent() {
-    // 1. Define the stream for items currently in renting status
     final Stream<List<Map<String, dynamic>>> inRentingItemsStream =
         RentingStatusDatabaseService().getInRentingItems(
           AppString.userSampleId,
@@ -167,17 +130,14 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
       child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: inRentingItemsStream,
         builder: (context, asyncSnapshot) {
-          // --- Connection State Handling ---
           if (asyncSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // --- Error Handling ---
           if (asyncSnapshot.hasError) {
             return Center(child: Text('Error: ${asyncSnapshot.error}'));
           }
 
-          // --- Data Handling ---
           final List<Map<String, dynamic>> inRentingItems =
               asyncSnapshot.data ?? [];
 
@@ -185,28 +145,23 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
             return const Center(child: Text('No items currently in renting.'));
           }
 
-          // 2. Build the UI using the latest data from the stream
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children:
-                inRentingItems.map((order) {
-                  final itemMap = order['items'];
-                  final Item itemDetails = Item.fromMap(itemMap, order['id']);
+            children: inRentingItems.map((order) {
+              final itemMap = order['items'];
+              final Item itemDetails = Item.fromMap(itemMap, order['id']);
 
-                  final startDate = parseDate(order['startRenting']);
-                  final endDate = parseDate(order['endRenting']);
-                  return InrentingItemCardWidget(
-                    item: itemDetails,
-                    status: order['status'],
-                    totalPrice: order['totalFee'],
-                    startDate: startDate!,
-                    endDate: endDate!,
-                    returnMethods: order['deliveryOption'],
-                  );
-
-                  // Return an empty widget if the data is corrupted or missing the 'items' field
-                  return const SizedBox.shrink();
-                }).toList(),
+              final startDate = parseDate(order['startRenting']);
+              final endDate = parseDate(order['endRenting']);
+              return InrentingItemCardWidget(
+                item: itemDetails,
+                status: order['status'],  
+                totalPrice: (order['totalFee'] as num).toDouble(),
+                startDate: startDate!,
+                endDate: endDate!,
+                returnMethods: order['deliveryOption'],
+              );
+            }).toList(),
           );
         },
       ),
@@ -214,7 +169,6 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
   }
 
   Widget _buildHistoryTabContent() {
-    // 1. Define the stream for completed/history items
     final Stream<List<Map<String, dynamic>>> historyItemsStream =
         RentingStatusDatabaseService().getHistoryItems(AppString.userSampleId);
 
@@ -223,17 +177,14 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
       child: StreamBuilder<List<Map<String, dynamic>>>(
         stream: historyItemsStream,
         builder: (context, asyncSnapshot) {
-          // --- Connection State Handling ---
           if (asyncSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // --- Error Handling ---
           if (asyncSnapshot.hasError) {
             return Center(child: Text('Error: ${asyncSnapshot.error}'));
           }
 
-          // --- Data Handling ---
           final List<Map<String, dynamic>> historyItems =
               asyncSnapshot.data ?? [];
 
@@ -241,26 +192,23 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
             return const Center(child: Text('No order history found.'));
           }
 
-          // 2. Build the UI using the latest data from the stream
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children:
-                historyItems.map((order) {
-                  final itemMap = order['items'];
-                  final Item itemDetails = Item.fromMap(itemMap, order['id']);
-                  final endRenting = parseDate(order['endRenting']);
-                  final startRenting = parseDate(order['startRenting']);
-                  return HistoryItemCardWidgets(
-                    item: itemDetails,
-                    startDate: startRenting!,
-                    endDate: endRenting!,
-                    duration: order['duration'],
-                    status: order['status'],
-                    totalPrice: order['totalFee'],
-                  );
-
-                  return const SizedBox.shrink();
-                }).toList(),
+            children: historyItems.map((order) {
+              final itemMap = order['items'];
+              final Item itemDetails = Item.fromMap(itemMap, order['id']);
+              final endRenting = parseDate(order['endRenting']);
+              final startRenting = parseDate(order['startRenting']);
+              return HistoryItemCardWidgets(
+                item: itemDetails,
+                startDate: startRenting!,
+                endDate: endRenting!,
+                duration: (order['duration'] as num).toInt(),
+                status: order['status'],
+                // FIX: Cast to double. Ensure HistoryItemCardWidgets accepts double!
+                totalPrice: (order['totalFee'] as num).toDouble(),
+              );
+            }).toList(),
           );
         },
       ),

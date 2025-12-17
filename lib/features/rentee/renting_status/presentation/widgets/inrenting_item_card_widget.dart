@@ -73,7 +73,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
           (context) => RenteeQRDialog(
             item: widget.item,
             orderDate: rentalDays,
-            totalFee: widget.totalPrice.toInt(),
+            totalFee: widget.totalPrice,
             currentStatus: widget.status,
             onSimulateScan: () => _simulateReturnScan(context),
             showSimulateButton: kIsWeb,

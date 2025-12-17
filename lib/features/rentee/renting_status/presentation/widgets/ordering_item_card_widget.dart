@@ -14,7 +14,8 @@ class RentalItemCardWidget extends StatefulWidget {
   final String status;
   final DateTime returnDate;
   final int orderDate;
-  final int totalFee;
+  // CHANGE: Updated type from int to double
+  final double totalFee; 
 
   const RentalItemCardWidget({
     super.key,
@@ -32,27 +33,20 @@ class RentalItemCardWidget extends StatefulWidget {
 class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
   bool cancelledItem = false;
 
-  // This is the function that simulates the API call to report the item
   Future<bool> _handleReportSubmission(String reason, Item item) async {
     print('Reporting item: with ${item.productName} name and ${item.id} id');
     print('Reason: $reason');
 
-    // Simulate a network delay
     await Future.delayed(const Duration(seconds: 2));
-
-    // Simulate a successful submission 80% of the time
     final isSuccessful = DateTime.now().millisecond % 10 < 8;
 
     return isSuccessful;
   }
 
-  // The function that performs the actual cancellation API call
   Future<void> _cancelOrderApiCall(String orderId, String newStatus) async {
     print('Attempting to cancel order $orderId...');
-    // Simulate API delay
     await RentingStatusDatabaseService().updateItemStatus(orderId, newStatus);
 
-    // Simulate failure 20% of the time for testing the error state
     if (DateTime.now().millisecond % 10 < 2) {
       throw Exception('Server error: Could not process cancellation.');
     }
@@ -60,10 +54,8 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
       cancelledItem = true;
     });
     print('Order $orderId successfully cancelled.');
-    // In a real app, you would typically refresh the order status here
   }
 
-  // Function to show QR dialog
   void _showQRCodeDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -72,38 +64,26 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
           (context) => RenteeQRDialog(
             item: widget.item,
             orderDate: widget.orderDate,
-            totalFee: widget.totalFee,
-            currentStatus: widget.status,
-            onSimulateScan: () => _simulateScan(context),
+            totalFee: widget.totalFee, // Ensure RenteeQRDialog also accepts double!
+            currentStatus: widget.status, 
+            onSimulateScan: () => _simulatePickupScan(context),
             showSimulateButton: kIsWeb,
           ),
     );
   }
 
-  // Function to simulate scanning (for testing)
-  Future<void> _simulateScan(BuildContext context) async {
+  Future<void> _simulatePickupScan(BuildContext context) async {
     try {
-      print('Simulating scan for item: ${widget.item.id}');
+      print('Simulating pickup scan for item: ${widget.item.id}');
+      print('Current status: ${widget.status}');
 
-      // Determine new status based on current status
-      String newStatus;
-      String action;
-
-      if (widget.status.toLowerCase() == 'pending') {
-        newStatus = 'renting'; // After pickup
-        action = 'pickup';
-      } else if (widget.status.toLowerCase() == 'renting') {
-        newStatus = 'history'; // After return
-        action = 'return';
-      } else {
-        // If already history or cancelled, don't simulate
+      if (widget.status.toLowerCase() != 'pending') {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Cannot simulate ${widget.status} item")),
+          SnackBar(content: Text("Cannot pickup ${widget.status} item")),
         );
         return;
       }
 
-      // Show loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -113,25 +93,21 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                 children: [
                   CircularProgressIndicator(),
                   SizedBox(width: 20),
-                  Text("Processing..."),
+                  Text("Processing pickup verification..."),
                 ],
               ),
             ),
       );
 
-      // Simulate API delay
       await Future.delayed(const Duration(seconds: 1));
 
-      // Update item status via API
       await RentingStatusDatabaseService().updateItemStatus(
         widget.item.id,
-        newStatus,
+        'renting',
       );
 
-      // Close loading dialog
       if (mounted) Navigator.pop(context);
 
-      // Show success dialog
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -146,22 +122,19 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                   Icon(Icons.check_circle, color: Colors.green, size: 60),
                   SizedBox(height: 10),
                   Text(
-                    "Success",
+                    "Pickup Verified",
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-              content: Text(
-                action == 'pickup'
-                    ? "Item pickup confirmed!\n\nStatus updated to 'renting'."
-                    : "Item return confirmed!\n\nStatus updated to 'history'.",
+              content: const Text(
+                "Item pickup confirmed!\n\nStatus updated to 'renting'.\n\nItem will now appear in In Renting tab.",
                 textAlign: TextAlign.center,
               ),
               actions: [
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context); // Close dialog
-                    setState(() {}); // Refresh UI
+                    Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF8BE17),
@@ -173,16 +146,15 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
             ),
       );
     } catch (e) {
-      print('Error simulating scan: $e');
-      if (mounted) Navigator.pop(context); // Close loading dialog
+      print('Error simulating pickup scan: $e');
+      if (mounted) Navigator.pop(context);
 
-      // Show error dialog
       showDialog(
         context: context,
         builder:
             (context) => AlertDialog(
               title: const Text("Error"),
-              content: Text("Failed to process scan: $e"),
+              content: Text("Failed to verify pickup: $e"),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -200,12 +172,10 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Check if item is eligible for QR code
     bool canShowQR =
         widget.status.toLowerCase() == 'pending' ||
         widget.status.toLowerCase() == 'renting';
 
-    // Determine QR button text based on status
     String qrButtonText =
         widget.status.toLowerCase() == 'pending' ? 'Pickup QR' : 'Return QR';
 
@@ -218,7 +188,6 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left Side: Image with fixed size
             SizedBox(
               width: 80,
               height: 80,
@@ -264,12 +233,10 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
             ),
             const SizedBox(width: 12),
 
-            // Right Side: Details and Actions
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top Row: Title, Item Count, Price
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -282,7 +249,6 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                           ),
                         ),
                       ),
-                      // Item Count
                       Text(
                         '${widget.item.quantity} Pcs',
                         style: TextStyle(
@@ -306,7 +272,6 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  // Rental Rate
                   Row(
                     children: [
                       Text(
@@ -360,7 +325,6 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  // Total Rental Summary (The Yellow Section)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       vertical: 4,
@@ -373,8 +337,9 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // CHANGE: Format double with toStringAsFixed(2)
                         Text(
-                          'Total ${widget.orderDate} days: RM ${widget.totalFee}',
+                          'Total ${widget.orderDate} days: RM ${widget.totalFee.toStringAsFixed(2)}',
                           style: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w600,
@@ -382,11 +347,9 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        // Buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
-                            // Cancel Order Button
                             SizedBox(
                               height: 28,
                               child: ElevatedButton(
@@ -436,7 +399,6 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                             ),
                             const SizedBox(width: 8),
 
-                            // Report Button
                             SizedBox(
                               height: 28,
                               child: ReportItemWidget(
@@ -447,7 +409,6 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
 
                             const SizedBox(width: 8),
 
-                            // QR Code Button
                             if (canShowQR)
                               SizedBox(
                                 height: 28,
