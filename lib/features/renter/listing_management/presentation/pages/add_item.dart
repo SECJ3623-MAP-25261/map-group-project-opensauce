@@ -9,7 +9,7 @@ import 'package:easyrent/features/renter/geolocation/geolocation_renter.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../../models/item.dart'; 
+import '../../../../models/item.dart';
 import '../../services/notifier/listing_notifier.dart';
 
 class RenterAddItem extends StatefulWidget {
@@ -27,7 +27,13 @@ class _RenterAddItemState extends State<RenterAddItem> {
   final TextEditingController _locationController = TextEditingController();
 
   String? _selectedCategory;
-  final List<String> _categories = ['Electronic', 'Stationary', 'Clothing', 'Sports', 'Other'];
+  final List<String> _categories = [
+    'Electronic',
+    'Stationary',
+    'Clothing',
+    'Sports',
+    'Other',
+  ];
 
   final List<XFile> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
@@ -51,7 +57,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
   }
   
   final PageController _pageController = PageController();
-  
+
   bool _isSaving = false;
 
   Future<void> _pickImage(ImageSource source) async {
@@ -68,7 +74,8 @@ class _RenterAddItemState extends State<RenterAddItem> {
         setState(() {
           _selectedImages.add(pickedFile);
           _currentImageIndex = _selectedImages.length - 1;
-          
+
+          // Jump to new image
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageController.hasClients) {
               _pageController.jumpToPage(_currentImageIndex);
@@ -90,30 +97,38 @@ class _RenterAddItemState extends State<RenterAddItem> {
   void _confirmDelete() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete Image"),
-        content: const Text("Are you sure you want to remove this image?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("Delete Image"),
+            content: const Text("Are you sure you want to remove this image?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _deleteImage();
+                },
+                child: const Text(
+                  "Delete",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _deleteImage();
-            },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
   void _deleteImage() {
     setState(() {
       _selectedImages.removeAt(_currentImageIndex);
-      if (_currentImageIndex >= _selectedImages.length && _currentImageIndex > 0) {
+      if (_currentImageIndex >= _selectedImages.length &&
+          _currentImageIndex > 0) {
         _currentImageIndex = _selectedImages.length - 1;
       }
     });
@@ -122,7 +137,9 @@ class _RenterAddItemState extends State<RenterAddItem> {
   void _showImagePickerOptions() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return SafeArea(
           child: Wrap(
@@ -159,8 +176,8 @@ class _RenterAddItemState extends State<RenterAddItem> {
   }
 
   Future<void> _saveItem() async {
-    if (_nameController.text.isEmpty || 
-        _priceController.text.isEmpty || 
+    if (_nameController.text.isEmpty ||
+        _priceController.text.isEmpty ||
         _depositController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
        selectedLocations.isEmpty || selectedLocations.isEmpty) {
@@ -177,7 +194,9 @@ class _RenterAddItemState extends State<RenterAddItem> {
     //   return;
     // }
 
-    setState(() { _isSaving = true; });
+    setState(() {
+      _isSaving = true;
+    });
 
     try {
       List<String> base64Images = [];
@@ -194,17 +213,19 @@ class _RenterAddItemState extends State<RenterAddItem> {
 
       final newItem = Item(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
-        ownerRef: FirebaseFirestore.instance.collection('user').doc('temp_user'),
+        ownerRef: FirebaseFirestore.instance
+            .collection('user')
+            .doc('temp_user'),
         ownerId: "temp",
         ownerName: "temp",
         ownerImage: "temp",
-        
+
         productName: _nameController.text,
         pricePerDay: double.tryParse(_priceController.text) ?? 0.0,
         deposit: double.tryParse(_depositController.text) ?? 0.0,
-        
+
         description: _descriptionController.text,
-        category: _selectedCategory ?? "Other",        
+        category: _selectedCategory ?? "Other",
         imageUrl: mainImageUrl,
         imageUrls: additionalImages,
         quantity: 1,
@@ -218,20 +239,24 @@ class _RenterAddItemState extends State<RenterAddItem> {
       );
 
       if (!mounted) return;
-      await Provider.of<ListingNotifier>(context, listen: false).addItem(newItem);
+      await Provider.of<ListingNotifier>(
+        context,
+        listen: false,
+      ).addItem(newItem);
 
       if (mounted) Navigator.pop(context);
-
     } catch (e) {
       print("Error saving: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving item: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error saving item: $e")));
       }
     } finally {
       if (mounted) {
-        setState(() { _isSaving = false; });
+        setState(() {
+          _isSaving = false;
+        });
       }
     }
   }
@@ -247,7 +272,14 @@ class _RenterAddItemState extends State<RenterAddItem> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Add Item", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          "Add Item",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -269,35 +301,49 @@ class _RenterAddItemState extends State<RenterAddItem> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      child: _selectedImages.isEmpty
-                          ? const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.image_outlined, size: 50, color: Colors.grey),
-                                  SizedBox(height: 10),
-                                  Text("No image uploaded", style: TextStyle(color: Colors.grey)),
-                                ],
+                      child:
+                          _selectedImages.isEmpty
+                              ? const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.image_outlined,
+                                      size: 50,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      "No image uploaded",
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              )
+                              : PageView.builder(
+                                itemCount: _selectedImages.length,
+                                controller: _pageController,
+                                onPageChanged: (index) {
+                                  setState(() {
+                                    _currentImageIndex = index;
+                                  });
+                                },
+                                itemBuilder: (context, index) {
+                                  // FIXED: WEB & MOBILE DISPLAY
+                                  final image = _selectedImages[index];
+                                  if (kIsWeb) {
+                                    return Image.network(
+                                      image.path,
+                                      fit: BoxFit.cover,
+                                    );
+                                  } else {
+                                    return Image.file(
+                                      io.File(image.path),
+                                      fit: BoxFit.cover,
+                                    );
+                                  }
+                                },
                               ),
-                            )
-                          : PageView.builder(
-                              itemCount: _selectedImages.length,
-                              controller: _pageController,
-                              onPageChanged: (index) {
-                                setState(() {
-                                  _currentImageIndex = index;
-                                });
-                              },
-                              itemBuilder: (context, index) {
-                                // FIXED: WEB & MOBILE DISPLAY
-                                final image = _selectedImages[index];
-                                if (kIsWeb) {
-                                  return Image.network(image.path, fit: BoxFit.cover);
-                                } else {
-                                  return Image.file(io.File(image.path), fit: BoxFit.cover);
-                                }
-                              },
-                            ),
                     ),
                   ),
                   if (_currentImageIndex > 0)
@@ -307,8 +353,18 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         onTap: () => _movePage(-1),
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
-                          child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black87),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.8),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(color: Colors.black12, blurRadius: 4),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ),
@@ -319,8 +375,18 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         onTap: () => _movePage(1),
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
-                          child: const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.black87),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.8),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(color: Colors.black12, blurRadius: 4),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 20,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ),
@@ -329,9 +395,22 @@ class _RenterAddItemState extends State<RenterAddItem> {
                       bottom: 16,
                       left: 16,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), borderRadius: BorderRadius.circular(12)),
-                        child: Text("${_currentImageIndex + 1} / ${_selectedImages.length}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.6),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          "${_currentImageIndex + 1} / ${_selectedImages.length}",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                     ),
                   Positioned(
@@ -341,8 +420,15 @@ class _RenterAddItemState extends State<RenterAddItem> {
                       onTap: _showImagePickerOptions,
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: const Color(0xFF5C001F), borderRadius: BorderRadius.circular(12)),
-                        child: const Icon(Icons.edit, color: Colors.white, size: 20),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF5C001F),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -351,11 +437,24 @@ class _RenterAddItemState extends State<RenterAddItem> {
                       top: 16,
                       right: 16,
                       child: InkWell(
-                        onTap: _confirmDelete, 
+                        onTap: _confirmDelete,
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)]),
-                          child: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                            size: 22,
+                          ),
                         ),
                       ),
                     ),
@@ -369,13 +468,26 @@ class _RenterAddItemState extends State<RenterAddItem> {
             _buildLabel("Category"),
             _buildDropdown(),
             _buildLabel("Price"),
-            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day", inputType: TextInputType.number),
+            _buildTextField(
+              controller: _priceController,
+              hint: "e.g: 10",
+              suffix: "RM/day",
+              inputType: TextInputType.number,
+            ),
             _buildLabel("Deposit"),
-            _buildTextField(controller: _depositController, hint: "e.g: 20", inputType: TextInputType.number),
+            _buildTextField(
+              controller: _depositController,
+              hint: "e.g: 20",
+              inputType: TextInputType.number,
+            ),
             _buildLabel("Description"),
-            _buildTextField(controller: _descriptionController, hint: "Insert here", maxLines: 5),
+            _buildTextField(
+              controller: _descriptionController,
+              hint: "Insert here",
+              maxLines: 5,
+            ),
             _buildLabel("Location"),
-            _buildAddLocation(),
+            _buildTextField(controller: _locationController, hint: "Location"),
             const SizedBox(height: 30),
             // BUTTONS
             Row(
@@ -386,9 +498,27 @@ class _RenterAddItemState extends State<RenterAddItem> {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       side: const BorderSide(color: Color(0xFF5C001F)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: _isSaving ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Color(0xFF5C001F), strokeWidth: 2)) : const Text("SAVE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                    child:
+                        _isSaving
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF5C001F),
+                                strokeWidth: 2,
+                              ),
+                            )
+                            : const Text(
+                              "SAVE",
+                              style: TextStyle(
+                                color: Color(0xFF5C001F),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -398,10 +528,18 @@ class _RenterAddItemState extends State<RenterAddItem> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5C001F),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       elevation: 0,
                     ),
-                    child: const Text("CANCEL", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "CANCEL",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -492,9 +630,18 @@ class _RenterAddItemState extends State<RenterAddItem> {
         hintStyle: const TextStyle(color: Colors.grey),
         suffixText: suffix,
         suffixStyle: const TextStyle(color: Colors.grey),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF5C001F))),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF5C001F)),
+        ),
       ),
     );
   }
@@ -502,14 +649,28 @@ class _RenterAddItemState extends State<RenterAddItem> {
   Widget _buildDropdown() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCategory,
-          hint: const Text("Select Category", style: TextStyle(color: Colors.grey)),
+          hint: const Text(
+            "Select Category",
+            style: TextStyle(color: Colors.grey),
+          ),
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down),
-          items: _categories.map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
+          items:
+              _categories
+                  .map(
+                    (String value) => DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    ),
+                  )
+                  .toList(),
           onChanged: (newValue) => setState(() => _selectedCategory = newValue),
         ),
       ),

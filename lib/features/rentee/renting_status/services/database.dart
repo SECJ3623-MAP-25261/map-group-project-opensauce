@@ -26,16 +26,10 @@ class RentingStatusDatabaseService {
 
   // }
 
-  Future<void> updateItemStatus(
-    String orderId,
-    String newStatus,
-  ) async {
+  Future<void> updateItemStatus(String orderId, String newStatus) async {
     final orderRef = _firestore.collection(_collectionName).doc(orderId);
 
-        await orderRef.update({
-          'status':newStatus,
-        });
-    
+    await orderRef.update({'status': newStatus});
   }
 
   Stream<List<Map<String, dynamic>>> getOrderingItems(String userId) {
@@ -76,7 +70,7 @@ class RentingStatusDatabaseService {
     return _firestore
         .collection(_collectionName)
         .where('userId', isEqualTo: userId)
-        .where('status', whereIn: ['history','cancel','complete'])
+        .where('status', whereIn: ['history', 'cancel', 'complete'])
         .snapshots() // Get the real-time stream of QuerySnapshots
         .map((snapshot) {
           return snapshot.docs.map((doc) {

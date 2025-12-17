@@ -18,10 +18,11 @@ class ListingRepositoryImpl implements ListingRepository {
 
       final userRef = _firestore.doc('user/$uid');
 
-      final snapshot = await _firestore
-          .collection('product') 
-          .where('owner', isEqualTo: userRef)
-          .get();
+      final snapshot =
+          await _firestore
+              .collection('product')
+              .where('owner', isEqualTo: userRef)
+              .get();
 
       return snapshot.docs.map((doc) => Item.fromSnapshot(doc)).toList();
     } catch (e) {
@@ -38,27 +39,28 @@ class ListingRepositoryImpl implements ListingRepository {
 
       // 1. Fetch User Profile
       final userDoc = await _firestore.collection('user').doc(uid).get();
-      
+
       String ownerName = "Unknown Renter";
       String ownerImage = "";
-      
+
       if (userDoc.exists) {
         final userData = userDoc.data()!;
         // Assuming your user collection uses 'fname', 'lname', 'profile_image'
-        ownerName = "${userData['fname'] ?? ''} ${userData['lname'] ?? ''}".trim();
+        ownerName =
+            "${userData['fname'] ?? ''} ${userData['lname'] ?? ''}".trim();
         ownerImage = userData['profile_image'] ?? "";
       }
 
       // 2. Overwrite Item with Real Owner Data
       final data = item.toJson();
       data['owner'] = _firestore.doc('user/$uid'); // Reference
-      data['ownerName'] = ownerName;               // String
-      data['ownerImage'] = ownerImage;             // String
+      data['ownerName'] = ownerName; // String
+      data['ownerImage'] = ownerImage; // String
 
       await _firestore.collection('product').add(data);
     } catch (e) {
       print("Error adding product: $e");
-      throw e;
+      rethrow;
     }
   }
 
@@ -68,7 +70,7 @@ class ListingRepositoryImpl implements ListingRepository {
       await _firestore.collection('product').doc(item.id).update(item.toJson());
     } catch (e) {
       print("Error updating product: $e");
-      throw e;
+      rethrow;
     }
   }
 
@@ -78,7 +80,7 @@ class ListingRepositoryImpl implements ListingRepository {
       await _firestore.collection('product').doc(id).delete();
     } catch (e) {
       print("Error deleting product: $e");
-      throw e;
+      rethrow;
     }
   }
 }

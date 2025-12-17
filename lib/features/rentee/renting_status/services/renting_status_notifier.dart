@@ -4,10 +4,7 @@ import 'package:flutter_riverpod/legacy.dart';
 
 class RentingStatusNotifier extends StateNotifier<RentingStatusState> {
   RentingStatusNotifier()
-    : super(
-      const RentingStatusState(
-        hasReviewed: false, historyItem: []
-      ));
+    : super(const RentingStatusState(hasReviewed: false, historyItem: []));
 
   void setHasReviewed(String itemId, String review, double starRating) {
     final updatedItems =

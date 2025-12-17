@@ -1,7 +1,6 @@
 import 'package:easyrent/core/constants/constants.dart';
 import 'package:easyrent/core/utils/parse_date.dart';
 import 'package:easyrent/features/models/item.dart';
-import 'package:easyrent/features/rentee/renting_status/data/dummy_data/renting_status_dummy.dart';
 import 'package:easyrent/features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/history_item_card_widgets.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/inRenting_item_card_widget.dart';
@@ -188,14 +187,20 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children:
                 inRentingItems.map((order) {
-                  
                   final itemMap = order['items'];
                   final Item itemDetails = Item.fromMap(itemMap, order['id']);
 
                   final startDate = parseDate(order['startRenting']);
                   final endDate = parseDate(order['endRenting']);
-                  return InrentingItemCardWidget(item: itemDetails, status:order['status'] ,totalPrice: order['totalFee'],startDate: startDate!, endDate: endDate!, returnMethods: order['deliveryOption']);
-                
+                  return InrentingItemCardWidget(
+                    item: itemDetails,
+                    status: order['status'],
+                    totalPrice: order['totalFee'],
+                    startDate: startDate!,
+                    endDate: endDate!,
+                    returnMethods: order['deliveryOption'],
+                  );
+
                   // Return an empty widget if the data is corrupted or missing the 'items' field
                   return const SizedBox.shrink();
                 }).toList(),
@@ -238,7 +243,6 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children:
                 historyItems.map((order) {
-
                   final itemMap = order['items'];
                   final Item itemDetails = Item.fromMap(itemMap, order['id']);
                   final endRenting = parseDate(order['endRenting']);

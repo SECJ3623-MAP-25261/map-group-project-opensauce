@@ -1,12 +1,10 @@
 import 'package:easyrent/core/constants/constants.dart';
-import 'package:easyrent/features/rentee/checkout/data/checkout_dummy_data.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/delivery_options_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/delivery_place_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/start_end_date_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/summary_row_widget.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/widgets/order_summary/total_section_widget.dart';
-import 'package:easyrent/features/rentee/homePage/home_page.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/pages/renting_status_page.dart';
 import 'package:easyrent/main.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +12,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class BottomSummaryWidget extends ConsumerStatefulWidget {
-  const BottomSummaryWidget({super.key,required this.duration});
+  const BottomSummaryWidget({super.key, required this.duration});
   final int duration;
   @override
   ConsumerState<BottomSummaryWidget> createState() =>
@@ -22,7 +20,7 @@ class BottomSummaryWidget extends ConsumerStatefulWidget {
 }
 
 class _BottomSummaryWidgetState extends ConsumerState<BottomSummaryWidget> {
-    String? selectedPaymentMethod;
+  String? selectedPaymentMethod;
   @override
   Widget build(BuildContext context) {
     final checkoutState = ref.read(checkoutProvider.notifier);
@@ -105,8 +103,11 @@ class _BottomSummaryWidgetState extends ConsumerState<BottomSummaryWidget> {
                         DropdownMenuItem(value: 'FPX', child: Text("FPX")),
                         DropdownMenuItem(value: 'Card', child: Text("Card")),
                       ],
-                       dropdownColor: Colors.white,
-                      icon: const Icon(Icons.arrow_drop_down, color: Colors.black),
+                      dropdownColor: Colors.white,
+                      icon: const Icon(
+                        Icons.arrow_drop_down,
+                        color: Colors.black,
+                      ),
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 16,
@@ -134,14 +135,16 @@ class _BottomSummaryWidgetState extends ConsumerState<BottomSummaryWidget> {
                               .checkoutToDatabase();
 
                       if (success) {
-                        print(".................order success.................");
+                        print(
+                          ".................order success.................",
+                        );
                         navigatorKey.currentState!.pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => RentingStatusPage()),
+                          MaterialPageRoute(
+                            builder: (_) => RentingStatusPage(),
+                          ),
                           (route) => false,
                         );
-                      }
-                      
-                      else {
+                      } else {
                         // 3. FAILURE: Show the Snackbar
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

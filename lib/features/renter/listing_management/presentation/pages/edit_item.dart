@@ -1,11 +1,11 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:io' as io;
 import 'package:easyrent/features/renter/geolocation/geolocation_renter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../../../../models/item.dart';
 import '../../../../models/item.dart';
 import '../../services/notifier/listing_notifier.dart';
 
@@ -39,7 +39,10 @@ class _RenterEditItemState extends State<RenterEditItem> {
   final ImagePicker _picker = ImagePicker();
 
   int _currentImageIndex = 0;
+
+  int _currentImageIndex = 0;
   final PageController _pageController = PageController();
+
 
   bool _isSaving = false;
 
@@ -55,6 +58,11 @@ class _RenterEditItemState extends State<RenterEditItem> {
       text: widget.item.deposit.toString(),
     );
     selectedLocations = widget.item.locationDetails;
+
+    _descriptionController = TextEditingController(
+      text: widget.item.description,
+    );
+    _locationController = TextEditingController(text: widget.item.location);
 
     _descriptionController = TextEditingController(
       text: widget.item.description,
@@ -254,6 +262,12 @@ class _RenterEditItemState extends State<RenterEditItem> {
 
         description: _descriptionController.text,
         location: _locationController.text,
+
+        // --- ADDED THESE TWO LINES TO FIX THE ERROR ---
+        locationLat: widget.item.locationLat,
+        locationLong: widget.item.locationLong,
+
+        // ----------------------------------------------
         category: _selectedCategory ?? "Other",
 
         imageUrl: newMainImage,

@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:easyrent/features/rentee/reviewPage/review_page.dart';
-import '../../../../models/item.dart'; 
+import '../../../../models/item.dart';
 import '../../services/notifier/listing_notifier.dart';
 import 'edit_item.dart';
 
@@ -25,15 +24,19 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
 
   Widget _buildImage(String imageUrl, {BoxFit fit = BoxFit.contain}) {
     if (imageUrl.isEmpty) {
-      return const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey));
+      return const Center(
+        child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+      );
     }
 
     if (imageUrl.startsWith('http')) {
       return Image.network(
         imageUrl,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => 
-            const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+        errorBuilder:
+            (context, error, stackTrace) => const Center(
+              child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+            ),
       );
     }
 
@@ -42,11 +45,15 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
       return Image.memory(
         bytes,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => 
-            const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
+        errorBuilder:
+            (context, error, stackTrace) => const Center(
+              child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+            ),
       );
     } catch (e) {
-      return const Center(child: Icon(Icons.error, size: 50, color: Colors.red));
+      return const Center(
+        child: Icon(Icons.error, size: 50, color: Colors.red),
+      );
     }
   }
 
@@ -66,25 +73,36 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
   void _confirmDelete() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete Item"),
-        content: const Text("Are you sure you want to delete this listing permanently?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("Delete Item"),
+            content: const Text(
+              "Are you sure you want to delete this listing permanently?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Provider.of<ListingNotifier>(
+                    context,
+                    listen: false,
+                  ).deleteItem(widget.item.id);
+                  Navigator.pop(ctx);
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  "Delete",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Provider.of<ListingNotifier>(context, listen: false)
-                  .deleteItem(widget.item.id);
-              Navigator.pop(ctx);
-              Navigator.pop(context);
-            },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -99,12 +117,15 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
   Widget _buildReviewCard(Map<String, dynamic> data) {
     String dateStr = "";
     if (data['date'] != null && data['date'] is Timestamp) {
-      dateStr = DateFormat('dd MMM yyyy').format((data['date'] as Timestamp).toDate());
+      dateStr = DateFormat(
+        'dd MMM yyyy',
+      ).format((data['date'] as Timestamp).toDate());
     }
-    
+
     final double rating = (data['star'] as num?)?.toDouble() ?? 0.0;
     final String reviewerName = data['reviewerName'] ?? "Guest";
-    final String reviewerImage = data['reviewerImage'] ?? "https://via.placeholder.com/150";
+    final String reviewerImage =
+        data['reviewerImage'] ?? "https://via.placeholder.com/150";
     final String reviewText = data['reviewText'] ?? "";
 
     return Container(
@@ -141,7 +162,10 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                       reviewerName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                     Text(
                       dateStr,
@@ -154,7 +178,10 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
               const SizedBox(width: 4),
               Text(
                 rating.toStringAsFixed(1),
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
@@ -164,7 +191,11 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
               reviewText,
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: Colors.grey[700], fontSize: 13, height: 1.4),
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontSize: 13,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -175,13 +206,22 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('product').doc(widget.item.id).snapshots(),
+      stream:
+          FirebaseFirestore.instance
+              .collection('product')
+              .doc(widget.item.id)
+              .snapshots(),
       builder: (context, snapshot) {
-        
-        if (!snapshot.hasData) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        if (!snapshot.hasData) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
 
         final data = snapshot.data!.data();
-        if (data == null) return const Scaffold(body: Center(child: Text("Item not found")));
+        if (data == null) {
+          return const Scaffold(body: Center(child: Text("Item not found")));
+        }
 
         final currentItem = Item.fromSnapshot(snapshot.data!);
 
@@ -195,21 +235,22 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
             return tB.compareTo(tA);
           });
         }
-        
+
         final int reviewCount = reviewsList.length;
         double calculatedRating = 0.0;
         if (reviewCount > 0) {
-           double sum = 0;
-           for (var r in reviewsList) {
-             sum += (r['star'] as num?)?.toDouble() ?? 0.0;
-           }
-           calculatedRating = sum / reviewCount;
+          double sum = 0;
+          for (var r in reviewsList) {
+            sum += (r['star'] as num?)?.toDouble() ?? 0.0;
+          }
+          calculatedRating = sum / reviewCount;
         }
 
         final double priceVal = currentItem.pricePerDay;
-        final List<String> displayImages = currentItem.imageUrls.isNotEmpty
-            ? currentItem.imageUrls
-            : [currentItem.imageUrl];
+        final List<String> displayImages =
+            currentItem.imageUrls.isNotEmpty
+                ? currentItem.imageUrls
+                : [currentItem.imageUrl];
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -217,10 +258,21 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
             backgroundColor: Colors.white,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios,
+                color: Colors.black,
+                size: 20,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
-            title: const Text("Product Detail", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+            title: const Text(
+              "Product Detail",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
             centerTitle: true,
           ),
           body: SingleChildScrollView(
@@ -228,7 +280,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -244,10 +295,17 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                         child: PageView.builder(
                           controller: _pageController,
                           itemCount: displayImages.length,
-                          onPageChanged: (index) => setState(() => _currentImageIndex = index),
+                          onPageChanged:
+                              (index) =>
+                                  setState(() => _currentImageIndex = index),
                           itemBuilder: (context, index) {
                             return GestureDetector(
-                              onTap: () => _openFullScreen(context, displayImages, index),
+                              onTap:
+                                  () => _openFullScreen(
+                                    context,
+                                    displayImages,
+                                    index,
+                                  ),
                               child: _buildImage(displayImages[index]),
                             );
                           },
@@ -259,7 +317,14 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                         left: 10,
                         child: GestureDetector(
                           onTap: () => _movePage(-1),
-                          child: const CircleAvatar(backgroundColor: Colors.white70, child: Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black)),
+                          child: const CircleAvatar(
+                            backgroundColor: Colors.white70,
+                            child: Icon(
+                              Icons.arrow_back_ios_new,
+                              size: 20,
+                              color: Colors.black,
+                            ),
+                          ),
                         ),
                       ),
                     if (_currentImageIndex < displayImages.length - 1)
@@ -267,21 +332,37 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                         right: 10,
                         child: GestureDetector(
                           onTap: () => _movePage(1),
-                          child: const CircleAvatar(backgroundColor: Colors.white70, child: Icon(Icons.arrow_forward_ios, size: 20, color: Colors.black)),
+                          child: const CircleAvatar(
+                            backgroundColor: Colors.white70,
+                            child: Icon(
+                              Icons.arrow_forward_ios,
+                              size: 20,
+                              color: Colors.black,
+                            ),
+                          ),
                         ),
                       ),
                     Positioned(
                       bottom: 16,
                       left: 16,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.8), borderRadius: BorderRadius.circular(12)),
-                        child: Text("${_currentImageIndex + 1} / ${displayImages.length}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          "${_currentImageIndex + 1} / ${displayImages.length}",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 24),
 
                 Center(
@@ -290,12 +371,19 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                       Text(
                         currentItem.productName,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF101828)),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF101828),
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         "RM ${priceVal.toStringAsFixed(0)} per day",
-                        style: const TextStyle(fontSize: 16, color: Colors.grey),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey,
+                        ),
                       ),
                       const SizedBox(height: 12),
                       Row(
@@ -304,12 +392,15 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                           const Icon(Icons.star, color: Colors.amber, size: 20),
                           const SizedBox(width: 4),
                           Text(
-                            calculatedRating.toStringAsFixed(1), 
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            calculatedRating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            "($reviewCount Reviews)", 
+                            "($reviewCount Reviews)",
                             style: TextStyle(color: Colors.grey[400]),
                           ),
                         ],
@@ -317,21 +408,29 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
                 const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
                 const SizedBox(height: 24),
 
                 const Text(
                   "Description Product",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101828)),
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF101828),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   currentItem.description,
-                  style: const TextStyle(fontSize: 14, color: Color(0xFF667085), height: 1.5),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF667085),
+                    height: 1.5,
+                  ),
                 ),
-                
+
                 const SizedBox(height: 24),
                 const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
                 const SizedBox(height: 24),
@@ -339,19 +438,33 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text("Reviews", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF101828))),
-                    //if (reviewCount > 0)
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ReviewPage(itemId: widget.item.id),
-                            ),
-                          );
-                        },
-                        child: const Text("See All", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                    const Text(
+                      "Reviews",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF101828),
                       ),
+                    ),
+                    //if (reviewCount > 0)
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder:
+                                (context) => ReviewPage(itemId: widget.item.id),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        "See All",
+                        style: TextStyle(
+                          color: Color(0xFF5C001F),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -360,8 +473,16 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     width: double.infinity,
-                    decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(10)),
-                    child: const Center(child: Text("No reviews yet", style: TextStyle(color: Colors.grey))),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        "No reviews yet",
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ),
                   )
                 else
                   SizedBox(
@@ -371,7 +492,8 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                       itemCount: reviewCount,
                       separatorBuilder: (_, __) => const SizedBox(width: 15),
                       itemBuilder: (context, index) {
-                        final reviewData = reviewsList[index] as Map<String, dynamic>;
+                        final reviewData =
+                            reviewsList[index] as Map<String, dynamic>;
                         return _buildReviewCard(reviewData);
                       },
                     ),
@@ -384,19 +506,34 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (_) => 
-                            ChangeNotifierProvider.value(
-                              value: Provider.of<ListingNotifier>(context, listen: false),
-                              child: RenterEditItem(item: currentItem),
-                            )
-                          ));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => ChangeNotifierProvider.value(
+                                    value: Provider.of<ListingNotifier>(
+                                      context,
+                                      listen: false,
+                                    ),
+                                    child: RenterEditItem(item: currentItem),
+                                  ),
+                            ),
+                          );
                         },
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           side: const BorderSide(color: Color(0xFF5C001F)),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: const Text("EDIT", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          "EDIT",
+                          style: TextStyle(
+                            color: Color(0xFF5C001F),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -406,10 +543,18 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF5C001F),
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           elevation: 0,
                         ),
-                        child: const Text("DELETE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          "DELETE",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -419,7 +564,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
             ),
           ),
         );
-      }
+      },
     );
   }
 }
@@ -475,7 +620,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent, 
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         child: Stack(
           alignment: Alignment.center,
@@ -490,9 +635,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
               },
               itemBuilder: (context, index) {
                 return InteractiveViewer(
-                  child: Center(
-                    child: _buildFullImage(widget.images[index]),
-                  ),
+                  child: Center(child: _buildFullImage(widget.images[index])),
                 );
               },
             ),
@@ -502,9 +645,13 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                 left: 10,
                 child: IconButton(
                   onPressed: () => _movePage(-1),
-                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 30),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white,
+                    size: 30,
+                  ),
                   style: IconButton.styleFrom(
-                    backgroundColor: Colors.black26, 
+                    backgroundColor: Colors.black26,
                     shape: const CircleBorder(),
                   ),
                 ),
@@ -515,9 +662,13 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                 right: 10,
                 child: IconButton(
                   onPressed: () => _movePage(1),
-                  icon: const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 30),
+                  icon: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.white,
+                    size: 30,
+                  ),
                   style: IconButton.styleFrom(
-                    backgroundColor: Colors.black26, 
+                    backgroundColor: Colors.black26,
                     shape: const CircleBorder(),
                   ),
                 ),
@@ -530,7 +681,7 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                 onPressed: () => Navigator.pop(context),
                 icon: const Icon(Icons.close, color: Colors.white, size: 30),
                 style: IconButton.styleFrom(
-                  backgroundColor: Colors.black26, 
+                  backgroundColor: Colors.black26,
                   shape: const CircleBorder(),
                 ),
               ),

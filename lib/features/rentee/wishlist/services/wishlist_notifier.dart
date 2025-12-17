@@ -17,7 +17,7 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
           items: [],
           depositRate: 30.0,
           isDBSuccess: false,
-          userId: ''
+          userId: '',
         ),
       );
 
@@ -29,7 +29,6 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
     state = state.copyWith(items: selectedItems);
   }
 
-  
   // Business Logic: Calculates the delivery fee based on the option
   double _calculateDeliveryFee(String option) {
     // Example logic:
@@ -51,24 +50,26 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
   }
 
   void incrementItemQuantity(String itemId) {
-    final updatedItems = state.items.map((item) {
-      if (item.id == itemId) {
-        return item.copyWith(quantity: item.quantity + 1);
-      }
-      return item;
-    }).toList();
+    final updatedItems =
+        state.items.map((item) {
+          if (item.id == itemId) {
+            return item.copyWith(quantity: item.quantity + 1);
+          }
+          return item;
+        }).toList();
 
     state = state.copyWith(items: updatedItems);
     setRenteeFee();
   }
 
   void decrementItemQuantity(String itemId) {
-    final updatedItems = state.items.map((item) {
-      if (item.id == itemId) {
-        return item.copyWith(quantity: item.quantity - 1);
-      }
-      return item;
-    }).toList();
+    final updatedItems =
+        state.items.map((item) {
+          if (item.id == itemId) {
+            return item.copyWith(quantity: item.quantity - 1);
+          }
+          return item;
+        }).toList();
 
     state = state.copyWith(items: updatedItems);
     setRenteeFee();
@@ -111,8 +112,7 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
   }
 
   void deleteItem(String itemId) {
-    final updatedItem =
-        state.items.where((item) => item.id != itemId).toList();
+    final updatedItem = state.items.where((item) => item.id != itemId).toList();
 
     state = state.copyWith(items: updatedItem);
   }
@@ -131,8 +131,10 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
         // userId: currentUserId, // implement after integrate user
       );
 
-      print('Order successfully placed with ID from wishlist page: $newOrderId');
-      state = state.copyWith( isDBSuccess: true);
+      print(
+        'Order successfully placed with ID from wishlist page: $newOrderId',
+      );
+      state = state.copyWith(isDBSuccess: true);
       return true;
     } catch (e) {
       // Handle the error (e.g., show a dialog)
@@ -145,22 +147,21 @@ class ShoppingCart extends StateNotifier<ShoppingCartState> {
 Future<bool> isItemSaveToDB(String itemId, DocumentReference user) async {
   final dbService = WishlistDatabaseServices();
   // print("isItemSaveToDB itemId:${itemId} userId:${user}");
-  return await dbService.doesItemExist(itemIdToCheck: itemId,user: user);
+  return await dbService.doesItemExist(itemIdToCheck: itemId, user: user);
 }
 
-Future<bool> saveToWishlistDB(Item selectedItem,DocumentReference user) async {
+Future<bool> saveToWishlistDB(Item selectedItem, DocumentReference user) async {
   final dbService = WishlistDatabaseServices();
   try {
     // owner = usrId
     // check the existence of item
     bool isItemexistinWishlist = await dbService.doesItemExist(
       itemIdToCheck: selectedItem.id,
-      user: user
+      user: user,
     );
     print("item is abcd: $selectedItem");
 
     if (!isItemexistinWishlist) {
-
       String newOrderId = await dbService.CreateWishlistItem(
         itemId: selectedItem.id,
         item: selectedItem,

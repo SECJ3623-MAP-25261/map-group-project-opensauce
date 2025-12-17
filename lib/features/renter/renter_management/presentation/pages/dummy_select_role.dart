@@ -1,8 +1,6 @@
 import 'package:easyrent/features/rentee/homePage/home_page.dart';
 import 'package:easyrent/features/renter/listing_management/presentation/pages/renter_listing_wrapper.dart';
 import 'package:flutter/material.dart';
-import 'renter_management_wrapper.dart';
-import '../../../../rentee/rentee_profile/presentation/pages/profile_page.dart' as rentee;
 
 class DummySelectRole extends StatelessWidget {
   const DummySelectRole({super.key});
@@ -20,7 +18,8 @@ class DummySelectRole extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const RenterListingWrapper(),  // <-- FIXED
+                    builder:
+                        (context) => const RenterListingWrapper(), // <-- FIXED
                   ),
                 );
               },
@@ -31,10 +30,7 @@ class DummySelectRole extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (context) => const HomePage(),
-
-                  ),
+                  MaterialPageRoute(builder: (context) => const HomePage()),
                 );
               },
               child: const Text("Rentee"),

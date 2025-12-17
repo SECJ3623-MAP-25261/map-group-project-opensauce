@@ -1,12 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/core/constants/constants.dart';
 import 'package:easyrent/core/utils/convert_to_frontend_string.dart';
 import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/cancel_order_widget.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/report_item_widget.dart';
+import 'package:easyrent/features/rentee/renting_status/presentation/widgets/rentee_qr_dialog.dart';
 import 'package:easyrent/features/rentee/renting_status/services/database.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 
 class RentalItemCardWidget extends StatefulWidget {
   final Item item;
@@ -21,8 +22,9 @@ class RentalItemCardWidget extends StatefulWidget {
     required this.returnDate,
     required this.orderDate,
     required this.status,
-    required this.totalFee
+    required this.totalFee,
   });
+
   @override
   State<RentalItemCardWidget> createState() => _RentalItemCardWidgetState();
 }
@@ -61,38 +63,203 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
     // In a real app, you would typically refresh the order status here
   }
 
-  @override
+  // Function to show QR dialog
+  void _showQRCodeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder:
+          (context) => RenteeQRDialog(
+            item: widget.item,
+            orderDate: widget.orderDate,
+            totalFee: widget.totalFee,
+            currentStatus: widget.status,
+            onSimulateScan: () => _simulateScan(context),
+            showSimulateButton: kIsWeb,
+          ),
+    );
+  }
+
+  // Function to simulate scanning (for testing)
+  Future<void> _simulateScan(BuildContext context) async {
+    try {
+      print('Simulating scan for item: ${widget.item.id}');
+
+      // Determine new status based on current status
+      String newStatus;
+      String action;
+
+      if (widget.status.toLowerCase() == 'pending') {
+        newStatus = 'renting'; // After pickup
+        action = 'pickup';
+      } else if (widget.status.toLowerCase() == 'renting') {
+        newStatus = 'history'; // After return
+        action = 'return';
+      } else {
+        // If already history or cancelled, don't simulate
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Cannot simulate ${widget.status} item")),
+        );
+        return;
+      }
+
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text("Processing..."),
+                ],
+              ),
+            ),
+      );
+
+      // Simulate API delay
+      await Future.delayed(const Duration(seconds: 1));
+
+      // Update item status via API
+      await RentingStatusDatabaseService().updateItemStatus(
+        widget.item.id,
+        newStatus,
+      );
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show success dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+              contentPadding: const EdgeInsets.all(20),
+              title: const Column(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 60),
+                  SizedBox(height: 10),
+                  Text(
+                    "Success",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              content: Text(
+                action == 'pickup'
+                    ? "Item pickup confirmed!\n\nStatus updated to 'renting'."
+                    : "Item return confirmed!\n\nStatus updated to 'history'.",
+                textAlign: TextAlign.center,
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    setState(() {}); // Refresh UI
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF8BE17),
+                    foregroundColor: Colors.black,
+                  ),
+                  child: const Text("Done"),
+                ),
+              ],
+            ),
+      );
+    } catch (e) {
+      print('Error simulating scan: $e');
+      if (mounted) Navigator.pop(context); // Close loading dialog
+
+      // Show error dialog
+      showDialog(
+        context: context,
+        builder:
+            (context) => AlertDialog(
+              title: const Text("Error"),
+              content: Text("Failed to process scan: $e"),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("OK"),
+                ),
+              ],
+            ),
+      );
+    }
+  }
+
   String get formattedReturnDate {
     return DateFormat('dd MMM yyyy').format(widget.returnDate);
   }
 
   @override
   Widget build(BuildContext context) {
-    
+    // Check if item is eligible for QR code
+    bool canShowQR =
+        widget.status.toLowerCase() == 'pending' ||
+        widget.status.toLowerCase() == 'renting';
+
+    // Determine QR button text based on status
+    String qrButtonText =
+        widget.status.toLowerCase() == 'pending' ? 'Pickup QR' : 'Return QR';
+
     return Card(
       color: Colors.white,
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Padding(
+      child: Container(
         padding: const EdgeInsets.all(12.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left Side: Image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                widget.item.imageUrl,
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (context, error, stackTrace) => Container(
+            // Left Side: Image with fixed size
+            SizedBox(
+              width: 80,
+              height: 80,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  widget.item.imageUrl,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
                       width: 80,
                       height: 80,
                       color: Colors.grey[200],
-                      child: const Icon(Icons.image, color: Colors.grey),
-                    ),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          value:
+                              loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder:
+                      (context, error, stackTrace) => Container(
+                        width: 80,
+                        height: 80,
+                        color: Colors.grey[200],
+                        child: const Center(
+                          child: Icon(
+                            Icons.image,
+                            color: Colors.grey,
+                            size: 40,
+                          ),
+                        ),
+                      ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
@@ -109,13 +276,13 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                       Expanded(
                         child: Text(
                           widget.item.productName,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
                       ),
-                      // Item Count (2 Pcs)
+                      // Item Count
                       Text(
                         '${widget.item.quantity} Pcs',
                         style: TextStyle(
@@ -153,32 +320,19 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                     children: [
                       SizedBox(
                         height: 28,
-                        // 1. Replace OutlinedButton with a Container to hold the styling.
                         child: Container(
-                          // 2. Apply styling equivalent to OutlinedButton.styleFrom:
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                          ), // Padding
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
                           decoration: BoxDecoration(
-                            color:
-                                Colors
-                                    .transparent, // Background color (optional, but good practice)
-                            border: Border.all(
-                              color: Colors.grey[400]!,
-                            ), // BorderSide (Outline)
-                            borderRadius: BorderRadius.circular(4), // Shape
+                            color: Colors.transparent,
+                            border: Border.all(color: Colors.grey[400]!),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                          alignment:
-                              Alignment
-                                  .center, // Center the text vertically within the container
-                          // 3. Place the Text widget inside the Container.
+                          alignment: Alignment.center,
                           child: Text(
                             widget.item.deliveryMethods,
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Colors.black,
-                              // Optional: Ensure text height aligns well with the 28px height constraint
-                              // height: 1.0,
                             ),
                           ),
                         ),
@@ -186,32 +340,19 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                       const SizedBox(width: 10),
                       SizedBox(
                         height: 28,
-                        // 1. Replace OutlinedButton with a Container to hold the styling.
                         child: Container(
-                          // 2. Apply styling equivalent to OutlinedButton.styleFrom:
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                          ), // Padding
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
                           decoration: BoxDecoration(
-                            color:
-                                Colors
-                                    .transparent, // Background color (optional, but good practice)
-                            border: Border.all(
-                              color: Colors.grey[400]!,
-                            ), // BorderSide (Outline)
-                            borderRadius: BorderRadius.circular(4), // Shape
+                            color: Colors.transparent,
+                            border: Border.all(color: Colors.grey[400]!),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                          alignment:
-                              Alignment
-                                  .center, // Center the text vertically within the container
-                          // 3. Place the Text widget inside the Container.
+                          alignment: Alignment.center,
                           child: Text(
                             convertToFrontendString(widget.status),
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 12,
                               color: Colors.black,
-                              // Optional: Ensure text height aligns well with the 28px height constraint
-                              // height: 1.0,
                             ),
                           ),
                         ),
@@ -226,7 +367,7 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                       horizontal: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.yellow[100], // Light yellow background
+                      color: Colors.yellow[100],
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Column(
@@ -234,7 +375,7 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                       children: [
                         Text(
                           'Total ${widget.orderDate} days: RM ${widget.totalFee}',
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
@@ -250,8 +391,11 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                               height: 28,
                               child: ElevatedButton(
                                 onPressed:
-                                    widget.status == 'cancelled' ||
-                                            cancelledItem == true
+                                    widget.status.toLowerCase() ==
+                                                'cancelled' ||
+                                            cancelledItem == true ||
+                                            widget.status.toLowerCase() ==
+                                                'history'
                                         ? null
                                         : () {
                                           showCancelConfirmationModal(
@@ -259,13 +403,13 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                                             item: widget.item,
                                             onConfirm:
                                                 (item) => _cancelOrderApiCall(
-                                                  widget.item.id,"history"
+                                                  widget.item.id,
+                                                  "history",
                                                 ),
                                           );
                                         },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor:
-                                      Colors.grey[300], // Grey color
+                                  backgroundColor: Colors.grey[300],
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 10,
                                   ),
@@ -279,8 +423,11 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     color:
-                                        widget.status == 'cancelled' ||
-                                                cancelledItem == true
+                                        widget.status.toLowerCase() ==
+                                                    'cancelled' ||
+                                                cancelledItem == true ||
+                                                widget.status.toLowerCase() ==
+                                                    'history'
                                             ? Colors.grey
                                             : Colors.black,
                                   ),
@@ -289,7 +436,7 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                             ),
                             const SizedBox(width: 8),
 
-                            // Report Button (Red)
+                            // Report Button
                             SizedBox(
                               height: 28,
                               child: ReportItemWidget(
@@ -297,6 +444,41 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                                 item: widget.item,
                               ),
                             ),
+
+                            const SizedBox(width: 8),
+
+                            // QR Code Button
+                            if (canShowQR)
+                              SizedBox(
+                                height: 28,
+                                child: ElevatedButton(
+                                  onPressed: () => _showQRCodeDialog(context),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFF8BE17),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                    ),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.qr_code, size: 14),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        qrButtonText,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ],

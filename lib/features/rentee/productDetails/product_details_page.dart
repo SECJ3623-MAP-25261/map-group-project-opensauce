@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:easyrent/features/rentee/checkout/presentation/pages/checkout_page.dart';
-import 'package:easyrent/features/rentee/wishlist/data/provider/provider.dart';
 import 'package:easyrent/features/rentee/wishlist/services/wishlist_notifier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../models/item.dart';
-import '../reviewPage/review_page.dart'; 
+import '../reviewPage/review_page.dart';
+
 class ProductDetailsPage extends ConsumerStatefulWidget {
   final Item item;
 
@@ -26,7 +26,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
   @override
   void initState() {
     super.initState();
-    isFavorite = isItemSaveToDB(widget.item.id,widget.item.ownerRef);
+    isFavorite = isItemSaveToDB(widget.item.id, widget.item.ownerRef);
   }
 
   @override
@@ -115,7 +115,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-         actions: [
+        actions: [
           IconButton(
             icon: const Icon(Icons.share_outlined, color: Colors.black),
             onPressed: () {},
@@ -166,44 +166,48 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       } else {
                         // remove the item from wishlist
                         print("_isFavorite: $isFavorite");
-                        String itemId= widget.item.id;
-                        final bool isSuccess = await removeWishlistItemFromDB(itemId);
-                              if(isSuccess){
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item sucessfully remove from wishlit.',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.green.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                                setState(() {
-                      
-                                isFavorite=false;
-                                });
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text(
-                                      'Item failed to remove from wishlist. Please try again',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    backgroundColor: Colors.red.shade700,
-                                    duration: const Duration(seconds: 4),
-                                    behavior: SnackBarBehavior.floating, // Looks cleaner
-                                  ),
-                                );
-                              }
+                        String itemId = widget.item.id;
+                        final bool isSuccess = await removeWishlistItemFromDB(
+                          itemId,
+                        );
+                        if (isSuccess) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Item sucessfully remove from wishlit.',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.green.shade700,
+                              duration: const Duration(seconds: 4),
+                              behavior:
+                                  SnackBarBehavior.floating, // Looks cleaner
+                            ),
+                          );
+                          setState(() {
+                            isFavorite = false;
+                          });
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'Item failed to remove from wishlist. Please try again',
+                                style: TextStyle(color: Colors.white),
+                              ),
+                              backgroundColor: Colors.red.shade700,
+                              duration: const Duration(seconds: 4),
+                              behavior:
+                                  SnackBarBehavior.floating, // Looks cleaner
+                            ),
+                          );
+                        }
                       }
                     }
+
                     saveToDB();
                   });
                 },
               );
-            }
+            },
           ),
         ],
       ),
@@ -252,20 +256,34 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                     );
                     _pickDateRange();
                   } else {
-                    Duration difference =Duration(days: 0);
+                    Duration difference = Duration(days: 0);
                     final DateTime? start = _selectedDateRange?.start;
                     final DateTime? end = _selectedDateRange?.end;
 
-                      if (start != null && end != null) {
-                        difference = end.difference(start);
-
-                      }
-                    ref.read(checkoutProvider.notifier).setItems(widget.item,difference.inDays);
-                    ref.read(checkoutProvider.notifier).setStartEndRenting(_selectedDateRange?.start, _selectedDateRange?.end);
+                    if (start != null && end != null) {
+                      difference = end.difference(start);
+                    }
+                    ref
+                        .read(checkoutProvider.notifier)
+                        .setItems(widget.item, difference.inDays);
+                    ref
+                        .read(checkoutProvider.notifier)
+                        .setStartEndRenting(
+                          _selectedDateRange?.start,
+                          _selectedDateRange?.end,
+                        );
                     // Proceed to checkout logic
-                    Navigator.push(context, MaterialPageRoute(builder: (context) {
-                      return CheckoutPage(items: widget.item,duration: difference.inDays,);
-                    },));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return CheckoutPage(
+                            items: widget.item,
+                            duration: difference.inDays,
+                          );
+                        },
+                      ),
+                    );
                   }
                 },
                 style: ElevatedButton.styleFrom(
