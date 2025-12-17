@@ -56,7 +56,6 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
   
   // (Include your _getCurrentUserLocation function here)
 
-  // ... (Your existing _getCurrentUserLocation function here) ...
   Future<void> _getCurrentUserLocation() async {
     // --- Standard Geolocator logic starts here ---
     bool serviceEnabled;
@@ -135,7 +134,6 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
       newLocation = "Error retrieving address. Please try again.";
     }
 
-    // FIX 3: Always call setState to update the UI with the new location string or error/default message
     setState(() {
       selectedLatLng = latLng; // Update LatLng regardless of address success
       selectedLocation = newLocation;

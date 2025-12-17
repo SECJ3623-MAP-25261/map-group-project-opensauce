@@ -65,7 +65,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
   void _showQRCodeDialog(BuildContext context) {
     // Calculate rental days
     final rentalDays = widget.endDate.difference(widget.startDate).inDays;
-
+    print("------------showing dialog-------------");
     showDialog(
       context: context,
       barrierDismissible: true,
