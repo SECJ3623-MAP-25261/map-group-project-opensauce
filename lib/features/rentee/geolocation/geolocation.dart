@@ -17,6 +17,9 @@ class Geolocation extends ConsumerStatefulWidget {
 }
 
 class _GeolocationState extends ConsumerState<Geolocation> {
+  // 1. Declare the map controller
+  GoogleMapController? _mapController;
+  
   LatLng? selectedLatLng;
   String location = "";
   LatLng? _currentLocation;
@@ -30,14 +33,32 @@ class _GeolocationState extends ConsumerState<Geolocation> {
   @override
   void initState() {
     super.initState();
-    suggestedPlaces =
-        widget.itemsLocation.map((location) {
-          return LatLng(location.latitude, location.longitude);
-        }).toList();
+    // Initialize suggested places from the widget argument
+    suggestedPlaces = widget.itemsLocation.map((location) {
+      return LatLng(location.latitude, location.longitude);
+    }).toList();
+    
+    // 3. Fetch user location to set the map's initial center
+    _getCurrentUserLocation();
+  }
+  
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
   }
 
   /// Reverse geocoding
   Future<void> _getAddressFromLatLng(LatLng latLng) async {
+    String newLocation = "";
+    
+    // FIX 4: Animate camera to the tapped location
+    if (_mapController != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLng(latLng),
+      );
+    }
+    
     try {
       final placemarks = await placemarkFromCoordinates(
         latLng.latitude,
@@ -47,21 +68,29 @@ class _GeolocationState extends ConsumerState<Geolocation> {
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
 
-        setState(() {
-          selectedLatLng = latLng;
-          location =
-              "${place.name}, ${place.street}, ${place.locality}, "
-              "${place.postalCode}, ${place.country}";
-        });
+        newLocation =
+            "${place.name}, ${place.street}, ${place.locality}, "
+            "${place.postalCode}, ${place.country}";
+      } else {
+        // Handle case where address cannot be resolved
+        newLocation = "Location selected: Lat: ${latLng.latitude.toStringAsFixed(4)}, Long: ${latLng.longitude.toStringAsFixed(4)} (Address not found)";
       }
     } catch (e) {
       debugPrint("Geocoding error: $e");
+      newLocation = "Error retrieving address. Please try again.";
     }
+    
+    // Always call setState to update the selected marker color and the text box
+    setState(() {
+      selectedLatLng = latLng;
+      location = newLocation;
+      print("----------- the new location is ${location} ------------");
+    });
   }
 
   /// Build markers (blue = suggested, red = selected)
   Set<Marker> _buildMarkers() {
-    return suggestedPlaces.map((latLng) {
+    final Set<Marker> markers = suggestedPlaces.map((latLng) {
       final isSelected = selectedLatLng == latLng;
 
       return Marker(
@@ -71,35 +100,45 @@ class _GeolocationState extends ConsumerState<Geolocation> {
             isSelected
                 ? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed)
                 : BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueAzure,
-                ),
+                    BitmapDescriptor.hueAzure,
+                  ),
         onTap: () => _getAddressFromLatLng(latLng),
       );
     }).toSet();
+    
+    // Add a temporary marker for map taps if it's not a suggested location
+    if (selectedLatLng != null && !suggestedPlaces.contains(selectedLatLng)) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('selected_tap_location'),
+          position: selectedLatLng!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          onTap: () => _getAddressFromLatLng(selectedLatLng!),
+        ),
+      );
+    }
+    
+    return markers;
   }
 
-  // --- 3. NEW METHOD TO FETCH USER LOCATION ---
+  // --- 3. METHOD TO FETCH USER LOCATION ---
   Future<void> _getCurrentUserLocation() async {
     bool serviceEnabled;
     LocationPermission permission;
 
-    // Check if location services are enabled
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // Services are disabled, use default position
       setState(() {
         _isLoadingLocation = false;
       });
       return;
     }
 
-    // Check permissions
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        // Permissions denied, use default position
         setState(() {
           _isLoadingLocation = false;
         });
@@ -107,16 +146,24 @@ class _GeolocationState extends ConsumerState<Geolocation> {
       }
     }
 
-    // Get the current position
     try {
       final Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
+      final newLatLng = LatLng(position.latitude, position.longitude);
+
       setState(() {
-        _currentLocation = LatLng(position.latitude, position.longitude);
+        _currentLocation = newLatLng;
         _isLoadingLocation = false;
       });
+      
+      // FIX 5: Move camera to current location if the map controller is ready
+      if (_mapController != null) {
+        _mapController!.animateCamera(
+          CameraUpdate.newLatLngZoom(newLatLng, 18),
+        );
+      }
     } catch (e) {
       debugPrint("Error fetching location: $e");
       setState(() {
@@ -127,7 +174,16 @@ class _GeolocationState extends ConsumerState<Geolocation> {
 
   @override
   Widget build(BuildContext context) {
-    final LatLng initialTarget = _currentLocation ?? _defaultInitialPosition;
+    // Determine the target: prioritize current location, then the first suggested place, then default
+    LatLng initialTarget;
+    if (_currentLocation != null) {
+      initialTarget = _currentLocation!;
+    } else if (suggestedPlaces.isNotEmpty) {
+      initialTarget = suggestedPlaces.first;
+    } else {
+      initialTarget = _defaultInitialPosition;
+    }
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -143,6 +199,16 @@ class _GeolocationState extends ConsumerState<Geolocation> {
             height: 620,
             width: double.infinity,
             child: GoogleMap(
+              // 2. Capture the controller when the map is created
+              onMapCreated: (controller) {
+                _mapController = controller;
+                // If location was fetched before map creation, move camera now
+                if (_currentLocation != null) {
+                   controller.animateCamera(
+                     CameraUpdate.newLatLngZoom(_currentLocation!, 18),
+                   );
+                }
+              },
               initialCameraPosition: CameraPosition(
                 target: initialTarget,
                 zoom: 18,
@@ -150,7 +216,8 @@ class _GeolocationState extends ConsumerState<Geolocation> {
               mapType: MapType.normal,
               zoomControlsEnabled: true,
               markers: _buildMarkers(),
-              onTap: (latLng) => _getAddressFromLatLng(latLng),
+              // This is the user tap handler
+              onTap: (latLng) => _getAddressFromLatLng(latLng), 
             ),
           ),
 
@@ -177,27 +244,27 @@ class _GeolocationState extends ConsumerState<Geolocation> {
               height: 48,
               child: ElevatedButton(
                 onPressed:
-                    location.isNotEmpty && selectedLatLng != null
+                    location.isNotEmpty && selectedLatLng != null && !location.contains("Error")
                         ? () {
-                          ref
-                              .read(checkoutProvider.notifier)
-                              .setLocation(location);
-                          ref
-                              .read(checkoutProvider.notifier)
-                              .setLatLng(
-                                selectedLatLng!.latitude,
-                                selectedLatLng!.longitude,
-                              );
-                          Navigator.pop(context);
-                        }
+                            ref
+                                .read(checkoutProvider.notifier)
+                                .setLocation(location);
+                            ref
+                                .read(checkoutProvider.notifier)
+                                .setLatLng(
+                                  selectedLatLng!.latitude,
+                                  selectedLatLng!.longitude,
+                                );
+                            Navigator.pop(context);
+                          }
                         : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      location.isNotEmpty
-                          ? AppColors.primaryRed
+                      location.isNotEmpty && !location.contains("Error")
+                          ? AppColors.primaryRed // Assuming AppColors is defined
                           : Colors.grey.shade400,
                   foregroundColor:
-                      location.isNotEmpty ? Colors.white : Colors.grey.shade700,
+                      location.isNotEmpty && !location.contains("Error") ? Colors.white : Colors.grey.shade700,
                 ),
                 child: const Text("Confirm"),
               ),

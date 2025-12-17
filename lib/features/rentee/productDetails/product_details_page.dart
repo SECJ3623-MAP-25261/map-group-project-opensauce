@@ -10,7 +10,7 @@ import '../reviewPage/review_page.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
-class ProductDetailsPage extends StatefulWidget {
+class ProductDetailsPage extends ConsumerStatefulWidget {
   final Item item;
 
   const ProductDetailsPage({super.key, required this.item});
