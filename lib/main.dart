@@ -1,5 +1,11 @@
+import 'package:easyrent/features/message/messages.dart';
+import 'package:easyrent/features/rentee/services/notifiers.dart';
+import 'package:easyrent/features/rentee/my_profile_page.dart';
+import 'package:easyrent/features/rentee/wishlist/presentation/page/wishlist_page.dart';
 import 'package:easyrent/features/renter/renter_management/presentation/pages/dummy_select_role.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'features/rentee/homePage/home_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -40,6 +46,7 @@ class _MyAppState extends State<MyApp> {
       //   '/home' : (_) => HomePage(),
       //   '/renting-status' : (_) => RentingStatusPage(),
       // },
+      // home: MainScreen(),
     );
   }
 }
@@ -57,7 +64,7 @@ class _MainScreenState extends State<MainScreen> {
     const WishlistPage(), // Index 1 (Make sure this is imported!)
     const Center(child: Text("Scan Page")),
     const Center(child: Text("Messages Page")),
-    const Center(child: Text("Account Page")),
+    const DummySelectRole(),
   ];
 
   @override

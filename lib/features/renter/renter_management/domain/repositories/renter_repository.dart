@@ -1,5 +1,6 @@
-import '../entities/item_entity.dart';
+import '../../../../../features/models/rentalitem.dart';
 
 abstract class RenterRepository {
-  Future<List<ItemEntity>> getRequestedItems();
+  Future<List<RentalItem>> getRequestedItems();
+  Future<void> updateItemStatus(String id, String status);
 }

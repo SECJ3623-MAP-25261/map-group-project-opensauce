@@ -5,8 +5,8 @@ class Review {
   final String reviewerName;
   final String reviewerImage;
   final DateTime date;
-  final double star; // Rating out of 5
-  final String reviewText; // The written review
+  final double star;
+  final String reviewText;
 
   Review({
     required this.reviewerId,
@@ -17,7 +17,6 @@ class Review {
     required this.reviewText,
   });
 
-  // Convert to Map for uploading to Firestore
   Map<String, dynamic> toMap() {
     return {
       'reviewerId' : reviewerId,
@@ -29,7 +28,6 @@ class Review {
     };
   }
 
-  // Create Review object from Firestore Map
   factory Review.fromMap(Map<String, dynamic> map) {
     return Review(
       reviewerId: map['reviewerId'] ?? '',

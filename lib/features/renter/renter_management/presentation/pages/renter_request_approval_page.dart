@@ -17,29 +17,37 @@ class RenterRequestApprovalPage extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (state.items.isEmpty) {
+        if (state.rentalitems.isEmpty) {
           return const Center(child: Text("No items to approve."));
+        }
+
+        // --- NEW FILTER LOGIC ---
+        // Only show items that are waiting for approval ('pending')
+        final pendingItems = state.rentalitems.where((rentalitem) => rentalitem.status == 'pending').toList();
+
+        if (pendingItems.isEmpty) {
+          return const Center(child: Text("No pending requests."));
         }
 
         return ListView.builder(
           padding: const EdgeInsets.all(16),
-          itemCount: state.items.length,
+          itemCount: pendingItems.length,
           itemBuilder: (context, index) {
-            final item = state.items[index];
+            final rentalitem = pendingItems[index];
 
             return ApprovalItemCard(
-              title: item.name,
-              subtitle: "${item.price} | ${item.rentalInfo}",
-              imageUrl: item.imageUrl,
-              status: item.status, // <-- NEW
+              title: rentalitem.name,
+              subtitle: "${rentalitem.price} | ${rentalitem.rentalInfo}",
+              imageUrl: rentalitem.imageUrl,
+              status: rentalitem.status,
               
               onApprove: () {
-                notifier.approveItem(item.id);
+                notifier.approveItem(rentalitem.id);
                 _showApproveDialog(context);
               },
 
               onReject: () {
-                notifier.rejectItem(item.id);
+                notifier.rejectItem(rentalitem.id);
                 _showNotApproveDialog(context);
               },
             );
@@ -78,9 +86,6 @@ class RenterRequestApprovalPage extends StatelessWidget {
     );
   }
 
-  // ===========================
-  // REJECTED POP-UP DIALOG
-  // ===========================
   void _showNotApproveDialog(BuildContext context) {
     showDialog(
       context: context,

@@ -1,12 +1,15 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:typed_data';
+import 'dart:io' as io;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../renter_management/domain/entities/item_entity.dart';
+import '../../../../models/item.dart'; 
 import '../../services/notifier/listing_notifier.dart';
 
 class RenterEditItem extends StatefulWidget {
-  final ItemEntity item;
+  final Item item;
 
   const RenterEditItem({super.key, required this.item});
 
@@ -15,7 +18,6 @@ class RenterEditItem extends StatefulWidget {
 }
 
 class _RenterEditItemState extends State<RenterEditItem> {
-  // --- CONTROLLERS ---
   late TextEditingController _nameController;
   late TextEditingController _priceController;
   late TextEditingController _depositController;
@@ -25,24 +27,24 @@ class _RenterEditItemState extends State<RenterEditItem> {
   String? _selectedCategory;
   final List<String> _categories = ['Electronic', 'Stationary', 'Clothing', 'Sports', 'Other'];
 
-  // --- IMAGE STATE ---
   final List<dynamic> _itemImages = []; 
   final ImagePicker _picker = ImagePicker();
   
   int _currentImageIndex = 0; 
-  
-  // ADDED PAGE CONTROLLER
   final PageController _pageController = PageController();
+  
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
 
-    _nameController = TextEditingController(text: widget.item.name);
-    _priceController = TextEditingController(text: widget.item.price);
-    _depositController = TextEditingController(text: widget.item.deposit); 
+    _nameController = TextEditingController(text: widget.item.productName); 
+    _priceController = TextEditingController(text: widget.item.pricePerDay.toStringAsFixed(0));
+    _depositController = TextEditingController(text: widget.item.deposit.toString()); 
+
     _descriptionController = TextEditingController(text: widget.item.description);
-    // _locationController = TextEditingController(text: widget.item.location);
+    _locationController = TextEditingController(text: widget.item.location); 
     
     if (_categories.contains(widget.item.category)) {
       _selectedCategory = widget.item.category;
@@ -53,7 +55,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
     if (widget.item.imageUrl.isNotEmpty) {
       _itemImages.add(widget.item.imageUrl);
     }
-    _itemImages.addAll(widget.item.additionalImages);
+    _itemImages.addAll(widget.item.imageUrls);
   }
 
   @override
@@ -66,7 +68,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
     super.dispose();
   }
 
-  // --- IMAGE LOGIC ---
   Future<void> _pickImage(ImageSource source) async {
     if (_itemImages.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -79,7 +80,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
       final XFile? pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
         setState(() {
-          _itemImages.add(File(pickedFile.path));
+          _itemImages.add(pickedFile);
           _currentImageIndex = _itemImages.length - 1;
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageController.hasClients) {
@@ -91,6 +92,11 @@ class _RenterEditItemState extends State<RenterEditItem> {
     } catch (e) {
       print("Error picking image: $e");
     }
+  }
+
+  Future<String> _imageToBase64(XFile imageFile) async {
+    Uint8List imageBytes = await imageFile.readAsBytes();
+    return base64Encode(imageBytes);
   }
 
   void _confirmDelete() {
@@ -164,7 +170,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
     );
   }
 
-  void _updateItem() {
+  Future<void> _updateItem() async {
     if (_nameController.text.isEmpty || _priceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill in Name and Price")),
@@ -172,32 +178,105 @@ class _RenterEditItemState extends State<RenterEditItem> {
       return;
     }
 
-    String newMainImage = "";
-    List<String> newAdditionalImages = [];
+    setState(() { _isSaving = true; });
 
-    if (_itemImages.isNotEmpty) {
-      final firstImg = _itemImages[0];
-      newMainImage = (firstImg is File) ? firstImg.path : firstImg as String;
+    try {
+      List<String> finalImageStrings = [];
 
-      for (int i = 1; i < _itemImages.length; i++) {
-        final img = _itemImages[i];
-        newAdditionalImages.add((img is File) ? img.path : img as String);
+      for (var img in _itemImages) {
+        if (img is XFile) {
+          String base64String = await _imageToBase64(img);
+          finalImageStrings.add(base64String);
+        } else if (img is String) {
+          finalImageStrings.add(img);
+        }
+      }
+
+      String newMainImage = "";
+      List<String> newAdditionalImages = [];
+
+      if (finalImageStrings.isNotEmpty) {
+        newMainImage = finalImageStrings[0];
+        if (finalImageStrings.length > 1) {
+          newAdditionalImages = finalImageStrings.sublist(1);
+        }
+      }
+
+      final updatedItem = Item(
+        ownerRef: widget.item.ownerRef,
+        id: widget.item.id,
+        ownerId: widget.item.ownerId,
+        ownerName: widget.item.ownerName,
+        ownerImage: widget.item.ownerImage,
+        
+        productName: _nameController.text,
+        pricePerDay: double.tryParse(_priceController.text) ?? 0.0,
+        deposit: double.tryParse(_depositController.text) ?? 0.0,
+        
+        description: _descriptionController.text,
+        location: _locationController.text,
+        category: _selectedCategory ?? "Other",
+        
+        imageUrl: newMainImage,
+        imageUrls: newAdditionalImages,
+        
+        quantity: widget.item.quantity,
+        rentingDuration: widget.item.rentingDuration,
+        deliveryMethods: widget.item.deliveryMethods,
+        averageRating: widget.item.averageRating,
+        reviews: widget.item.reviews,
+        currentRenterId: widget.item.currentRenterId,
+      );
+
+      if (!mounted) return;
+      await Provider.of<ListingNotifier>(context, listen: false).updateItem(updatedItem);
+
+      if (mounted) Navigator.pop(context);
+
+    } catch (e) {
+      print("Error updating: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error updating item: $e")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() { _isSaving = false; });
       }
     }
+  }
 
-    final updatedItem = widget.item.copyWith(
-      name: _nameController.text,
-      price: _priceController.text,
-      description: _descriptionController.text,
-      // location: _locationController.text,
-      category: _selectedCategory,
-      imageUrl: newMainImage,
-      additionalImages: newAdditionalImages,
-    );
-
-    Provider.of<ListingNotifier>(context, listen: false).updateItem(updatedItem);
-
-    Navigator.pop(context); 
+  Widget _buildImageDisplay(dynamic image) {
+    if (image is XFile) {
+      if (kIsWeb) {
+        return Image.network(image.path, fit: BoxFit.cover);
+      } else {
+        return Image.file(io.File(image.path), fit: BoxFit.cover);
+      }
+    }
+    else if (image is String) {
+      if (image.startsWith('http')) {
+        return Image.network(
+          image, 
+          fit: BoxFit.cover,
+          errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image),
+        );
+      } 
+      else {
+        try {
+          Uint8List bytes = base64Decode(image);
+          return Image.memory(
+            bytes, 
+            fit: BoxFit.cover,
+            errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image),
+          );
+        } catch (e) {
+          return const Icon(Icons.error);
+        }
+      }
+    }
+    return const SizedBox();
   }
 
   @override
@@ -220,7 +299,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             
-            // --- IMAGE CAROUSEL ---
             Center(
               child: Stack(
                 alignment: Alignment.center,
@@ -255,32 +333,13 @@ class _RenterEditItemState extends State<RenterEditItem> {
                                 });
                               },
                               itemBuilder: (context, index) {
-                                final image = _itemImages[index];
-                                
-                                if (image is File) {
-                                  return Image.file(image, fit: BoxFit.cover);
-                                } else if (image is String) {
-                                  if (image.startsWith('http')) {
-                                    return Image.network(
-                                      image, 
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image),
-                                    );
-                                  } else {
-                                    return Image.asset(
-                                      image, 
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image),
-                                    );
-                                  }
-                                }
-                                return const SizedBox();
+                                // USE NEW HELPER FUNCTION
+                                return _buildImageDisplay(_itemImages[index]);
                               },
                             ),
                     ),
                   ),
 
-                  //  LEFT ARROW
                   if (_currentImageIndex > 0)
                     Positioned(
                       left: 10,
@@ -298,7 +357,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
                       ),
                     ),
 
-                  // RIGHT ARROW
                   if (_currentImageIndex < _itemImages.length - 1)
                     Positioned(
                       right: 10,
@@ -375,39 +433,39 @@ class _RenterEditItemState extends State<RenterEditItem> {
             
             const SizedBox(height: 24),
 
-            // --- FIELDS ---
             _buildLabel("Name"),
             _buildTextField(controller: _nameController, hint: "Insert here"),
             _buildLabel("Category"),
             _buildDropdown(),
             _buildLabel("Price"),
-            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day", inputType: TextInputType.number,),
+            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day", inputType: TextInputType.number),
             _buildLabel("Deposit"),
-            _buildTextField(controller: _depositController, hint: "e.g: 20", inputType: TextInputType.number,),
+            _buildTextField(controller: _depositController, hint: "e.g: 20", inputType: TextInputType.number),
             _buildLabel("Description"),
             _buildTextField(controller: _descriptionController, hint: "Insert here", maxLines: 5),
             _buildLabel("Location"),
             _buildTextField(controller: _locationController, hint: "Location"),
             const SizedBox(height: 30),
 
-            // --- BUTTONS ---
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _updateItem,
+                    onPressed: _isSaving ? null : _updateItem,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       side: const BorderSide(color: Color(0xFF5C001F)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text("UPDATE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                    child: _isSaving 
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF5C001F)))
+                      : const Text("UPDATE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5C001F),
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -433,7 +491,7 @@ class _RenterEditItemState extends State<RenterEditItem> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType,}) {
+  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,

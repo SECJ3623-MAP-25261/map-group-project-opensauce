@@ -1,6 +1,7 @@
+import 'package:easyrent/features/rentee/homePage/home_page.dart';
 import 'package:easyrent/features/renter/listing_management/presentation/pages/renter_listing_wrapper.dart';
 import 'package:flutter/material.dart';
-// <-- IMPORT THE WRAPPER
+import 'renter_management_wrapper.dart';
 import '../../../../rentee/rentee_profile/presentation/pages/profile_page.dart' as rentee;
 
 class DummySelectRole extends StatelessWidget {
@@ -31,7 +32,7 @@ class DummySelectRole extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const rentee.RenteeprofilePage(),
+                    builder: (context) => const HomePage(),
 
                   ),
                 );

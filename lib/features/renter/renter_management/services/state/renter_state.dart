@@ -1,21 +1,27 @@
-import '../../domain/entities/item_entity.dart';
+import '../../../../../features/models/rentalitem.dart';
 
 class RenterState {
-  final List<ItemEntity> items;
+  final List<RentalItem> rentalitems;
   final bool loading;
+  final String? errorMessage;
 
   const RenterState({
-    this.items = const [],
+    this.rentalitems = const [],
     this.loading = false,
+    this.errorMessage,
   });
 
+  factory RenterState.initial() => const RenterState();
+
   RenterState copyWith({
-    List<ItemEntity>? items,
+    List<RentalItem>? rentalitems,
     bool? loading,
+    String? errorMessage,
   }) {
     return RenterState(
-      items: items ?? this.items,
+      rentalitems: rentalitems ?? this.rentalitems,
       loading: loading ?? this.loading,
+      errorMessage: errorMessage,
     );
   }
 }
