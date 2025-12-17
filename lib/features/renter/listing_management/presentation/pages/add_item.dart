@@ -489,7 +489,8 @@ class _RenterAddItemState extends State<RenterAddItem> {
               maxLines: 5,
             ),
             _buildLabel("Location"),
-            _buildTextField(controller: _locationController, hint: "Location"),
+            _buildAddLocation(),
+            // _buildTextField(controller: _locationController, hint: "Location"),
             const SizedBox(height: 30),
             // BUTTONS
             Row(

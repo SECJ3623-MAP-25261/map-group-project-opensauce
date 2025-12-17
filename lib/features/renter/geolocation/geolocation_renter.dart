@@ -28,18 +28,14 @@ class GeolocationRenter extends StatefulWidget {
 }
 
 class _GeolocationRenterState extends State<GeolocationRenter> {
+  // ... (Your existing variables and methods: _mapController, initState, dispose, _getCurrentUserLocation) ...
+
+  GoogleMapController? _mapController;
   LatLng? selectedLatLng;
   String selectedLocation = "";
-
   LatLng? _currentLocation;
   bool _isLoading = true;
-
-  static const LatLng _initialDefaultPosition = LatLng(
-    1.558433,
-    103.638367,
-  ); // Kuala Lumpur, for example
-
-  /// Suggested places shown when map opens
+  static const LatLng _initialDefaultPosition = LatLng(1.558433, 103.638367);
   final List<LatLng> suggestedPlaces = [
     LatLng(1.488889, 103.761111),
     LatLng(1.488889, 103.891111),
@@ -51,16 +47,24 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
     super.initState();
     _getCurrentUserLocation();
   }
+  
+  @override
+  void dispose() {
+    _mapController?.dispose();
+    super.dispose();
+  }
+  
+  // (Include your _getCurrentUserLocation function here)
 
+  // ... (Your existing _getCurrentUserLocation function here) ...
   Future<void> _getCurrentUserLocation() async {
     // --- Standard Geolocator logic starts here ---
-    // 1. Check permissions and service status (required by geolocator)
     bool serviceEnabled;
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      // Location services are not enabled
+      setState(() => _isLoading = false);
       return;
     }
 
@@ -68,31 +72,47 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
       if (permission == LocationPermission.denied) {
-        // Permissions denied
+        setState(() => _isLoading = false);
         return;
       }
     }
 
     if (permission == LocationPermission.deniedForever) {
-      // Permissions permanently denied
+      setState(() => _isLoading = false);
       return;
     }
     // --- Standard Geolocator logic ends here ---
 
-    // 2. Get the current position
     Position position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
 
-    // 3. Update the state with the new position
+    final newLatLng = LatLng(position.latitude, position.longitude);
+
     setState(() {
-      _currentLocation = LatLng(position.latitude, position.longitude);
+      _currentLocation = newLatLng;
       _isLoading = false;
     });
+
+    if (_mapController != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLngZoom(newLatLng, 18),
+      );
+    }
   }
+
 
   /// Reverse geocoding
   Future<void> _getAddressFromLatLng(LatLng latLng) async {
+    String newLocation = "";
+    
+    // Animate camera to the tapped location for better UX
+    if (_mapController != null) {
+      _mapController!.animateCamera(
+        CameraUpdate.newLatLng(latLng),
+      );
+    }
+
     try {
       final placemarks = await placemarkFromCoordinates(
         latLng.latitude,
@@ -102,21 +122,28 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
 
-        setState(() {
-          selectedLatLng = latLng;
-          selectedLocation =
-              "${place.name}, ${place.street}, ${place.locality}, "
-              "${place.postalCode}, ${place.country}";
-        });
+        newLocation =
+            "${place.name}, ${place.street}, ${place.locality}, "
+            "${place.postalCode}, ${place.country}";
+      } else {
+        // FIX 1: If no placemark found, set a descriptive message
+        newLocation = "Location selected: Lat: ${latLng.latitude.toStringAsFixed(4)}, Long: ${latLng.longitude.toStringAsFixed(4)} (Address not found)";
       }
     } catch (e) {
+      // FIX 2: If an error occurs (e.g., network), set an error message
       debugPrint("Geocoding error: $e");
+      newLocation = "Error retrieving address. Please try again.";
     }
+
+    // FIX 3: Always call setState to update the UI with the new location string or error/default message
+    setState(() {
+      selectedLatLng = latLng; // Update LatLng regardless of address success
+      selectedLocation = newLocation;
+    });
   }
 
   /// Build markers (blue = suggested, red = selected)
   Set<Marker> _buildMarkers() {
-
     final Set<Marker> markers =
         suggestedPlaces.map((latLng) {
 
@@ -130,15 +157,15 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
             icon:
                 isSelected
                     ? BitmapDescriptor.defaultMarkerWithHue(
-                      BitmapDescriptor.hueRed,
-                    )
+                          BitmapDescriptor.hueRed,
+                      )
                     : BitmapDescriptor.defaultMarkerWithHue(
-                      BitmapDescriptor.hueAzure,
-                    ),
+                          BitmapDescriptor.hueAzure,
+                      ),
             onTap: () => _getAddressFromLatLng(latLng),
           );
         }).toSet();
-    print("------- is current location null? ${_currentLocation == null} the current Location is ${_currentLocation?.latitude} ${_currentLocation?.longitude}-------");
+    
     // 2. Add the Current User Location Marker (if available)
     if (_currentLocation != null) {
       markers.add(
@@ -148,13 +175,27 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
           infoWindow: const InfoWindow(
             title: 'Your Location',
           ), // Optional title
-          // Use a different color (e.g., green or a custom icon) to distinguish it
           icon: BitmapDescriptor.defaultMarkerWithHue(
             BitmapDescriptor.hueGreen,
           ),
-          // We usually don't set an onTap for the user's current location marker
+          onTap: () => _getAddressFromLatLng(_currentLocation!), // Allow selection of current location
         ),
       );
+    }
+    
+    // If a location is selected by tapping the map, and it's not the user's current location,
+    // ensure a red marker is placed there if it's not one of the suggested places.
+    if (selectedLatLng != null && !suggestedPlaces.contains(selectedLatLng) && selectedLatLng != _currentLocation) {
+        markers.add(
+          Marker(
+            markerId: const MarkerId('selected_tap_location'),
+            position: selectedLatLng!,
+            icon: BitmapDescriptor.defaultMarkerWithHue(
+              BitmapDescriptor.hueRed,
+            ),
+            onTap: () => _getAddressFromLatLng(selectedLatLng!),
+          ),
+        );
     }
 
     return markers;
@@ -162,6 +203,7 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
 
   @override
   Widget build(BuildContext context) {
+    // ... (rest of the build method) ...
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -177,6 +219,17 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
             height: 620,
             width: double.infinity,
             child: GoogleMap(
+              // The controller is initialized here
+              onMapCreated: (controller) {
+                _mapController = controller;
+                // Optional: If _currentLocation is ready, move camera immediately after map is created
+                if (_currentLocation != null) {
+                   _mapController!.animateCamera(
+                     CameraUpdate.newLatLngZoom(_currentLocation!, 18),
+                   );
+                }
+              },
+              // The initial position is now only for the very first render
               initialCameraPosition: CameraPosition(
                 target: _currentLocation ?? _initialDefaultPosition,
                 zoom: 18,
@@ -187,7 +240,7 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
               onTap: (latLng) => _getAddressFromLatLng(latLng),
             ),
           ),
-
+          // ... (rest of the widgets) ...
           const SizedBox(height: 20),
 
           /// ADDRESS DISPLAY
@@ -211,25 +264,23 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
               height: 48,
               child: ElevatedButton(
                 onPressed:
-                    selectedLocation.isNotEmpty && selectedLatLng != null
+                    selectedLocation.isNotEmpty && selectedLatLng != null && !selectedLocation.contains("Error")
                         ? () {
-                          widget.onLocationSelected(
-                            selectedLocation,
-                            selectedLatLng!.latitude,
-                            selectedLatLng!.longitude,
-                          );
-                          Navigator.pop(context);
-                        }
+                            widget.onLocationSelected(
+                              selectedLocation,
+                              selectedLatLng!.latitude,
+                              selectedLatLng!.longitude,
+                            );
+                            Navigator.pop(context);
+                          }
                         : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      selectedLocation.isNotEmpty
-                          ? AppColors.primaryRed
-                          : Colors.grey.shade400,
-                  foregroundColor:
-                      selectedLocation.isNotEmpty
-                          ? Colors.white
-                          : Colors.grey.shade700,
+                  backgroundColor: selectedLocation.isNotEmpty && !selectedLocation.contains("Error")
+                      ? Colors.red 
+                      : Colors.grey.shade400,
+                  foregroundColor: selectedLocation.isNotEmpty && !selectedLocation.contains("Error")
+                      ? Colors.white
+                      : Colors.grey.shade700,
                 ),
                 child: const Text("Confirm"),
               ),
