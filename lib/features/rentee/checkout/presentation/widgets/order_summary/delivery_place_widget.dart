@@ -39,8 +39,7 @@ class _DeliveryPlaceWidgetState extends ConsumerState<DeliveryPlaceWidget> {
       MaterialPageRoute(
         builder: (context) {
           return Geolocation(
-            latitude: latitude,
-            longitude: longitude,
+            itemsLocation: ref.watch(checkoutProvider).items.locationDetails,
           );
         },
       ),
@@ -65,6 +64,7 @@ class _DeliveryPlaceWidgetState extends ConsumerState<DeliveryPlaceWidget> {
             children: [
               TextButton(onPressed: () {
                 _navigateToGeolocation(
+                  // ref.watch(checkoutProvider).items.locationDetails.
                   latitude: checkoutState.locationLat,
                   longitude: checkoutState.locationLong,
                 );

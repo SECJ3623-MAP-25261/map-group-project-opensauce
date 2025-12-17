@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:io' as io;
+import 'package:easyrent/features/renter/geolocation/geolocation_renter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../../models/item.dart'; 
+import '../../../../models/item.dart';
 import '../../services/notifier/listing_notifier.dart';
 
 class RenterEditItem extends StatefulWidget {
@@ -25,31 +26,45 @@ class _RenterEditItemState extends State<RenterEditItem> {
   late TextEditingController _locationController;
 
   String? _selectedCategory;
-  final List<String> _categories = ['Electronic', 'Stationary', 'Clothing', 'Sports', 'Other'];
+  final List<String> _categories = [
+    'Electronic',
+    'Stationary',
+    'Clothing',
+    'Sports',
+    'Other',
+  ];
 
-  final List<dynamic> _itemImages = []; 
+  final List<dynamic> _itemImages = [];
+  late List<locationObject> selectedLocations = [];
   final ImagePicker _picker = ImagePicker();
-  
-  int _currentImageIndex = 0; 
+
+  int _currentImageIndex = 0;
   final PageController _pageController = PageController();
-  
+
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
 
-    _nameController = TextEditingController(text: widget.item.productName); 
-    _priceController = TextEditingController(text: widget.item.pricePerDay.toStringAsFixed(0));
-    _depositController = TextEditingController(text: widget.item.deposit.toString()); 
+    _nameController = TextEditingController(text: widget.item.productName);
+    _priceController = TextEditingController(
+      text: widget.item.pricePerDay.toStringAsFixed(0),
+    );
+    _depositController = TextEditingController(
+      text: widget.item.deposit.toString(),
+    );
+    selectedLocations = widget.item.locationDetails;
 
-    _descriptionController = TextEditingController(text: widget.item.description);
-    _locationController = TextEditingController(text: widget.item.location); 
-    
+    _descriptionController = TextEditingController(
+      text: widget.item.description,
+    );
+    _locationController = TextEditingController(text: widget.item.location);
+
     if (_categories.contains(widget.item.category)) {
       _selectedCategory = widget.item.category;
     } else {
-      _selectedCategory = _categories.first; 
+      _selectedCategory = _categories.first;
     }
 
     if (widget.item.imageUrl.isNotEmpty) {
@@ -65,6 +80,8 @@ class _RenterEditItemState extends State<RenterEditItem> {
     _depositController.dispose();
     _descriptionController.dispose();
     _locationController.dispose();
+    selectedLocations.clear();
+
     super.dispose();
   }
 
@@ -94,6 +111,17 @@ class _RenterEditItemState extends State<RenterEditItem> {
     }
   }
 
+  void _updateLocation(String location, double lat, double long) {
+    setState(() {
+      selectedLocations.add(
+        locationObject(locationName: location, latitude: lat, longitude: long),
+      );
+    });
+    print(
+      "---------the locations: ${selectedLocations.last.locationName} lat: ${selectedLocations.last.latitude} long: ${selectedLocations.last.longitude}----------",
+    );
+  }
+
   Future<String> _imageToBase64(XFile imageFile) async {
     Uint8List imageBytes = await imageFile.readAsBytes();
     return base64Encode(imageBytes);
@@ -102,23 +130,30 @@ class _RenterEditItemState extends State<RenterEditItem> {
   void _confirmDelete() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete Image"),
-        content: const Text("Are you sure you want to remove this image?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("Delete Image"),
+            content: const Text("Are you sure you want to remove this image?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _deleteImage();
+                },
+                child: const Text(
+                  "Delete",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _deleteImage();
-            },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -134,7 +169,9 @@ class _RenterEditItemState extends State<RenterEditItem> {
   void _showImagePickerOptions() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return SafeArea(
           child: Wrap(
@@ -178,7 +215,9 @@ class _RenterEditItemState extends State<RenterEditItem> {
       return;
     }
 
-    setState(() { _isSaving = true; });
+    setState(() {
+      _isSaving = true;
+    });
 
     try {
       List<String> finalImageStrings = [];
@@ -208,41 +247,46 @@ class _RenterEditItemState extends State<RenterEditItem> {
         ownerId: widget.item.ownerId,
         ownerName: widget.item.ownerName,
         ownerImage: widget.item.ownerImage,
-        
+
         productName: _nameController.text,
         pricePerDay: double.tryParse(_priceController.text) ?? 0.0,
         deposit: double.tryParse(_depositController.text) ?? 0.0,
-        
+
         description: _descriptionController.text,
         location: _locationController.text,
         category: _selectedCategory ?? "Other",
-        
+
         imageUrl: newMainImage,
         imageUrls: newAdditionalImages,
-        
+
         quantity: widget.item.quantity,
         rentingDuration: widget.item.rentingDuration,
         deliveryMethods: widget.item.deliveryMethods,
         averageRating: widget.item.averageRating,
         reviews: widget.item.reviews,
         currentRenterId: widget.item.currentRenterId,
+        locationDetails: selectedLocations,
       );
 
       if (!mounted) return;
-      await Provider.of<ListingNotifier>(context, listen: false).updateItem(updatedItem);
+      await Provider.of<ListingNotifier>(
+        context,
+        listen: false,
+      ).updateItem(updatedItem);
 
       if (mounted) Navigator.pop(context);
-
     } catch (e) {
       print("Error updating: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error updating item: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error updating item: $e")));
       }
     } finally {
       if (mounted) {
-        setState(() { _isSaving = false; });
+        setState(() {
+          _isSaving = false;
+        });
       }
     }
   }
@@ -254,20 +298,18 @@ class _RenterEditItemState extends State<RenterEditItem> {
       } else {
         return Image.file(io.File(image.path), fit: BoxFit.cover);
       }
-    }
-    else if (image is String) {
+    } else if (image is String) {
       if (image.startsWith('http')) {
         return Image.network(
-          image, 
+          image,
           fit: BoxFit.cover,
           errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image),
         );
-      } 
-      else {
+      } else {
         try {
           Uint8List bytes = base64Decode(image);
           return Image.memory(
-            bytes, 
+            bytes,
             fit: BoxFit.cover,
             errorBuilder: (ctx, err, stack) => const Icon(Icons.broken_image),
           );
@@ -290,7 +332,14 @@ class _RenterEditItemState extends State<RenterEditItem> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Edit Item", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          "Edit Item",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -298,7 +347,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
             Center(
               child: Stack(
                 alignment: Alignment.center,
@@ -313,30 +361,38 @@ class _RenterEditItemState extends State<RenterEditItem> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      child: _itemImages.isEmpty
-                          ? const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.image_outlined, size: 50, color: Colors.grey),
-                                  SizedBox(height: 10),
-                                  Text("No image uploaded", style: TextStyle(color: Colors.grey)),
-                                ],
+                      child:
+                          _itemImages.isEmpty
+                              ? const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.image_outlined,
+                                      size: 50,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      "No image uploaded",
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              )
+                              : PageView.builder(
+                                itemCount: _itemImages.length,
+                                controller: _pageController,
+                                onPageChanged: (index) {
+                                  setState(() {
+                                    _currentImageIndex = index;
+                                  });
+                                },
+                                itemBuilder: (context, index) {
+                                  // USE NEW HELPER FUNCTION
+                                  return _buildImageDisplay(_itemImages[index]);
+                                },
                               ),
-                            )
-                          : PageView.builder(
-                              itemCount: _itemImages.length,
-                              controller: _pageController, 
-                              onPageChanged: (index) {
-                                setState(() {
-                                  _currentImageIndex = index;
-                                });
-                              },
-                              itemBuilder: (context, index) {
-                                // USE NEW HELPER FUNCTION
-                                return _buildImageDisplay(_itemImages[index]);
-                              },
-                            ),
                     ),
                   ),
 
@@ -350,9 +406,15 @@ class _RenterEditItemState extends State<RenterEditItem> {
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.8),
                             shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                            boxShadow: [
+                              BoxShadow(color: Colors.black12, blurRadius: 4),
+                            ],
                           ),
-                          child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black87),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ),
@@ -367,9 +429,15 @@ class _RenterEditItemState extends State<RenterEditItem> {
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.8),
                             shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                            boxShadow: [
+                              BoxShadow(color: Colors.black12, blurRadius: 4),
+                            ],
                           ),
-                          child: const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.black87),
+                          child: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 20,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ),
@@ -379,14 +447,21 @@ class _RenterEditItemState extends State<RenterEditItem> {
                       bottom: 16,
                       left: 16,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           "${_currentImageIndex + 1} / ${_itemImages.length}",
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                     ),
@@ -402,7 +477,11 @@ class _RenterEditItemState extends State<RenterEditItem> {
                           color: const Color(0xFF5C001F),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.edit, color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
@@ -412,25 +491,31 @@ class _RenterEditItemState extends State<RenterEditItem> {
                       top: 16,
                       right: 16,
                       child: InkWell(
-                        onTap: _confirmDelete, 
+                        onTap: _confirmDelete,
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9), 
+                            color: Colors.white.withOpacity(0.9),
                             shape: BoxShape.circle,
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
-                            ]
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                              ),
+                            ],
                           ),
-                          child: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                            size: 22,
+                          ),
                         ),
                       ),
                     ),
-
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 24),
 
             _buildLabel("Name"),
@@ -438,13 +523,27 @@ class _RenterEditItemState extends State<RenterEditItem> {
             _buildLabel("Category"),
             _buildDropdown(),
             _buildLabel("Price"),
-            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day", inputType: TextInputType.number),
+            _buildTextField(
+              controller: _priceController,
+              hint: "e.g: 10",
+              suffix: "RM/day",
+              inputType: TextInputType.number,
+            ),
             _buildLabel("Deposit"),
-            _buildTextField(controller: _depositController, hint: "e.g: 20", inputType: TextInputType.number),
+            _buildTextField(
+              controller: _depositController,
+              hint: "e.g: 20",
+              inputType: TextInputType.number,
+            ),
             _buildLabel("Description"),
-            _buildTextField(controller: _descriptionController, hint: "Insert here", maxLines: 5),
+            _buildTextField(
+              controller: _descriptionController,
+              hint: "Insert here",
+              maxLines: 5,
+            ),
             _buildLabel("Location"),
-            _buildTextField(controller: _locationController, hint: "Location"),
+            _buildAddLocation(),
+            // _buildTextField(controller: _locationController, hint: "Location"),
             const SizedBox(height: 30),
 
             Row(
@@ -455,11 +554,27 @@ class _RenterEditItemState extends State<RenterEditItem> {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       side: const BorderSide(color: Color(0xFF5C001F)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: _isSaving 
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF5C001F)))
-                      : const Text("UPDATE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                    child:
+                        _isSaving
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF5C001F),
+                              ),
+                            )
+                            : const Text(
+                              "UPDATE",
+                              style: TextStyle(
+                                color: Color(0xFF5C001F),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -469,10 +584,18 @@ class _RenterEditItemState extends State<RenterEditItem> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5C001F),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       elevation: 0,
                     ),
-                    child: const Text("CANCEL", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "CANCEL",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -487,11 +610,20 @@ class _RenterEditItemState extends State<RenterEditItem> {
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, top: 12.0),
-      child: Text(text, style: const TextStyle(fontSize: 16, color: Colors.black87)),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
+      ),
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType}) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    String? suffix,
+    int maxLines = 1,
+    TextInputType? inputType,
+  }) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -501,24 +633,121 @@ class _RenterEditItemState extends State<RenterEditItem> {
         hintStyle: const TextStyle(color: Colors.grey),
         suffixText: suffix,
         suffixStyle: const TextStyle(color: Colors.grey),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF5C001F))),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF5C001F)),
+        ),
       ),
+    );
+  }
+
+  Widget _buildAddLocation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (selectedLocations.isNotEmpty)
+          // Use .indexed to get (index, location) for each item
+          ...selectedLocations.indexed.map((indexedItem) {
+            // Destructure the tuple to get index and location
+            final index = indexedItem.$1 + 1;
+            final location = indexedItem.$2;
+
+            // You now have access to 'index' and 'location'
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '$index: ${location.locationName}}', // Example of using the index
+                      style: const TextStyle(fontSize: 14, color: Colors.black54),softWrap: true, overflow: TextOverflow.visible,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      setState(() {
+                        selectedLocations.removeAt(index - 1);
+                      });
+                    },
+                    icon: Icon(Icons.delete, color: Colors.red, size: 18),
+                  ),
+                ],
+              ),
+            );
+          }),
+        const SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return GeolocationRenter(
+                    onLocationSelected: _updateLocation,
+                    // location: selectedLocation,
+                    // locationLat: selectedLat,
+                    // locationLong: selectedLong,
+                    latitude: 1.488889,
+                    longitude: 103.761111,
+                  );
+                },
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF5C001F),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            elevation: 0,
+          ),
+          child: const Text(
+            "Add Location",
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildDropdown() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCategory,
-          hint: const Text("Select Category", style: TextStyle(color: Colors.grey)),
+          hint: const Text(
+            "Select Category",
+            style: TextStyle(color: Colors.grey),
+          ),
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down),
-          items: _categories.map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
+          items:
+              _categories
+                  .map(
+                    (String value) => DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    ),
+                  )
+                  .toList(),
           onChanged: (newValue) => setState(() => _selectedCategory = newValue),
         ),
       ),

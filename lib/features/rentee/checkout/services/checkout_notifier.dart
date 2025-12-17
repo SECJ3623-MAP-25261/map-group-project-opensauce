@@ -32,7 +32,8 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
   reviews: [],
   location: 'Kuala Lumpur',
   locationLat: 1.488889,
-  locationLong: 103.761111
+  locationLong: 103.761111,
+  locationDetails: []
 );
 
   // Initialize with the starting state (matching your ValueNotifiers)

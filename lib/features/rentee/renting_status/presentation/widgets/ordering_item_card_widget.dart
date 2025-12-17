@@ -13,7 +13,7 @@ class RentalItemCardWidget extends StatefulWidget {
   final String status;
   final DateTime returnDate;
   final int orderDate;
-  final int totalFee;
+  final double totalFee;
 
   const RentalItemCardWidget({
     super.key,

@@ -1,6 +1,42 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'review.dart'; // Assuming 'review.dart' contains the Review class
 
+// =======================================================================
+// NEW CLASS: locationObject
+// =======================================================================
+class locationObject {
+  final String locationName;
+  final double latitude;
+  final double longitude;
+
+  locationObject({
+    required this.locationName,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  // Helper factory method for deserialization
+  factory locationObject.fromMap(Map<String, dynamic> map) {
+    return locationObject(
+      locationName: map['locationName'] as String? ?? '',
+      // Use num to safely handle both int and double from Firestore
+      latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  // Helper method for serialization
+  Map<String, dynamic> toMap() {
+    return {
+      'locationName': locationName,
+      'latitude': latitude,
+      'longitude': longitude,
+    };
+  }
+}
+// =======================================================================
+// ITEM CLASS
+// =======================================================================
 class Item {
   final String id;
   final DocumentReference ownerRef;
@@ -23,6 +59,7 @@ class Item {
   final String location;
   final double locationLat;
   final double locationLong;
+  final List<locationObject> locationDetails; // New field
 
   Item({
     required this.id,
@@ -46,14 +83,13 @@ class Item {
     this.reviews = const [],
     this.locationLat = 0.0,
     this.locationLong = 0.0,
+    this.locationDetails = const [], // Set default empty list for safety
   });
 
   // --- 1. Serialization (Dart Object -> Firestore Map) ---
-  // Using toMap is generally preferred when manually adding/updating data
   Map<String, dynamic> toMap() {
     return {
-      // Use ownerRef for direct reference storage
-      'owner': ownerRef, 
+      'owner': ownerRef,
       'ownerName': ownerName,
       'ownerImage': ownerImage,
       'product_name': productName,
@@ -66,20 +102,46 @@ class Item {
       'location': location,
       'locationLat': locationLat,
       'locationLong': locationLong,
+      // FIX 1: Use toMap() on locationObject list for proper serialization
+      'locationDetails': locationDetails.map((loc) => loc.toMap()).toList(),
       'quantity': quantity,
       'renting_duration': rentingDuration,
       'delivery_methods': deliveryMethods,
       'rating': averageRating,
       
-      // Store the renter as a DocumentReference if available, otherwise null
       'renter': currentRenterId != null && currentRenterId!.isNotEmpty
           ? FirebaseFirestore.instance.doc('user/$currentRenterId') 
           : null,
       
-      // Convert List<Review> to List<Map<String, dynamic>>
       'reviews': reviews.map((r) => r.toMap()).toList(), 
     };
   }
+
+  // NOTE: Keeping your toJson method as provided, but recommend using toMap() consistently
+  Map<String, dynamic> toJson() {
+    return {
+      'owner': FirebaseFirestore.instance.doc('user/$ownerId'),
+      'ownerName': ownerName,
+      'ownerImage': ownerImage, 
+      'product_name': productName,
+      'price_per_day': pricePerDay,
+      'description': description,
+      'imageURL': imageUrl,
+      'imageUrls': imageUrls,
+      'deposit': deposit,
+      'location': location,
+      // FIX 2: Ensure locationDetails list is mapped for serialization
+      'locationDetails' : locationDetails.map((loc) => loc.toMap()).toList(),
+      'quantity': quantity,
+      'renting_duration': rentingDuration,
+      'delivery_methods': deliveryMethods,
+      'rating': averageRating,
+      'renter': currentRenterId != null && currentRenterId!.isNotEmpty
+          ? FirebaseFirestore.instance.doc('user/$currentRenterId') 
+          : null,
+    };
+  }
+
 
   // --- 2. Deserialization (Firestore Map -> Dart Object) ---
   factory Item.fromMap(Map<String, dynamic> map, String id) {
@@ -100,6 +162,13 @@ class Item {
         map['renter'] is DocumentReference
             ? map['renter'] as DocumentReference
             : null;
+            
+    // FIX 3: Correctly deserialize List<Map<String, dynamic>> into List<locationObject>
+    final List<locationObject> loadedLocationDetails =
+        (map['locationDetails'] as List<dynamic>? ?? [])
+            .map((e) => locationObject.fromMap(e as Map<String, dynamic>))
+            .toList();
+
 
     return Item(
       id: id,
@@ -112,7 +181,6 @@ class Item {
       productName: map['product_name'] ?? '',
       category: map['category'] ?? 'Other',
 
-      // Use num casting and .toDouble() for robustness
       pricePerDay: (map['price_per_day'] as num?)?.toDouble() ?? 0.0,
       deposit: (map['deposit'] as num?)?.toDouble() ?? 0.0,
 
@@ -131,6 +199,9 @@ class Item {
       location: map['location'] ?? '',
       locationLat: (map['locationLat'] as num?)?.toDouble() ?? 0.0,
       locationLong: (map['locationLong'] as num?)?.toDouble() ?? 0.0,
+      
+      // Assign the correctly mapped list
+      locationDetails: loadedLocationDetails,
     );
   }
 
@@ -144,7 +215,7 @@ class Item {
     return Item.fromMap(data, snapshot.id);
   }
 
-  // Helper methods for type-safe conversions (Kept for reference, but fromMap handles most)
+  // Helper methods (Kept for completeness)
   static String _safeString(dynamic value) {
     if (value == null) return '';
     if (value is String) return value;
@@ -179,7 +250,7 @@ class Item {
     return 1;
   }
 
-  // CopyWith method
+  // CopyWith method (Kept for completeness)
   Item copyWith({
     String? id,
     DocumentReference? ownerRef,
@@ -202,6 +273,7 @@ class Item {
     double? averageRating,
     String? currentRenterId,
     List<Review>? reviews,
+    List<locationObject>? locationDetails,
   }) {
     return Item(
       id: id ?? this.id,
@@ -225,6 +297,7 @@ class Item {
       averageRating: averageRating ?? this.averageRating,
       currentRenterId: currentRenterId ?? this.currentRenterId,
       reviews: reviews ?? this.reviews,
+      locationDetails: locationDetails ?? this.locationDetails,
     );
   }
 }

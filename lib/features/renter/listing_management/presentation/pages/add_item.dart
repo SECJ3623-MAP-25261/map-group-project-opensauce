@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'dart:io' as io; 
+import 'package:easyrent/features/models/latlng.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/features/rentee/geolocation/geolocation.dart';
@@ -34,19 +35,19 @@ class _RenterAddItemState extends State<RenterAddItem> {
   int _currentImageIndex = 0; 
 
   // final list location and latlng (save db)
-  List <String> selectedLocations = [];
-  List <LatLng> selectedLatLngs = [];
+  List <locationObject> selectedLocations = [];
 
-  String selectedLocation = '';
-  double selectedLat = 0;
-  double selectedLong = 0;
+  
 
   void _updateLocation(String location, double lat, double long) {
     setState(() {
-      selectedLocations.add(location);
-      selectedLatLngs.add(LatLng(lat, long));
+      selectedLocations.add(locationObject(
+        locationName: location,
+        latitude: lat,
+        longitude: long,
+      ));
     });
-    print("---------the locations: ${selectedLocations.last} lat: ${selectedLatLngs.last.latitude} long: ${selectedLatLngs.last.longitude}----------");
+    print("---------the locations: ${selectedLocations.last.locationName} lat: ${selectedLocations.last.latitude} long: ${selectedLocations.last.longitude}----------");
   }
   
   final PageController _pageController = PageController();
@@ -162,7 +163,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
         _priceController.text.isEmpty || 
         _depositController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
-       selectedLocations.isEmpty || selectedLatLngs.isEmpty) {
+       selectedLocations.isEmpty || selectedLocations.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill in all fields")),
       );
@@ -206,13 +207,14 @@ class _RenterAddItemState extends State<RenterAddItem> {
         category: _selectedCategory ?? "Other",        
         imageUrl: mainImageUrl,
         imageUrls: additionalImages,
-        location: _locationController.text, 
         quantity: 1,
         rentingDuration: "Daily",
         deliveryMethods: "Pickup",
         averageRating: 5.0,
         reviews: [],
         currentRenterId: null,
+        locationDetails: selectedLocations,
+        location: selectedLocations.last.locationName
       );
 
       if (!mounted) return;
@@ -420,6 +422,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
 
   Widget _buildAddLocation() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (selectedLocations.isNotEmpty) 
       // Use .indexed to get (index, location) for each item
@@ -433,14 +436,15 @@ class _RenterAddItemState extends State<RenterAddItem> {
           padding: const EdgeInsets.symmetric(vertical: 4.0),
           child: Row(
             children: [
-              Text(
-                '$index: $location', // Example of using the index
-                style: const TextStyle(fontSize: 14, color: Colors.black54),
+              Expanded(
+                child: Text(
+                  '$index: ${location.locationName}}', // Example of using the index
+                  style: const TextStyle(fontSize: 14, color: Colors.black54), softWrap: true, overflow: TextOverflow.visible
+                ),
               ),
               IconButton(onPressed: () {
                 setState(() {
                   selectedLocations.removeAt(index - 1);
-                  selectedLatLngs.removeAt(index - 1);
                 });
               }, icon: Icon(Icons.delete, color: Colors.red, size: 18)),
             ],

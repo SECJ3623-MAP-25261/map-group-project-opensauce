@@ -35,8 +35,8 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
   bool _isLoading = true;
 
   static const LatLng _initialDefaultPosition = LatLng(
-    3.1390,
-    101.6869,
+    1.558433,
+    103.638367,
   ); // Kuala Lumpur, for example
 
   /// Suggested places shown when map opens
@@ -179,7 +179,7 @@ class _GeolocationRenterState extends State<GeolocationRenter> {
             child: GoogleMap(
               initialCameraPosition: CameraPosition(
                 target: _currentLocation ?? _initialDefaultPosition,
-                zoom: 14,
+                zoom: 18,
               ),
               mapType: MapType.normal,
               zoomControlsEnabled: true,
