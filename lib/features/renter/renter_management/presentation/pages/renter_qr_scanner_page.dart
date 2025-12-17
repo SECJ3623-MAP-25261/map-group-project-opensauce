@@ -26,8 +26,6 @@ class _RenterQRScannerPageState extends State<RenterQRScannerPage> {
 
   void _handleScanResult(String code) {
     if (!mounted) return;
-
-    
     showDialog(
       context: context,
       barrierDismissible: false,

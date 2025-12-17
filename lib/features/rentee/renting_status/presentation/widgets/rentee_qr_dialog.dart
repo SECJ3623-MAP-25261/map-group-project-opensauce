@@ -6,7 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 class RenteeQRDialog extends StatelessWidget {
   final Item item;
   final int orderDate;
-  final int totalFee;
+  final double totalFee;
   final VoidCallback onSimulateScan;
   final bool showSimulateButton;
   final String currentStatus;

@@ -234,6 +234,8 @@ class _RenterAddItemState extends State<RenterAddItem> {
         averageRating: 5.0,
         reviews: [],
         currentRenterId: null,
+        locationLat: selectedLocations.last.latitude,
+        locationLong: selectedLocations.last.longitude,
         locationDetails: selectedLocations,
         location: selectedLocations.last.locationName
       );

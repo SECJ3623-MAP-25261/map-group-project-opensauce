@@ -40,7 +40,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
 
   int _currentImageIndex = 0;
 
-  int _currentImageIndex = 0;
   final PageController _pageController = PageController();
 
 

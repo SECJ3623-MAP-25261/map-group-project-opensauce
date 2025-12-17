@@ -34,6 +34,7 @@ class locationObject {
     };
   }
 }
+
 // =======================================================================
 // ITEM CLASS
 // =======================================================================
@@ -45,27 +46,20 @@ class Item {
   final String ownerImage;
   final String productName;
   final double pricePerDay;
-  final String description;
-  final String category;
-  final double deposit;
+  final String description; // Consolidating description
+  final String category; // Consolidating category
+  final double deposit; // Consolidating deposit
   final String imageUrl;
   final List<String> imageUrls;
-  final String description;
   final int quantity;
   final String rentingDuration;
   final String deliveryMethods;
-  final double averageRating;
-  final String? currentRenterId;
-  final double averageRating;
+  final double averageRating; // Consolidating averageRating
+  final String? currentRenterId; // Consolidating currentRenterId, making it nullable
   final List<Review> reviews;
-  final String location;
-  final double locationLat;
-  final double locationLong;
-  
-  // Added fields to fix errors
-  final String category;
-  final double deposit;
-  final String currentRenterId;
+  final String location; // Consolidating location
+  final double locationLat; // Consolidating locationLat
+  final double locationLong; // Consolidating locationLong
   final List<locationObject> locationDetails; // New field
 
   Item({
@@ -76,31 +70,34 @@ class Item {
     required this.ownerImage,
     required this.productName,
     required this.pricePerDay,
+    required this.description,
     required this.imageUrl,
     required this.imageUrls,
-    required this.description,
     required this.quantity,
     required this.rentingDuration,
     required this.deliveryMethods,
-    required this.averageRating,
     required this.reviews,
     required this.location,
+    // Note: locationLat and locationLong are redundant if using locationDetails
+    // but kept for backward compatibility with your provided fields.
     required this.locationLat,
     required this.locationLong,
-    this.category = 'Other',
-    this.deposit = 0.0,
-    this.currentRenterId = '',
+    required this.locationDetails, // New required field in constructor
+    this.category = 'Other', // Using initializers for defaults
+    this.deposit = 0.0, // Using initializers for defaults
+    this.averageRating = 0.0, // Using initializers for defaults
+    this.currentRenterId, // Nullable field doesn't need a default unless non-nullable
   });
 
-  // --- 1. Serialization (Dart Object -> Firestore Map) ---
-  Map<String, dynamic> toMap() {
-    this.currentRenterId,
-    this.reviews = const [],
-    this.locationLat = 0.0,
-    this.locationLong = 0.0,
-    this.locationDetails = const [], // Set default empty list for safety
-  });
-
+  // Helper for safe parsing
+  static double safeDouble(dynamic val) {
+    if (val == null) return 0.0;
+    if (val is double) return val;
+    if (val is int) return val.toDouble();
+    if (val is String) return double.tryParse(val) ?? 0.0;
+    return 0.0;
+  }
+  
   // --- 1. Serialization (Dart Object -> Firestore Map) ---
   Map<String, dynamic> toMap() {
     return {
@@ -123,55 +120,16 @@ class Item {
       'renting_duration': rentingDuration,
       'delivery_methods': deliveryMethods,
       'rating': averageRating,
-      
+      // Use ownerId to reconstruct the DocumentReference if ownerRef is null
       'renter': currentRenterId != null && currentRenterId!.isNotEmpty
           ? FirebaseFirestore.instance.doc('user/$currentRenterId') 
           : null,
-      
       'reviews': reviews.map((r) => r.toMap()).toList(), 
     };
   }
 
-  // NOTE: Keeping your toJson method as provided, but recommend using toMap() consistently
-  Map<String, dynamic> toJson() {
-    return {
-      'owner': FirebaseFirestore.instance.doc('user/$ownerId'),
-      'ownerName': ownerName,
-      'ownerImage': ownerImage, 
-      'product_name': productName,
-      'price_per_day': pricePerDay,
-      'description': description,
-      'imageURL': imageUrl,
-      'imageUrls': imageUrls,
-      'deposit': deposit,
-      'location': location,
-      // FIX 2: Ensure locationDetails list is mapped for serialization
-      'locationDetails' : locationDetails.map((loc) => loc.toMap()).toList(),
-      'quantity': quantity,
-      'renting_duration': rentingDuration,
-      'delivery_methods': deliveryMethods,
-      'rating': averageRating,
-      'ownerName': ownerName,
-      'ownerImage': ownerImage,
-      'imageUrls': imageUrls,
-      'reviews': reviews.map((r) => r.toMap()).toList(),
-      'location': location,
-      'locationLat': locationLat,
-      'locationLong': locationLong,
-      'category': category,
-      'deposit': deposit,
-      'currentRenterId': currentRenterId,
-    };
-  }
-
-  // Fix: Add toJson as an alias for toMap to satisfy Repository calls
+  // NOTE: This toJson method is simplified to call toMap() as is best practice.
   Map<String, dynamic> toJson() => toMap();
-
-      'renter': currentRenterId != null && currentRenterId!.isNotEmpty
-          ? FirebaseFirestore.instance.doc('user/$currentRenterId') 
-          : null,
-    };
-  }
 
 
   // --- 2. Deserialization (Firestore Map -> Dart Object) ---
@@ -199,65 +157,48 @@ class Item {
         (map['locationDetails'] as List<dynamic>? ?? [])
             .map((e) => locationObject.fromMap(e as Map<String, dynamic>))
             .toList();
+            
+    // Get the owner ID from the DocumentReference
+    final String ownerId = ownerRef?.id ?? '';
+    // Get the renter ID from the DocumentReference
+    final String? currentRenterId = renterRef?.id;
 
-
-    // Helper for safe parsing
-    double safeDouble(dynamic val) {
-      if (val == null) return 0.0;
-      if (val is double) return val;
-      if (val is int) return val.toDouble();
-      if (val is String) return double.tryParse(val) ?? 0.0;
-      return 0.0;
-    }
-
-    // Helper for safe parsing
-    double safeDouble(dynamic val) {
-      if (val == null) return 0.0;
-      if (val is double) return val;
-      if (val is int) return val.toDouble();
-      if (val is String) return double.tryParse(val) ?? 0.0;
-      return 0.0;
-    }
-
+    // Default ownerRef if it was missing (should not happen with good data)
+    final DocumentReference defaultOwnerRef = ownerRef ?? FirebaseFirestore.instance.doc('user/unknown');
+    
     return Item(
       id: id,
-      ownerRef: ownerRef ?? FirebaseFirestore.instance.doc('user/unknown'),
-      ownerId: ownerRef?.id ?? '',
-      ownerRef: ownerRef!,
-      ownerId: ownerRef.id,
-      currentRenterId: renterRef?.id,
+      ownerRef: defaultOwnerRef,
+      ownerId: ownerId,
+      currentRenterId: currentRenterId,
 
-      ownerName: map['ownerName'] ?? '',
-      ownerImage: map['ownerImage'] ?? '',
-      productName: map['product_name'] ?? '',
-      category: map['category'] ?? 'Other',
-
-      pricePerDay: (map['price_per_day'] as num?)?.toDouble() ?? 0.0,
-      deposit: (map['deposit'] as num?)?.toDouble() ?? 0.0,
+      ownerName: map['ownerName'] as String? ?? '',
+      ownerImage: map['ownerImage'] as String? ?? '',
+      productName: map['product_name'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      category: map['category'] as String? ?? 'Other',
 
       pricePerDay: safeDouble(map['price_per_day']),
-      imageUrl: map['imageURL'] ?? '',
-      imageUrls: List<String>.from(map['imageUrls'] ?? []),
-      description: map['description'] ?? '',
-      quantity: (map['quantity'] as num?)?.toInt() ?? 0,
+      deposit: safeDouble(map['deposit']),
 
-      quantity: map['quantity'] ?? 0,
-      rentingDuration: map['renting_duration'] ?? '',
-      deliveryMethods: map['delivery_methods'] ?? '',
+      imageUrl: map['imageURL'] as String? ?? '',
+      imageUrls: List<String>.from(map['imageUrls'] as List<dynamic>? ?? []),
+      
+      quantity: (map['quantity'] as num?)?.toInt() ?? 0,
+      rentingDuration: map['renting_duration'] as String? ?? '',
+      deliveryMethods: map['delivery_methods'] as String? ?? '',
       averageRating: safeDouble(map['rating']),
       reviews: loadedReviews,
-      location: map['location'] ?? '',
+      location: map['location'] as String? ?? '',
       locationLat: safeDouble(map['locationLat']),
       locationLong: safeDouble(map['locationLong']),
-      category: map['category'] ?? 'Other',
-      deposit: safeDouble(map['deposit']),
-      currentRenterId: map['currentRenterId'] ?? '',
+      locationDetails: loadedLocationDetails,
     );
   }
 
   factory Item.fromSnapshot(DocumentSnapshot<Map<String, dynamic>> snapshot) {
     if (!snapshot.exists || snapshot.data() == null) {
-      // Return a default empty item or handle error appropriately
+      // Return a minimal, valid Item for a non-existent document
        return Item(
         id: snapshot.id,
         ownerRef: FirebaseFirestore.instance.doc('user/unknown'),
@@ -266,17 +207,17 @@ class Item {
         ownerImage: '',
         productName: '',
         pricePerDay: 0.0,
-        imageUrl: '',
-        imageUrls: [],
         description: '',
+        imageUrl: '',
+        imageUrls: const [],
         quantity: 0,
         rentingDuration: '',
         deliveryMethods: '',
-        averageRating: 0.0,
-        reviews: [],
+        reviews: const [],
         location: '',
         locationLat: 0.0,
-        locationLong: 0.0
+        locationLong: 0.0,
+        locationDetails: const [],
       );
     }
     return Item.fromMap(snapshot.data()!, snapshot.id);
@@ -304,12 +245,6 @@ class Item {
     double? averageRating,
     String? currentRenterId,
     List<Review>? reviews,
-    String? location,
-    double? locationLat,
-    double? locationLong,
-    String? category,
-    double? deposit,
-    String? currentRenterId,
     List<locationObject>? locationDetails,
   }) {
     return Item(
@@ -320,8 +255,9 @@ class Item {
       ownerImage: ownerImage ?? this.ownerImage,
       productName: productName ?? this.productName,
       pricePerDay: pricePerDay ?? this.pricePerDay,
+      description: description ?? this.description,
+      category: category ?? this.category,
       deposit: deposit ?? this.deposit,
-      location: location ?? this.location,
       imageUrl: imageUrl ?? this.imageUrl,
       imageUrls: imageUrls ?? this.imageUrls,
       location: location ?? this.location,
@@ -334,12 +270,6 @@ class Item {
       currentRenterId: currentRenterId ?? this.currentRenterId,
       reviews: reviews ?? this.reviews,
       locationDetails: locationDetails ?? this.locationDetails,
-      location: location ?? this.location,
-      locationLat: locationLat ?? this.locationLat,
-      locationLong: locationLong ?? this.locationLong,
-      category: category ?? this.category,
-      deposit: deposit ?? this.deposit,
-      currentRenterId: currentRenterId ?? this.currentRenterId,
     );
   }
 }
