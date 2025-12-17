@@ -34,38 +34,20 @@ class InrentingItemCardWidget extends StatefulWidget {
 class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
   bool cancelledItem = false;
 
-  // This is the function that simulates the API call to report the item
   Future<bool> _handleReportSubmission(String reason, Item item) async {
-    print('Reporting item: with ${item.productName} name and ${item.id} id');
-    print('Reason: $reason');
-
-    // Simulate a network delay
     await Future.delayed(const Duration(seconds: 2));
-
-    // Simulate a successful submission 80% of the time
-    final isSuccessful = DateTime.now().millisecond % 10 < 8;
-
-    return isSuccessful;
+    return true;
   }
 
   Future<void> _cancelOrderApiCall(String orderId, String newStatus) async {
-    print('Attempting to cancel order $orderId...');
     await RentingStatusDatabaseService().updateItemStatus(orderId, newStatus);
-
-    if (DateTime.now().millisecond % 10 < 2) {
-      throw Exception('Server error: Could not process cancellation.');
-    }
     setState(() {
       cancelledItem = true;
     });
-    print('Order $orderId successfully cancelled.');
   }
 
-  // Function to show QR dialog
   void _showQRCodeDialog(BuildContext context) {
-    // Calculate rental days
     final rentalDays = widget.endDate.difference(widget.startDate).inDays;
-
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -81,13 +63,12 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
     );
   }
 
-  // Function to simulate return scanning
+  // --- FIXED METHOD START ---
   Future<void> _simulateReturnScan(BuildContext context) async {
-    try {
-      print('Simulating return scan for item: ${widget.item.id}');
-      print('Current status: ${widget.status}');
+    // 1. Capture the navigator BEFORE the async gap
+    final navigator = Navigator.of(context);
 
-      // Only allow return simulation for renting items
+    try {
       if (widget.status.toLowerCase() != 'renting') {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Cannot return ${widget.status} item")),
@@ -95,7 +76,6 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
         return;
       }
 
-      // Show loading
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -111,78 +91,78 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
             ),
       );
 
-      // Simulate API delay
       await Future.delayed(const Duration(seconds: 1));
 
-      // Update item status to 'history' via API
+      // 2. Perform DB Update
       await RentingStatusDatabaseService().updateItemStatus(
         widget.item.id,
         'history',
       );
 
-      // Close loading dialog
-      if (mounted) Navigator.pop(context);
+      // 3. Pop unconditionally using captured navigator
+      navigator.pop();
 
-      // Show success dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder:
-            (context) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              contentPadding: const EdgeInsets.all(20),
-              title: const Column(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 60),
-                  SizedBox(height: 10),
-                  Text(
-                    "Return Verified",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+      // 4. Show success dialog ONLY if mounted
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder:
+              (context) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                contentPadding: const EdgeInsets.all(20),
+                title: const Column(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 60),
+                    SizedBox(height: 10),
+                    Text(
+                      "Return Verified",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                content: const Text(
+                  "Item return confirmed!\n\nStatus updated to 'history'.\n\nItem will now appear in History tab.",
+                  textAlign: TextAlign.center,
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF8BE17),
+                      foregroundColor: Colors.black,
+                    ),
+                    child: const Text("Done"),
                   ),
                 ],
               ),
-              content: const Text(
-                "Item return confirmed!\n\nStatus updated to 'history'.\n\nItem will now appear in History tab.",
-                textAlign: TextAlign.center,
-              ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Close dialog
-                    // ðŸ›‘ FIX: Removed setState((){}) - The Firestore stream will handle the UI refresh.
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF8BE17),
-                    foregroundColor: Colors.black,
-                  ),
-                  child: const Text("Done"),
-                ),
-              ],
-            ),
-      );
+        );
+      }
     } catch (e) {
+      navigator.pop(); // Ensure pop on error
       print('Error simulating return scan: $e');
-      if (mounted) Navigator.pop(context); // Close loading dialog
 
-      // Show error dialog
-      showDialog(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              title: const Text("Error"),
-              content: Text("Failed to verify return: $e"),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("OK"),
-                ),
-              ],
-            ),
-      );
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text("Error"),
+                content: Text("Failed to verify return: $e"),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("OK"),
+                  ),
+                ],
+              ),
+        );
+      }
     }
   }
+  // --- FIXED METHOD END ---
 
   @override
   String get formattedEndDate {
@@ -204,7 +184,6 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left Side: Image
             SizedBox(
               width: 80,
               height: 80,
@@ -215,23 +194,6 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey[200],
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value:
-                              loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                        ),
-                      ),
-                    );
-                  },
                   errorBuilder:
                       (context, error, stackTrace) => Container(
                         width: 80,
@@ -249,13 +211,10 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
               ),
             ),
             const SizedBox(width: 12),
-
-            // Right Side: Details and Actions
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top Row: Title, Item Count, Price
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -283,14 +242,12 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  // Rental Rate
                   Row(
                     children: [
                       Text(
                         'RM ${widget.item.pricePerDay} / day',
                         style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
-                      const SizedBox(width: 10),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -338,7 +295,6 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  // Total Rental Summary (The Yellow Section)
                   Container(
                     padding: const EdgeInsets.symmetric(
                       vertical: 4,
@@ -352,7 +308,7 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Total Price: RM${widget.totalPrice}',
+                          'Total Price: RM${widget.totalPrice.toStringAsFixed(2)}',
                           style: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w600,
@@ -360,11 +316,11 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        // Buttons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                        Wrap(
+                          alignment: WrapAlignment.end,
+                          spacing: 8.0,
+                          runSpacing: 4.0,
                           children: [
-                            // Cancel Order Button
                             SizedBox(
                               height: 28,
                               child: ElevatedButton(
@@ -406,9 +362,6 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-
-                            // QR Code Button for Return Verification
                             if (widget.status.toLowerCase() == 'renting')
                               SizedBox(
                                 height: 28,
@@ -440,10 +393,6 @@ class _InrentingItemCardWidgetState extends State<InrentingItemCardWidget> {
                                   ),
                                 ),
                               ),
-                            if (widget.status.toLowerCase() == 'renting')
-                              const SizedBox(width: 8),
-
-                            // Report Button (Red)
                             SizedBox(
                               height: 28,
                               child: ReportItemWidget(

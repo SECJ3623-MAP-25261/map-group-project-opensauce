@@ -14,8 +14,7 @@ class RentalItemCardWidget extends StatefulWidget {
   final String status;
   final DateTime returnDate;
   final int orderDate;
-  // CHANGE: Updated type from int to double
-  final double totalFee; 
+  final double totalFee;
 
   const RentalItemCardWidget({
     super.key,
@@ -34,26 +33,15 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
   bool cancelledItem = false;
 
   Future<bool> _handleReportSubmission(String reason, Item item) async {
-    print('Reporting item: with ${item.productName} name and ${item.id} id');
-    print('Reason: $reason');
-
     await Future.delayed(const Duration(seconds: 2));
-    final isSuccessful = DateTime.now().millisecond % 10 < 8;
-
-    return isSuccessful;
+    return true;
   }
 
   Future<void> _cancelOrderApiCall(String orderId, String newStatus) async {
-    print('Attempting to cancel order $orderId...');
     await RentingStatusDatabaseService().updateItemStatus(orderId, newStatus);
-
-    if (DateTime.now().millisecond % 10 < 2) {
-      throw Exception('Server error: Could not process cancellation.');
-    }
     setState(() {
       cancelledItem = true;
     });
-    print('Order $orderId successfully cancelled.');
   }
 
   void _showQRCodeDialog(BuildContext context) {
@@ -64,19 +52,20 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
           (context) => RenteeQRDialog(
             item: widget.item,
             orderDate: widget.orderDate,
-            totalFee: widget.totalFee, // Ensure RenteeQRDialog also accepts double!
-            currentStatus: widget.status, 
+            totalFee: widget.totalFee,
+            currentStatus: widget.status,
             onSimulateScan: () => _simulatePickupScan(context),
             showSimulateButton: kIsWeb,
           ),
     );
   }
 
+  // --- FIXED METHOD START ---
   Future<void> _simulatePickupScan(BuildContext context) async {
-    try {
-      print('Simulating pickup scan for item: ${widget.item.id}');
-      print('Current status: ${widget.status}');
+    // 1. Capture the navigator BEFORE the async gap
+    final navigator = Navigator.of(context);
 
+    try {
       if (widget.status.toLowerCase() != 'pending') {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Cannot pickup ${widget.status} item")),
@@ -101,70 +90,80 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
 
       await Future.delayed(const Duration(seconds: 1));
 
+      // 2. Perform DB Update
       await RentingStatusDatabaseService().updateItemStatus(
         widget.item.id,
         'renting',
       );
 
-      if (mounted) Navigator.pop(context);
+      // 3. Pop the dialog unconditionally using the captured navigator
+      // We do NOT check 'mounted' here, because we must close the dialog
+      // even if this widget is about to be disposed (moved to another tab).
+      navigator.pop();
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder:
-            (context) => AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              contentPadding: const EdgeInsets.all(20),
-              title: const Column(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 60),
-                  SizedBox(height: 10),
-                  Text(
-                    "Pickup Verified",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+      // 4. Show success dialog ONLY if widget is still alive (optional)
+      // Since the item moves to another tab, this widget might be unmounted.
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder:
+              (context) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                contentPadding: const EdgeInsets.all(20),
+                title: const Column(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 60),
+                    SizedBox(height: 10),
+                    Text(
+                      "Pickup Verified",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                content: const Text(
+                  "Item pickup confirmed!\n\nStatus updated to 'renting'.\n\nItem will now appear in In Renting tab.",
+                  textAlign: TextAlign.center,
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF8BE17),
+                      foregroundColor: Colors.black,
+                    ),
+                    child: const Text("Done"),
                   ),
                 ],
               ),
-              content: const Text(
-                "Item pickup confirmed!\n\nStatus updated to 'renting'.\n\nItem will now appear in In Renting tab.",
-                textAlign: TextAlign.center,
-              ),
-              actions: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF8BE17),
-                    foregroundColor: Colors.black,
-                  ),
-                  child: const Text("Done"),
-                ),
-              ],
-            ),
-      );
+        );
+      }
     } catch (e) {
+      // Ensure loader is popped on error too
+      navigator.pop();
       print('Error simulating pickup scan: $e');
-      if (mounted) Navigator.pop(context);
 
-      showDialog(
-        context: context,
-        builder:
-            (context) => AlertDialog(
-              title: const Text("Error"),
-              content: Text("Failed to verify pickup: $e"),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("OK"),
-                ),
-              ],
-            ),
-      );
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text("Error"),
+                content: Text("Failed to verify pickup: $e"),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("OK"),
+                  ),
+                ],
+              ),
+        );
+      }
     }
   }
+  // --- FIXED METHOD END ---
 
   String get formattedReturnDate {
     return DateFormat('dd MMM yyyy').format(widget.returnDate);
@@ -198,41 +197,15 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey[200],
-                      child: Center(
-                        child: CircularProgressIndicator(
-                          value:
-                              loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                        ),
-                      ),
-                    );
-                  },
                   errorBuilder:
                       (context, error, stackTrace) => Container(
-                        width: 80,
-                        height: 80,
                         color: Colors.grey[200],
-                        child: const Center(
-                          child: Icon(
-                            Icons.image,
-                            color: Colors.grey,
-                            size: 40,
-                          ),
-                        ),
+                        child: const Icon(Icons.image, color: Colors.grey),
                       ),
                 ),
               ),
             ),
             const SizedBox(width: 12),
-
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,7 +310,6 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // CHANGE: Format double with toStringAsFixed(2)
                         Text(
                           'Total ${widget.orderDate} days: RM ${widget.totalFee.toStringAsFixed(2)}',
                           style: const TextStyle(
@@ -347,8 +319,10 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                        Wrap(
+                          alignment: WrapAlignment.end,
+                          spacing: 8.0,
+                          runSpacing: 4.0,
                           children: [
                             SizedBox(
                               height: 28,
@@ -397,8 +371,6 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-
                             SizedBox(
                               height: 28,
                               child: ReportItemWidget(
@@ -406,9 +378,6 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                                 item: widget.item,
                               ),
                             ),
-
-                            const SizedBox(width: 8),
-
                             if (canShowQR)
                               SizedBox(
                                 height: 28,
