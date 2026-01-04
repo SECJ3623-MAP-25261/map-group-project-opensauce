@@ -1,4 +1,6 @@
+import 'package:easyrent/features/rentee/homePage/rentee_bottom_navbar.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/pages/renting_status_page.dart';
+import 'package:easyrent/features/rentee/services/notifiers.dart';
 import 'package:flutter/material.dart';
 import 'list_widget.dart';
 import '../searchPage/search_page.dart';
@@ -46,6 +48,9 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+      bottomNavigationBar: ValueListenableBuilder(valueListenable: selectedPageNotifiers, builder: (context, index, _) {
+        return NavbarWidget(currentIndex: index, onTap: (i) => selectedPageNotifiers.value=i);
+      },),
     );
   }
 }

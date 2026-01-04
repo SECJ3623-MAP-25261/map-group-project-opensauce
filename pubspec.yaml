@@ -55,6 +55,7 @@ dependencies:
   geocoding: ^4.0.0
   qr_flutter: ^4.1.0        # To generate QR codes
   mobile_scanner: ^5.1.1    # To scan QR codes
+  foundation: ^0.0.5
   
 
 dev_dependencies:

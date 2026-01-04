@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/core/constants/constants.dart';
-
+import 'package:http/http.dart' as http;
 class CheckoutDatabaseServices {
   // 1. Get a reference to the Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -82,5 +82,20 @@ class CheckoutDatabaseServices {
     }
   }
 
+static const String baseUrl = 'http://10.203.101.6:3000';
 
+  Future<String> fetchProducts() async {
+    try {
+      final response = await http.get(Uri.parse('$baseUrl/api/product/sample-product'));
+
+      if (response.statusCode == 200) {
+        return response.body; // Return the raw string or decoded JSON
+      } else {
+        // Throw an error that the widget can catch
+        throw 'Server Error: ${response.statusCode}';
+      }
+    } catch (e) {
+      throw 'Connection Failed: $e';
+    }
+  }
 }
