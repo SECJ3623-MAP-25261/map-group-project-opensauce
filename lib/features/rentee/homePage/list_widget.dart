@@ -1,3 +1,4 @@
+import 'package:easyrent/features/rentee/productList/top_rated_product_page.dart';
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../../../features/models/item.dart';
@@ -53,7 +54,7 @@ class _ProductSectionWidgetState extends State<ProductSectionWidget> {
                       context,
                       MaterialPageRoute(
                         builder:
-                            (context) => ProductListPage(title: widget.title),
+                            (context) => widget.title == 'Top Rated Product'? TopRatedProductPage(title: widget.title) : ProductListPage(title: widget.title),
                       ),
                     );
                   },

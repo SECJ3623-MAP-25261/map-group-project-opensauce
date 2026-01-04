@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/core/constants/constants.dart';
 import 'package:http/http.dart' as http;
+
 class CheckoutDatabaseServices {
   // 1. Get a reference to the Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -82,11 +83,44 @@ class CheckoutDatabaseServices {
     }
   }
 
-static const String baseUrl = 'http://10.203.101.6:3000';
+  Future<bool> updateItemOrderCounts({required String productId}) async {
+    try {
+      DocumentReference docRef = _firestore
+          .collection('product')
+          .doc(productId);
+
+      // 1. Check if the document actually exists before updating
+      final docSnapshot = await docRef.get();
+
+      if (!docSnapshot.exists) {
+        print('No document found in Firestore with ID: $productId');
+        return false;
+      }
+
+      // 2. Perform the atomic increment
+      await docRef.update({'orderCounts': FieldValue.increment(1)});
+
+      print(
+        '---------- Successfully updated orderCounts for: $productId ----------',
+      );
+      return true;
+    } on FirebaseException catch (e) {
+      // Handle specific cases (like the document being deleted mid-process)
+      print('Firebase Update Error: ${e.message}');
+      return false;
+    } catch (e) {
+      print('General Update Error: $e');
+      return false;
+    }
+  }
+
+  static const String baseUrl = 'http://10.203.101.6:3000';
 
   Future<String> fetchProducts() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/product/sample-product'));
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/product/sample-product'),
+      );
 
       if (response.statusCode == 200) {
         return response.body; // Return the raw string or decoded JSON

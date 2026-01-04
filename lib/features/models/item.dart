@@ -61,6 +61,7 @@ class Item {
   final double locationLat; // Consolidating locationLat
   final double locationLong; // Consolidating locationLong
   final List<locationObject> locationDetails; // New field
+  final int orderCounts;
 
   Item({
     required this.id,
@@ -87,6 +88,7 @@ class Item {
     this.deposit = 0.0, // Using initializers for defaults
     this.averageRating = 0.0, // Using initializers for defaults
     this.currentRenterId, // Nullable field doesn't need a default unless non-nullable
+    this.orderCounts = 0
   });
 
   // Helper for safe parsing
@@ -101,6 +103,7 @@ class Item {
   // --- 1. Serialization (Dart Object -> Firestore Map) ---
   Map<String, dynamic> toMap() {
     return {
+      'id' : id,
       'owner': ownerRef,
       'ownerName': ownerName,
       'ownerImage': ownerImage,
@@ -125,6 +128,7 @@ class Item {
           ? FirebaseFirestore.instance.doc('user/$currentRenterId') 
           : null,
       'reviews': reviews.map((r) => r.toMap()).toList(), 
+      'orderCounts':orderCounts
     };
   }
 
@@ -193,6 +197,7 @@ class Item {
       locationLat: safeDouble(map['locationLat']),
       locationLong: safeDouble(map['locationLong']),
       locationDetails: loadedLocationDetails,
+      orderCounts: (map['orderCounts'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -246,6 +251,7 @@ class Item {
     String? currentRenterId,
     List<Review>? reviews,
     List<locationObject>? locationDetails,
+    int ? orderCounts
   }) {
     return Item(
       id: id ?? this.id,
@@ -270,6 +276,7 @@ class Item {
       currentRenterId: currentRenterId ?? this.currentRenterId,
       reviews: reviews ?? this.reviews,
       locationDetails: locationDetails ?? this.locationDetails,
+      orderCounts: orderCounts ?? this.orderCounts
     );
   }
 }

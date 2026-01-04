@@ -33,7 +33,8 @@ class Review {
       reviewerId: map['reviewerId'] ?? '',
       reviewerName: map['reviewerName'] ?? 'Anonymous',
       reviewerImage: map['reviewerImage'] ?? 'https://i.pravatar.cc/150?img=1',
-      date: (map['date'] as Timestamp).toDate(),
+      date: Review._parseDate(map['date'])!,
+      // date: (map['date'] as Timestamp).toDate(),
       star: (map['star'] as num?)?.toDouble() ?? 0.0,
       reviewText: map['reviewText'] ?? '',
     );
@@ -57,4 +58,24 @@ class Review {
     );
   }
 
+
+static DateTime? _parseDate(dynamic value) {
+  if (value == null) return null;
+  
+  // 1. If it's already a Timestamp (Direct Firestore)
+  if (value is Timestamp) return value.toDate();
+  
+  // 2. If it's a Map (Node.js/HTTP format: {_seconds: ..., _nanoseconds: ...})
+  if (value is Map) {
+    final seconds = value['_seconds'];
+    if (seconds != null) {
+      return DateTime.fromMillisecondsSinceEpoch(seconds * 1000);
+    }
+  }
+  
+  // 3. If it's a String (ISO format)
+  if (value is String) return DateTime.tryParse(value);
+  
+  return null;
+}
 }

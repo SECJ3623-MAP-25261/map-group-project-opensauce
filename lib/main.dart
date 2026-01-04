@@ -1,7 +1,6 @@
 import 'package:easyrent/features/renter/renter_management/presentation/pages/dummy_select_role.dart';
 import 'package:easyrent/features/rentee/services/notifiers.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/page/wishlist_page.dart';
-import 'package:easyrent/features/renter/renter_management/presentation/pages/dummy_select_role.dart';
 import 'package:flutter/material.dart';
 import 'features/rentee/homePage/home_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
