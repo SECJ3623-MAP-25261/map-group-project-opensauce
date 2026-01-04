@@ -3,6 +3,8 @@ import { analyzeRentalData } from '../controllers/rental.controller.js'
 
 const rentalRoute = express.Router()
 
-rentalRoute.get('/analyze-rental-data',analyzeRentalData)
+rentalRoute.get('/analyze-rental-data/:productId',analyzeRentalData)
 
 export default rentalRoute
+
+//http://localhost:3000/api/rental/analyze-rental-data/4WNmRbAgYtECkPLL1aTA
