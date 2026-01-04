@@ -1,0 +1,42 @@
+# --- Node.js Backend ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.env
+# CRITICAL: Ignore your Firebase Admin Key
+serviceAccountKey.json
+
+# --- Flutter Frontend ---
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+# If you use generated files (like from build_runner)
+*.freezed.dart
+*.g.dart
+
+# --- Android ---
+.gradle/
+local.properties
+*.apk
+*.aab
+*.keystore
+/android/app/src/main/res/values/google-services.json
+
+# --- iOS ---
+*.xcworkspace
+xcuserdata/
+Pods/
+Podfile.lock
+/ios/Runner/GoogleService-Info.plist
+
+# --- IDE & OS ---
+.idea/
+.vscode/
+*.swp
+*.lock
+.DS_Store
