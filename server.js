@@ -16,6 +16,11 @@ const app = express();
 app.use(json());
 app.use(cors());
 
+app.use((req, res, next) => {
+  req.db = db;
+  next();
+});
+
 // 2. Define an API Endpoint
 app.use('/api/product',productRouter)
 app.use('/api/rental',rentalRoute)
