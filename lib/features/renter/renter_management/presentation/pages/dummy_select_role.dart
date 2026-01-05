@@ -39,8 +39,6 @@ class DummySelectRole extends StatelessWidget {
           children: [
             ElevatedButton(
               onPressed: () async {
-                // Show a loading indicator if you want, or just wait
-               await handleFetch(context);
                 
                 if (context.mounted) {
                   Navigator.push(
