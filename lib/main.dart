@@ -1,7 +1,6 @@
 import 'package:easyrent/features/renter/renter_management/presentation/pages/dummy_select_role.dart';
 import 'package:easyrent/features/rentee/services/notifiers.dart';
 import 'package:easyrent/features/rentee/wishlist/presentation/page/wishlist_page.dart';
-import 'package:easyrent/features/renter/renter_management/presentation/pages/dummy_select_role.dart';
 import 'package:flutter/material.dart';
 import 'features/rentee/homePage/home_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,10 +8,32 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
 
+// --- NEW IMPORTS FOR NOTIFICATION ---
+import 'package:provider/provider.dart'; // Add this to pubspec.yaml if missing
+import 'features/rentee/notification/services/notification_service.dart';
+import 'features/rentee/notification/repositories/notification_repository.dart';
+import 'features/rentee/notification/datasources/notification_remote_api.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const ProviderScope(child: MyApp()));
+
+  runApp(
+    // WRAP EVERYTHING IN MULTIPROVIDER
+    MultiProvider(
+      providers: [
+        // Initialize Notification Logic Globally
+        ChangeNotifierProvider(
+          create:
+              (_) => NotificationNotifier(
+                NotificationRepositoryImpl(NotificationRemoteApiImpl()),
+              )..loadNotifications(), // <--- Load data immediately!
+        ),
+      ],
+      // Keep your existing ProviderScope (Riverpod)
+      child: const ProviderScope(child: MyApp()),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -37,12 +58,6 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF800000)),
       ),
       home: DummySelectRole(),
-      // home: const MainScreen(),
-      // routes: {
-      //   '/home' : (_) => HomePage(),
-      //   '/renting-status' : (_) => RentingStatusPage(),
-      // },
-      // home: MainScreen(),
     );
   }
 }
@@ -56,11 +71,11 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
-    const HomePage(), // Index 0
-    const WishlistPage(), // Index 1 (Make sure this is imported!)
+    const HomePage(),
+    const WishlistPage(),
     const Center(child: Text("Scan Page")),
     const Center(child: Text("Messages Page")),
-     DummySelectRole(),
+    DummySelectRole(),
   ];
 
   @override
