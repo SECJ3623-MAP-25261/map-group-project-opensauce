@@ -7,10 +7,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'connectivity_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -36,12 +44,61 @@ class _MyAppState extends State<MyApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF800000)),
       ),
       home: DummySelectRole(),
+      builder: (context, child) {
+        return ConnectivityWrapper(child: child!);
+      },
       // home: const MainScreen(),
       // routes: {
       //   '/home' : (_) => HomePage(),
       //   '/renting-status' : (_) => RentingStatusPage(),
       // },
       // home: MainScreen(),
+    );
+  }
+}
+
+class ConnectivityWrapper extends ConsumerWidget {
+  final Widget child;
+  const ConnectivityWrapper({super.key, required this.child});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final connectivityAsync = ref.watch(connectivityProvider);
+
+    final isOnline = connectivityAsync.value ?? true;
+
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Column(
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            height: !isOnline ? 40 : 0,
+            width: double.infinity,
+            color: const Color(0xFF333333),
+            child: !isOnline
+                ? const Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.wifi_off, color: Colors.white, size: 16),
+                        SizedBox(width: 8),
+                        const Text(
+                          "Offline Mode - Showing saved data",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          Expanded(child: child),
+        ],
+      ),
     );
   }
 }
@@ -56,10 +113,10 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   final List<Widget> _pages = [
     const HomePage(), // Index 0
-    const WishlistPage(), // Index 1 (Make sure this is imported!)
+    const WishlistPage(), // Index 1 
     const Center(child: Text("Scan Page")),
     const Center(child: Text("Messages Page")),
-     DummySelectRole(),
+    DummySelectRole(),
   ];
 
   @override

@@ -6,15 +6,19 @@ import '../widgets/listing_item_card.dart';
 import 'add_item.dart';
 import 'renter_item_detail.dart';
 import '../widgets/renter_navbar.dart';
+import 'package:easyrent/connectivity_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
-class RenterListingPage extends StatefulWidget {
+class RenterListingPage extends rp.ConsumerStatefulWidget {
   const RenterListingPage({super.key});
 
   @override
-  State<RenterListingPage> createState() => _RenterListingPageState();
+  rp.ConsumerState<RenterListingPage> createState() =>
+      _RenterListingPageState();
 }
 
-class _RenterListingPageState extends State<RenterListingPage> {
+class _RenterListingPageState extends rp.ConsumerState<RenterListingPage> {
+  // The rest of your code stays inside here...
   int _selectedIndex = 0;
   final TextEditingController _searchController = TextEditingController();
 
@@ -38,10 +42,16 @@ class _RenterListingPageState extends State<RenterListingPage> {
             children: [
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: Colors.red),
-                title: const Text("Delete", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                title: const Text(
+                  "Delete",
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context);
-                  _confirmDelete(itemId); 
+                  _confirmDelete(itemId);
                 },
               ),
             ],
@@ -54,31 +64,44 @@ class _RenterListingPageState extends State<RenterListingPage> {
   void _confirmDelete(String itemId) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete Item"),
-        content: const Text("Are you sure you want to delete this listing permanently?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("Delete Item"),
+            content: const Text(
+              "Are you sure you want to delete this listing permanently?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(ctx);
+
+                  await Provider.of<ListingNotifier>(
+                    context,
+                    listen: false,
+                  ).deleteItem(itemId);
+
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Item deleted successfully"),
+                      ),
+                    );
+                  }
+                },
+                child: const Text(
+                  "Delete",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              
-              await Provider.of<ListingNotifier>(context, listen: false)
-                  .deleteItem(itemId);
-                  
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Item deleted successfully")),
-                );
-              }
-            },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
@@ -96,19 +119,20 @@ class _RenterListingPageState extends State<RenterListingPage> {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
-            pageBuilder: (context, animation, secondaryAnimation) =>
-                const RenterManagementWrapper(),
+            pageBuilder:
+                (context, animation, secondaryAnimation) =>
+                    const RenterManagementWrapper(),
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
           ),
         );
         break;
-
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(connectivityProvider).value ?? true;
     final notifier = Provider.of<ListingNotifier>(context);
     final state = notifier.state;
     final bool showCenteredHint = _searchController.text.isEmpty;
@@ -174,52 +198,72 @@ class _RenterListingPageState extends State<RenterListingPage> {
                 ],
               ),
             ),
-            
+
             Expanded(
-              child: state.isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: state.myItems.isEmpty
-                          ? const Center(child: Text("No items found"))
-                          : GridView.builder(
-                              gridDelegate:
-                                  const SliverGridDelegateWithMaxCrossAxisExtent(
-                                maxCrossAxisExtent: 220,
-                                childAspectRatio: 0.75,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                              ),
-                              itemCount: state.myItems.length,
-                              itemBuilder: (context, index) {
-                                final item = state.myItems[index];
-                                
-                                return GestureDetector(
-                                  onLongPress: () => _showOptions(context, item.id),
-                                  child: ListingItemCard(
-                                    item: item,
-                                    onTap: () {
-                                      final existingNotifier =
-                                          Provider.of<ListingNotifier>(
-                                        context,
-                                        listen: false,
-                                      );
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              ChangeNotifierProvider.value(
-                                            value: existingNotifier,
-                                            child: RenterItemDetail(item: item),
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
+              child:
+                  state.isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child:
+                            state.myItems.isEmpty
+                                ? const Center(child: Text("No items found"))
+                                : GridView.builder(
+                                  gridDelegate:
+                                      const SliverGridDelegateWithMaxCrossAxisExtent(
+                                        maxCrossAxisExtent: 220,
+                                        childAspectRatio: 0.75,
+                                        crossAxisSpacing: 16,
+                                        mainAxisSpacing: 16,
+                                      ),
+                                  itemCount: state.myItems.length,
+                                  itemBuilder: (context, index) {
+                                    final item = state.myItems[index];
+                                    return GestureDetector(
+                                      onLongPress:
+                                          isOnline
+                                              ? () =>
+                                                  _showOptions(context, item.id)
+                                              : () {
+                                                ScaffoldMessenger.of(
+                                                  context,
+                                                ).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text(
+                                                      "Delete is unavailable in Offline Mode",
+                                                    ),
+                                                    backgroundColor:
+                                                        Colors.black87,
+                                                  ),
+                                                );
+                                              },
+                                      child: ListingItemCard(
+                                        item: item,
+                                        onTap: () {
+                                          final existingNotifier =
+                                              Provider.of<ListingNotifier>(
+                                                context,
+                                                listen: false,
+                                              );
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (context) =>
+                                                      ChangeNotifierProvider.value(
+                                                        value: existingNotifier,
+                                                        child: RenterItemDetail(
+                                                          item: item,
+                                                        ),
+                                                      ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
+                      ),
             ),
           ],
         ),
@@ -229,22 +273,27 @@ class _RenterListingPageState extends State<RenterListingPage> {
         onItemTapped: _onItemTapped,
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final existingNotifier = Provider.of<ListingNotifier>(
-            context,
-            listen: false,
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChangeNotifierProvider.value(
-                value: existingNotifier,
-                child: const RenterAddItem(),
-              ),
-            ),
-          );
-        },
-        backgroundColor: const Color(0xFF5C001F),
+        onPressed:
+            isOnline
+                ? () {
+                  final existingNotifier = Provider.of<ListingNotifier>(
+                    context,
+                    listen: false,
+                  );
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => ChangeNotifierProvider.value(
+                            value: existingNotifier,
+                            child: const RenterAddItem(),
+                          ),
+                    ),
+                  );
+                }
+                : null,
+        backgroundColor:
+            isOnline ? const Color(0xFF5C001F) : const Color(0xFFBDBDBD),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: const Icon(Icons.add, color: Colors.white),
       ),
