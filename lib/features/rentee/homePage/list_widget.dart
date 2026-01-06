@@ -54,7 +54,7 @@ class _ProductSectionWidgetState extends State<ProductSectionWidget> {
                       context,
                       MaterialPageRoute(
                         builder:
-                            (context) => widget.title == 'Top Rated Product'? TopRatedProductPage(title: widget.title) : ProductListPage(title: widget.title),
+                            (context) => widget.title == 'Top Rented Product'? TopRatedProductPage(title: widget.title) : ProductListPage(title: widget.title),
                       ),
                     );
                   },

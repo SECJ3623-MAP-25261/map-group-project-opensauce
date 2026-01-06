@@ -6,6 +6,7 @@ class RentalService {
   // ⚠️ IMPORTANT FOR EMULATOR:
   // If using Android Emulator, use '10.0.2.2'.http://127.0.0.1:3000
   // If using a physical phone, use your laptop's IP address (e.g., 192.168.1.15).
+  // static const String baseUrl = 'http://10.45.57.244/api/rental';
   static const String baseUrl = 'http://127.0.0.1:3000/api/rental';
 
   Future<RentalAnalytics> getRentalAnalytics(String productId) async {

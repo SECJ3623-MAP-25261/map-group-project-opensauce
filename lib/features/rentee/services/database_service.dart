@@ -10,12 +10,14 @@ class DatabaseService {
   // Collection References
   CollectionReference get _productsRef => _db.collection('product');
   CollectionReference get _usersRef => _db.collection('user');
-  static const String baseUrl = 'https://api-obf4enbu7a-uc.a.run.app';
+  static const String baseUrl = 'http://127.0.0.1:3000';
+  // static const String baseUrl = 'http://10.45.57.244';
+  // static const String baseUrl = 'https://api-obf4enbu7a-uc.a.run.app';
   // static const String baseUrl = 'http://10.203.106.199:5001/opensource-88def/us-central1';
 
   // --- FETCH PRODUCTS ---
   Stream<List<Item>> getProducts() {
-    return _productsRef.snapshots().map((snapshot) {
+  return _productsRef.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         return Item.fromSnapshot(doc as DocumentSnapshot<Map<String, dynamic>>);
       }).toList();
@@ -24,12 +26,12 @@ class DatabaseService {
 
   Future<List<Item>> getTopRatedProduct() async {
   try {
-    print("------------get top rated product ------------");
+    print("------------get top rented product ------------");
     final response = await http.get(
-      Uri.parse('$baseUrl/product/top-product'),
+      Uri.parse('$baseUrl/api/product/top-product'),
     );
 
-    print("------------get top rated product ${response.statusCode}------------");
+    print("------------get top rented product ${response.statusCode}------------");
     if (response.statusCode == 200) {
       // 1. Decode the response body
       final dynamic decodedData = jsonDecode(response.body);
