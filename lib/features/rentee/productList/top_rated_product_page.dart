@@ -237,14 +237,28 @@ class _TopRatedProductPageState extends ConsumerState<TopRatedProductPage> {
                 ),
                 const SizedBox(height: 6),
 
-                Text(
-                  "RM ${item.pricePerDay.toStringAsFixed(0)}/day",
-                  style: const TextStyle(
-                    color: Color(0xFF5C001F),
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          "RM ${item.pricePerDay.toStringAsFixed(0)}/day",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          "${item.orderCounts.toStringAsFixed(0)} rented",
+                          style: TextStyle(
+                            color: Colors.red[600],
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                 const SizedBox(height: 6),
 
                 Row(

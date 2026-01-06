@@ -203,12 +203,13 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
   Future<bool> checkoutToDatabase() async {
     final dbService = CheckoutDatabaseServices();
     try {
+      print("--------Checking out!!--------");
        // Assuming you have a function to convert your state to a map
       final Map<String, dynamic> orderDetails = state.toJson();
       state = state.copyWith(isLoading: true);
       // Assuming you have access to the current user's ID
       bool isOrderCountsUpdated = await dbService.updateItemOrderCounts(productId: state.items.id);
-
+  
       if (!isOrderCountsUpdated){
         print("--------orderCounts failed to updated--------");
         return false;

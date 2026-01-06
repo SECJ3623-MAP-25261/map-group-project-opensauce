@@ -135,7 +135,7 @@ class _ProductSectionWidgetState extends State<ProductSectionWidget> {
                   ),
                   scrollDirection: Axis.horizontal,
                   itemCount:
-                      items.length > 3
+                      items.length > 7
                           ? 3
                           : items.length, // Show only 3 items on home page
                   separatorBuilder: (_, __) => const SizedBox(width: 15),
@@ -320,13 +320,27 @@ class _ProductCardState extends State<ProductCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 5),
-                    Text(
-                      "RM ${widget.item.pricePerDay.toStringAsFixed(0)}/day",
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          "RM ${widget.item.pricePerDay.toStringAsFixed(0)}/day",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          "${widget.item.orderCounts.toStringAsFixed(0)} rented",
+                          style: TextStyle(
+                            color: Colors.red[600],
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 5),
                     Row(
