@@ -11,22 +11,23 @@ class DummySelectRole extends StatelessWidget {
     try {
       String data = await dbService.fetchProducts();
       print("-----------Success: $data");
-      
+
       // Handle success UI
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Data loaded successfully!")),
       );
     } catch (errorMessage) {
       // Handle the error we "threw" in database.dart
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMessage.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMessage.toString())));
     }
   }
+
   void _showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -39,7 +40,6 @@ class DummySelectRole extends StatelessWidget {
           children: [
             ElevatedButton(
               onPressed: () async {
-                
                 if (context.mounted) {
                   Navigator.push(
                     context,

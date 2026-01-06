@@ -53,15 +53,15 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: ValueListenableBuilder(
-        valueListenable: selectedPageNotifiers,
-        builder: (context, index, _) {
-          return NavbarWidget(
-            currentIndex: index,
-            onTap: (i) => selectedPageNotifiers.value = i,
-          );
-        },
-      ),
+      // bottomNavigationBar: ValueListenableBuilder(
+      //   valueListenable: selectedPageNotifiers,
+      //   builder: (context, index, _) {
+      //     return NavbarWidget(
+      //       currentIndex: index,
+      //       onTap: (i) => selectedPageNotifiers.value = i,
+      //     );
+      //   },
+      // ),
     );
   }
 }

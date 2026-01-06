@@ -29,7 +29,7 @@ class NotificationRemoteApiImpl implements NotificationRemoteApi {
             } catch (e) {
               print("⚠️ Error converting doc ${doc.id}: $e");
               // Return a placeholder or null if needed, but for now we skip invalid ones
-              throw e;
+              rethrow;
             }
           }).toList();
 
