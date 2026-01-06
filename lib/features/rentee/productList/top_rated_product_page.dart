@@ -1,0 +1,314 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../productDetails/product_details_page.dart';
+import '../../../features/models/item.dart';
+import '../services/database_service.dart';
+import 'dart:convert';
+import 'dart:typed_data';
+
+class TopRatedProductPage extends ConsumerStatefulWidget {
+  final String title;
+  const TopRatedProductPage({super.key, required this.title});
+
+  @override
+  ConsumerState<TopRatedProductPage> createState() => _TopRatedProductPageState();
+}
+
+class _TopRatedProductPageState extends ConsumerState<TopRatedProductPage> {
+  final DatabaseService _dbService = DatabaseService();
+
+  Widget _buildGridImage(String imageUrl) {
+    if (imageUrl.isEmpty) {
+      return Container(
+        color: Colors.grey[100],
+        child: const Center(
+          child: Icon(Icons.image_not_supported, color: Colors.grey, size: 40),
+        ),
+      );
+    }
+
+    if (imageUrl.startsWith('http')) {
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value:
+                  loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                          loadingProgress.expectedTotalBytes!
+                      : null,
+              color: const Color(0xFF5C001F),
+            ),
+          );
+        },
+        errorBuilder:
+            (ctx, err, stack) => Container(
+              color: Colors.grey[100],
+              child: const Center(
+                child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+              ),
+            ),
+      );
+    }
+
+    try {
+      Uint8List bytes = base64Decode(imageUrl);
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        width: double.infinity,
+        errorBuilder:
+            (ctx, err, stack) => Container(
+              color: Colors.grey[100],
+              child: const Center(
+                child: Icon(Icons.broken_image, color: Colors.grey, size: 40),
+              ),
+            ),
+      );
+    } catch (e) {
+      return Container(
+        color: Colors.grey[100],
+        child: const Center(
+          child: Icon(Icons.error, color: Colors.red, size: 40),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF9F9F9),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          widget.title,
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
+        centerTitle: true,
+      ),
+      body: FutureBuilder<List<Item>>(
+        future: _dbService.getTopRatedProduct(),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error, color: Colors.red, size: 50),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Error loading products',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    '${snapshot.error}',
+                    style: const TextStyle(fontSize: 12, color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF5C001F)),
+            );
+          }
+
+          final items = snapshot.data ?? [];
+
+          if (items.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.inventory_2_outlined,
+                    size: 60,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(height: 15),
+                  const Text(
+                    'No products found',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Upload sample products from the home page',
+                    style: TextStyle(color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return Padding(
+            padding: const EdgeInsets.all(20),
+            child: GridView.builder(
+              clipBehavior: Clip.none,
+              itemCount: items.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.7,
+                crossAxisSpacing: 15,
+                mainAxisSpacing: 15,
+              ),
+              itemBuilder: (context, index) {
+                //TODO: Need to fix when integrating wiht Kai Bin auth
+                print("userId is ${items[0].ownerId}");
+                final item = items[index];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ProductDetailsPage(item: item),
+                      ),
+                    );
+                  },
+                  child: _buildProductGridCard(item),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildProductGridCard(Item item) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 2,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Product Image
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: _buildGridImage(item.imageUrl),
+              ),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.productName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 6),
+
+                Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          "RM ${item.pricePerDay.toStringAsFixed(0)}/day",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          "${item.orderCounts.toStringAsFixed(0)} rented",
+                          style: TextStyle(
+                            color: Colors.red[600],
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                const SizedBox(height: 6),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          size: 14,
+                          color: Color(0xFFFFC107),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          "${item.averageRating}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    if (item.deliveryMethods.isNotEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          item.deliveryMethods.contains('Delivery')
+                              ? 'Delivery'
+                              : 'Pickup',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

@@ -111,6 +111,7 @@ class ListingItemCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      
                       Text(
                         currentItem.productName,
                         maxLines: 1,

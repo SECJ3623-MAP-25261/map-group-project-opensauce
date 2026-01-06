@@ -5,9 +5,18 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:easyrent/features/rentee/reviewPage/review_page.dart';
+
+// --- 1. ADD THESE IMPORTS ---
+// Make sure these paths match where you created the files in the previous step
+import '../../models/rental_analytics.dart';
+import '../../services/rental_service.dart';
+// -----------------------------
+
 import '../../../../models/item.dart';
 import '../../services/notifier/listing_notifier.dart';
 import 'edit_item.dart';
+import 'package:easyrent/connectivity_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
 class RenterItemDetail extends StatefulWidget {
   final Item item;
@@ -21,6 +30,18 @@ class RenterItemDetail extends StatefulWidget {
 class _RenterItemDetailState extends State<RenterItemDetail> {
   int _currentImageIndex = 0;
   final PageController _pageController = PageController();
+
+  // --- 2. INITIALIZE THE SERVICE ---
+  final RentalService _rentalService = RentalService();
+  late Future<RentalAnalytics> _analyticsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load the analytics data as soon as the page opens
+    _analyticsFuture = _rentalService.getRentalAnalytics(widget.item.id);
+  }
+  // --------------------------------
 
   Widget _buildImage(String imageUrl, {BoxFit fit = BoxFit.contain}) {
     if (imageUrl.isEmpty) {
@@ -56,6 +77,49 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
       );
     }
   }
+
+  // --- 3. ADD THIS HELPER WIDGET FOR THE STAT CARD ---
+  Widget _buildStatCard(String title, String value) {
+    return Container(
+      width: 100, // Fixed width for uniformity
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 10,
+              color: Colors.grey,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // ---------------------------------------------------
 
   void _openFullScreen(BuildContext context, List<String> images, int index) {
     Navigator.of(context).push(
@@ -431,6 +495,50 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                   ),
                 ),
 
+                // --- 4. INSERT ANALYTICS SECTION HERE ---
+                const SizedBox(height: 24),
+                FutureBuilder<RentalAnalytics>(
+                  future: _analyticsFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      // Loading State
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      // Error State (Show 0s or message)
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          _buildStatCard("Total Earnings", "Error"),
+                          _buildStatCard("Total Orders", "0"),
+                          _buildStatCard("Total Duration", "0"),
+                        ],
+                      );
+                    } else if (snapshot.hasData) {
+                      // Success State
+                      final data = snapshot.data!;
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildStatCard(
+                            "Total\nEarnings", // \n for two lines
+                            "RM ${data.totalEarnings}",
+                          ),
+                          _buildStatCard(
+                            "Total\nOrders",
+                            "${data.totalOrders}",
+                          ),
+                          _buildStatCard(
+                            "Total Renting\nDuration",
+                            "${data.totalDuration} days",
+                          ),
+                        ],
+                      );
+                    }
+                    return const SizedBox();
+                  },
+                ),
+
+                // ----------------------------------------
                 const SizedBox(height: 24),
                 const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
                 const SizedBox(height: 24),
@@ -446,7 +554,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                         color: Color(0xFF101828),
                       ),
                     ),
-                    //if (reviewCount > 0)
                     TextButton(
                       onPressed: () {
                         Navigator.push(
@@ -501,63 +608,88 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
 
                 const SizedBox(height: 40),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder:
-                                  (_) => ChangeNotifierProvider.value(
-                                    value: Provider.of<ListingNotifier>(
-                                      context,
-                                      listen: false,
-                                    ),
-                                    child: RenterEditItem(item: currentItem),
-                                  ),
+                rp.Consumer(
+                  builder: (context, ref, child) {
+                    final isOnline =
+                        ref.watch(connectivityProvider).value ?? true;
+
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed:
+                                isOnline
+                                    ? () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder:
+                                              (_) =>
+                                                  ChangeNotifierProvider.value(
+                                                    value: Provider.of<
+                                                      ListingNotifier
+                                                    >(context, listen: false),
+                                                    child: RenterEditItem(
+                                                      item: currentItem,
+                                                    ),
+                                                  ),
+                                        ),
+                                      );
+                                    }
+                                    : null,
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: BorderSide(
+                                color:
+                                    isOnline
+                                        ? const Color(0xFF5C001F)
+                                        : const Color(0xFFBDBDBD),
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                          );
-                        },
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: const BorderSide(color: Color(0xFF5C001F)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            child: Text(
+                              "EDIT",
+                              style: TextStyle(
+                                color:
+                                    isOnline
+                                        ? const Color(0xFF5C001F)
+                                        : const Color(0xFFBDBDBD),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                        child: const Text(
-                          "EDIT",
-                          style: TextStyle(
-                            color: Color(0xFF5C001F),
-                            fontWeight: FontWeight.bold,
+
+                        const SizedBox(width: 16),
+
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: isOnline ? _confirmDelete : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  isOnline
+                                      ? const Color(0xFF5C001F)
+                                      : const Color(0xFFBDBDBD),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              isOnline ? "DELETE" : "OFFLINE",
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: _confirmDelete,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5C001F),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          "DELETE",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 20),
               ],

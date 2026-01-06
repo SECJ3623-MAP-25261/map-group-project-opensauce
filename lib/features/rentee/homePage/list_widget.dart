@@ -1,3 +1,4 @@
+import 'package:easyrent/features/rentee/productList/top_rated_product_page.dart';
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../../../features/models/item.dart';
@@ -53,7 +54,7 @@ class _ProductSectionWidgetState extends State<ProductSectionWidget> {
                       context,
                       MaterialPageRoute(
                         builder:
-                            (context) => ProductListPage(title: widget.title),
+                            (context) => widget.title == 'Top Rented Product'? TopRatedProductPage(title: widget.title) : ProductListPage(title: widget.title),
                       ),
                     );
                   },
@@ -134,7 +135,7 @@ class _ProductSectionWidgetState extends State<ProductSectionWidget> {
                   ),
                   scrollDirection: Axis.horizontal,
                   itemCount:
-                      items.length > 3
+                      items.length > 7
                           ? 3
                           : items.length, // Show only 3 items on home page
                   separatorBuilder: (_, __) => const SizedBox(width: 15),
@@ -319,13 +320,27 @@ class _ProductCardState extends State<ProductCard> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 5),
-                    Text(
-                      "RM ${widget.item.pricePerDay.toStringAsFixed(0)}/day",
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          "RM ${widget.item.pricePerDay.toStringAsFixed(0)}/day",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          "${widget.item.orderCounts.toStringAsFixed(0)} rented",
+                          style: TextStyle(
+                            color: Colors.red[600],
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 5),
                     Row(

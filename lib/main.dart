@@ -7,9 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-// --- NEW IMPORTS FOR NOTIFICATION ---
-import 'package:provider/provider.dart'; // Add this to pubspec.yaml if missing
+// Import BOTH the service and the wrapper
+import 'connectivity_service.dart';
+import 'connectivity_wrapper.dart';
+
+import 'package:provider/provider.dart';
 import 'features/rentee/notification/services/notification_service.dart';
 import 'features/rentee/notification/repositories/notification_repository.dart';
 import 'features/rentee/notification/datasources/notification_remote_api.dart';
@@ -18,19 +22,21 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+    cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+  );
+
   runApp(
-    // WRAP EVERYTHING IN MULTIPROVIDER
     MultiProvider(
       providers: [
-        // Initialize Notification Logic Globally
         ChangeNotifierProvider(
           create:
               (_) => NotificationNotifier(
                 NotificationRepositoryImpl(NotificationRemoteApiImpl()),
-              )..loadNotifications(), // <--- Load data immediately!
+              )..loadNotifications(),
         ),
       ],
-      // Keep your existing ProviderScope (Riverpod)
       child: const ProviderScope(child: MyApp()),
     ),
   );
@@ -51,13 +57,16 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'EasyRent',
+      navigatorKey: navigatorKey,
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFFF9F9F9),
         primarySwatch: Colors.amber,
         fontFamily: 'Roboto',
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF800000)),
       ),
-      home: DummySelectRole(),
+      // --- FIX IS HERE ---
+      // We changed ConnectivityService to ConnectivityWrapper
+      home: ConnectivityWrapper(child: const MainScreen()),
     );
   }
 }

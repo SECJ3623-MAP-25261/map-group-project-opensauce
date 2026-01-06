@@ -1,10 +1,7 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'dart:io' as io; 
-import 'package:easyrent/features/models/latlng.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:easyrent/features/rentee/geolocation/geolocation.dart';
 import 'package:easyrent/features/renter/geolocation/geolocation_renter.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';

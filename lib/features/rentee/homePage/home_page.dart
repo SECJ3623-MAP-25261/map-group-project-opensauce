@@ -36,7 +36,7 @@ class _HomePageState extends State<HomePage> {
             BannerWidget(),
             SizedBox(height: 20),
             ProductSectionWidget(
-              title: "Top Rated Product",
+              title: "Top Rented Product",
               isYellowBackground: true,
             ),
             SizedBox(height: 10),

@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../features/models/item.dart';
+import 'package:http/http.dart' as http;
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -7,15 +10,50 @@ class DatabaseService {
   // Collection References
   CollectionReference get _productsRef => _db.collection('product');
   CollectionReference get _usersRef => _db.collection('user');
+  static const String baseUrl = 'http://127.0.0.1:3000';
+  // static const String baseUrl = 'http://10.45.57.244';
+  // static const String baseUrl = 'https://api-obf4enbu7a-uc.a.run.app';
+  // static const String baseUrl = 'http://10.203.106.199:5001/opensource-88def/us-central1';
 
   // --- FETCH PRODUCTS ---
   Stream<List<Item>> getProducts() {
-    return _productsRef.snapshots().map((snapshot) {
+  return _productsRef.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         return Item.fromSnapshot(doc as DocumentSnapshot<Map<String, dynamic>>);
       }).toList();
     });
   }
+
+  Future<List<Item>> getTopRatedProduct() async {
+  try {
+    print("------------get top rented product ------------");
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/product/top-product'),
+    );
+
+    print("------------get top rented product ${response.statusCode}------------");
+    if (response.statusCode == 200) {
+      // 1. Decode the response body
+      final dynamic decodedData = jsonDecode(response.body);
+
+      // 2. Handle both Single Object and List scenarios
+      if (decodedData is List) {
+        // If the backend returns [{}, {}]
+        return decodedData.map((json) => Item.fromMap(json, json['id'] ?? '')).toList();
+      } else if (decodedData is Map<String, dynamic>) {
+        // If the backend returns a single {} - wrap it in a list
+        return [Item.fromMap(decodedData, decodedData['id'] ?? '')];
+      } else {
+        return [];
+      }
+    } else {
+      throw 'Server Error: ${response.statusCode}';
+    }
+  } catch (e) {
+    print("Fetch Products Error: $e");
+    throw 'Connection Failed: $e';
+  }
+}
 
   // Stream<List<Map<String, dynamic>>> getProducts() {
   //   // 1. Get the real-time stream of QuerySnapshots
