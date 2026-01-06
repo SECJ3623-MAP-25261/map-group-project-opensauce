@@ -1,8 +1,12 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:io' as io; 
+import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easyrent/features/renter/geolocation/geolocation_renter.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../renter_management/domain/entities/item_entity.dart';
+import '../../../../models/item.dart';
 import '../../services/notifier/listing_notifier.dart';
 
 class RenterAddItem extends StatefulWidget {
@@ -13,7 +17,6 @@ class RenterAddItem extends StatefulWidget {
 }
 
 class _RenterAddItemState extends State<RenterAddItem> {
-  // --- CONTROLLERS ---
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _depositController = TextEditingController();
@@ -21,17 +24,39 @@ class _RenterAddItemState extends State<RenterAddItem> {
   final TextEditingController _locationController = TextEditingController();
 
   String? _selectedCategory;
-  final List<String> _categories = ['Electronic', 'Stationary', 'Clothing', 'Sports', 'Other'];
+  final List<String> _categories = [
+    'Electronic',
+    'Stationary',
+    'Clothing',
+    'Sports',
+    'Other',
+  ];
 
-  // --- IMAGE STATE ---
-  final List<File> _selectedImages = [];
+  final List<XFile> _selectedImages = [];
   final ImagePicker _picker = ImagePicker();
   
   int _currentImageIndex = 0; 
+
+  // final list location and latlng (save db)
+  List <locationObject> selectedLocations = [];
+
+  
+
+  void _updateLocation(String location, double lat, double long) {
+    setState(() {
+      selectedLocations.add(locationObject(
+        locationName: location,
+        latitude: lat,
+        longitude: long,
+      ));
+    });
+    print("---------the locations: ${selectedLocations.last.locationName} lat: ${selectedLocations.last.latitude} long: ${selectedLocations.last.longitude}----------");
+  }
   
   final PageController _pageController = PageController();
 
-  // --- IMAGE LOGIC ---
+  bool _isSaving = false;
+
   Future<void> _pickImage(ImageSource source) async {
     if (_selectedImages.length >= 5) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -44,8 +69,9 @@ class _RenterAddItemState extends State<RenterAddItem> {
       final XFile? pickedFile = await _picker.pickImage(source: source);
       if (pickedFile != null) {
         setState(() {
-          _selectedImages.add(File(pickedFile.path));
+          _selectedImages.add(pickedFile);
           _currentImageIndex = _selectedImages.length - 1;
+
           // Jump to new image
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (_pageController.hasClients) {
@@ -59,33 +85,47 @@ class _RenterAddItemState extends State<RenterAddItem> {
     }
   }
 
+  Future<String> _imageToBase64(XFile imageFile) async {
+    Uint8List imageBytes = await imageFile.readAsBytes();
+    String base64Image = base64Encode(imageBytes);
+    return base64Image;
+  }
+
   void _confirmDelete() {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete Image"),
-        content: const Text("Are you sure you want to remove this image?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text("Delete Image"),
+            content: const Text("Are you sure you want to remove this image?"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  _deleteImage();
+                },
+                child: const Text(
+                  "Delete",
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _deleteImage();
-            },
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
   }
 
   void _deleteImage() {
     setState(() {
       _selectedImages.removeAt(_currentImageIndex);
-      if (_currentImageIndex >= _selectedImages.length && _currentImageIndex > 0) {
+      if (_currentImageIndex >= _selectedImages.length &&
+          _currentImageIndex > 0) {
         _currentImageIndex = _selectedImages.length - 1;
       }
     });
@@ -94,7 +134,9 @@ class _RenterAddItemState extends State<RenterAddItem> {
   void _showImagePickerOptions() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return SafeArea(
           child: Wrap(
@@ -122,7 +164,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  // --- MOVE ARROW HELPER ---
   void _movePage(int delta) {
     _pageController.animateToPage(
       _currentImageIndex + delta,
@@ -131,49 +172,92 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  void _saveItem() {
-    if (_nameController.text.isEmpty || 
-        _priceController.text.isEmpty || 
+  Future<void> _saveItem() async {
+    if (_nameController.text.isEmpty ||
+        _priceController.text.isEmpty ||
         _depositController.text.isEmpty ||
         _descriptionController.text.isEmpty ||
-        _locationController.text.isEmpty) {
+       selectedLocations.isEmpty || selectedLocations.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please fill in all fields")),
       );
       return;
     }
 
-    if (_selectedImages.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please upload at least 1 image")),
+    // if (_selectedImages.isEmpty) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text("Please upload at least 1 image")),
+    //   );
+    //   return;
+    // }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      List<String> base64Images = [];
+      for (XFile img in _selectedImages) {
+        String base64String = await _imageToBase64(img);
+        base64Images.add(base64String);
+      }
+
+      String mainImageUrl = base64Images[0];
+      List<String> additionalImages = [];
+      if (base64Images.length > 1) {
+        additionalImages = base64Images.sublist(1);
+      }
+
+      final newItem = Item(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        ownerRef: FirebaseFirestore.instance
+            .collection('user')
+            .doc('temp_user'),
+        ownerId: "temp",
+        ownerName: "temp",
+        ownerImage: "temp",
+
+        productName: _nameController.text,
+        pricePerDay: double.tryParse(_priceController.text) ?? 0.0,
+        deposit: double.tryParse(_depositController.text) ?? 0.0,
+
+        description: _descriptionController.text,
+        category: _selectedCategory ?? "Other",
+        imageUrl: mainImageUrl,
+        imageUrls: additionalImages,
+        quantity: 1,
+        rentingDuration: "Daily",
+        deliveryMethods: "Pickup",
+        averageRating: 5.0,
+        reviews: [],
+        currentRenterId: null,
+        locationLat: selectedLocations.last.latitude,
+        locationLong: selectedLocations.last.longitude,
+        locationDetails: selectedLocations,
+        location: selectedLocations.last.locationName
       );
-      return;
+
+      if (!mounted) return;
+      await Provider.of<ListingNotifier>(
+        context,
+        listen: false,
+      ).addItem(newItem);
+
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      print("Error saving: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error saving item: $e")));
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
     }
-
-    String mainImage = _selectedImages[0].path;
-    List<String> additionalImages = [];
-    for (int i = 1; i < _selectedImages.length; i++) {
-      additionalImages.add(_selectedImages[i].path);
-    }
-
-    final newItem = ItemEntity(
-      id: DateTime.now().millisecondsSinceEpoch.toString(), 
-      name: _nameController.text,
-      price: _priceController.text,
-      deposit: _depositController.text,
-      description: _descriptionController.text,
-      location: _locationController.text,
-      category: _selectedCategory ?? "Other",
-      rentalInfo: "1 day | Total RM ${_priceController.text}",
-      imageUrl: mainImage,
-      additionalImages: additionalImages,
-      rating: 0.0,
-      status: "pending",
-    );
-
-    Provider.of<ListingNotifier>(context, listen: false).addItem(newItem);
-
-    Navigator.pop(context);
   }
 
   @override
@@ -187,7 +271,14 @@ class _RenterAddItemState extends State<RenterAddItem> {
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Add Item", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text(
+          "Add Item",
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -195,8 +286,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            
-            // --- IMAGE CAROUSEL SECTION ---
             Center(
               child: Stack(
                 alignment: Alignment.center,
@@ -211,36 +300,51 @@ class _RenterAddItemState extends State<RenterAddItem> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(20),
-                      child: _selectedImages.isEmpty
-                          ? const Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.image_outlined, size: 50, color: Colors.grey),
-                                  SizedBox(height: 10),
-                                  Text("No image uploaded", style: TextStyle(color: Colors.grey)),
-                                ],
+                      child:
+                          _selectedImages.isEmpty
+                              ? const Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.image_outlined,
+                                      size: 50,
+                                      color: Colors.grey,
+                                    ),
+                                    SizedBox(height: 10),
+                                    Text(
+                                      "No image uploaded",
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                              )
+                              : PageView.builder(
+                                itemCount: _selectedImages.length,
+                                controller: _pageController,
+                                onPageChanged: (index) {
+                                  setState(() {
+                                    _currentImageIndex = index;
+                                  });
+                                },
+                                itemBuilder: (context, index) {
+                                  // FIXED: WEB & MOBILE DISPLAY
+                                  final image = _selectedImages[index];
+                                  if (kIsWeb) {
+                                    return Image.network(
+                                      image.path,
+                                      fit: BoxFit.cover,
+                                    );
+                                  } else {
+                                    return Image.file(
+                                      io.File(image.path),
+                                      fit: BoxFit.cover,
+                                    );
+                                  }
+                                },
                               ),
-                            )
-                          : PageView.builder(
-                              itemCount: _selectedImages.length,
-                              controller: _pageController,
-                              onPageChanged: (index) {
-                                setState(() {
-                                  _currentImageIndex = index;
-                                });
-                              },
-                              itemBuilder: (context, index) {
-                                return Image.file(
-                                  _selectedImages[index],
-                                  fit: BoxFit.cover,
-                                );
-                              },
-                            ),
                     ),
                   ),
-
-                  // LEFT ARROW
                   if (_currentImageIndex > 0)
                     Positioned(
                       left: 10,
@@ -251,14 +355,18 @@ class _RenterAddItemState extends State<RenterAddItem> {
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.8),
                             shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                            boxShadow: [
+                              BoxShadow(color: Colors.black12, blurRadius: 4),
+                            ],
                           ),
-                          child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black87),
+                          child: const Icon(
+                            Icons.arrow_back_ios_new,
+                            size: 20,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ),
-
-                  // RIGHT ARROW
                   if (_currentImageIndex < _selectedImages.length - 1)
                     Positioned(
                       right: 10,
@@ -269,20 +377,27 @@ class _RenterAddItemState extends State<RenterAddItem> {
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.8),
                             shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                            boxShadow: [
+                              BoxShadow(color: Colors.black12, blurRadius: 4),
+                            ],
                           ),
-                          child: const Icon(Icons.arrow_forward_ios, size: 20, color: Colors.black87),
+                          child: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 20,
+                            color: Colors.black87,
+                          ),
                         ),
                       ),
                     ),
-
-                  // INDICATOR
                   if (_selectedImages.isNotEmpty)
                     Positioned(
                       bottom: 16,
                       left: 16,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.6),
                           borderRadius: BorderRadius.circular(12),
@@ -297,7 +412,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
                         ),
                       ),
                     ),
-
                   Positioned(
                     bottom: 16,
                     right: 16,
@@ -309,78 +423,123 @@ class _RenterAddItemState extends State<RenterAddItem> {
                           color: const Color(0xFF5C001F),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.edit, color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.edit,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ),
-
-                  // DELETE BUTTON
                   if (_selectedImages.isNotEmpty)
                     Positioned(
                       top: 16,
                       right: 16,
                       child: InkWell(
-                        onTap: _confirmDelete, 
+                        onTap: _confirmDelete,
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9), 
+                            color: Colors.white.withOpacity(0.9),
                             shape: BoxShape.circle,
                             boxShadow: [
-                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
-                            ]
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 4,
+                              ),
+                            ],
                           ),
-                          child: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                            size: 22,
+                          ),
                         ),
                       ),
                     ),
-
                 ],
               ),
             ),
-            
             const SizedBox(height: 24),
-
-            // --- FORM FIELDS ---
+            // FIELDS
             _buildLabel("Name"),
             _buildTextField(controller: _nameController, hint: "Insert here"),
             _buildLabel("Category"),
             _buildDropdown(),
             _buildLabel("Price"),
-            _buildTextField(controller: _priceController, hint: "e.g: 10", suffix: "RM/day", inputType: TextInputType.number,),
+            _buildTextField(
+              controller: _priceController,
+              hint: "e.g: 10",
+              suffix: "RM/day",
+              inputType: TextInputType.number,
+            ),
             _buildLabel("Deposit"),
-            _buildTextField(controller: _depositController, hint: "e.g: 20", inputType: TextInputType.number,),
+            _buildTextField(
+              controller: _depositController,
+              hint: "e.g: 20",
+              inputType: TextInputType.number,
+            ),
             _buildLabel("Description"),
-            _buildTextField(controller: _descriptionController, hint: "Insert here", maxLines: 5),
+            _buildTextField(
+              controller: _descriptionController,
+              hint: "Insert here",
+              maxLines: 5,
+            ),
             _buildLabel("Location"),
-            _buildTextField(controller: _locationController, hint: "Location"),
+            _buildAddLocation(),
+            // _buildTextField(controller: _locationController, hint: "Location"),
             const SizedBox(height: 30),
-
-            // --- BUTTONS ---
+            // BUTTONS
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _saveItem,
+                    onPressed: _isSaving ? null : _saveItem,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       side: const BorderSide(color: Color(0xFF5C001F)),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                    child: const Text("SAVE", style: TextStyle(color: Color(0xFF5C001F), fontWeight: FontWeight.bold)),
+                    child:
+                        _isSaving
+                            ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF5C001F),
+                                strokeWidth: 2,
+                              ),
+                            )
+                            : const Text(
+                              "SAVE",
+                              style: TextStyle(
+                                color: Color(0xFF5C001F),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: _isSaving ? null : () => Navigator.pop(context),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF5C001F),
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       elevation: 0,
                     ),
-                    child: const Text("CANCEL", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "CANCEL",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -392,7 +551,6 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  // --- HELPER WIDGETS ---
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0, top: 12.0),
@@ -400,7 +558,69 @@ class _RenterAddItemState extends State<RenterAddItem> {
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType,}) {
+  Widget _buildAddLocation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (selectedLocations.isNotEmpty) 
+      // Use .indexed to get (index, location) for each item
+      ...selectedLocations.indexed.map((indexedItem) {
+        // Destructure the tuple to get index and location
+        final index = indexedItem.$1 + 1;
+        final location = indexedItem.$2;
+        
+        // You now have access to 'index' and 'location'
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '$index: ${location.locationName}}', // Example of using the index
+                  style: const TextStyle(fontSize: 14, color: Colors.black54), softWrap: true, overflow: TextOverflow.visible
+                ),
+              ),
+              IconButton(onPressed: () {
+                setState(() {
+                  selectedLocations.removeAt(index - 1);
+                });
+              }, icon: Icon(Icons.delete, color: Colors.red, size: 18)),
+            ],
+          ),
+        );
+      }),
+        const SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) {
+                  return GeolocationRenter(
+                    onLocationSelected: _updateLocation,
+                    // location: selectedLocation,
+                    // locationLat: selectedLat,
+                    // locationLong: selectedLong,
+                    latitude: 1.488889,
+                    longitude: 103.761111,
+                  );
+                },
+              ),
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF5C001F),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            elevation: 0,
+          ),
+          child: const Text("Add Location", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextField({required TextEditingController controller, required String hint, String? suffix, int maxLines = 1, TextInputType? inputType}) {
     return TextField(
       controller: controller,
       maxLines: maxLines,
@@ -410,9 +630,18 @@ class _RenterAddItemState extends State<RenterAddItem> {
         hintStyle: const TextStyle(color: Colors.grey),
         suffixText: suffix,
         suffixStyle: const TextStyle(color: Colors.grey),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade300)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF5C001F))),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF5C001F)),
+        ),
       ),
     );
   }
@@ -420,14 +649,28 @@ class _RenterAddItemState extends State<RenterAddItem> {
   Widget _buildDropdown() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: _selectedCategory,
-          hint: const Text("Select Category", style: TextStyle(color: Colors.grey)),
+          hint: const Text(
+            "Select Category",
+            style: TextStyle(color: Colors.grey),
+          ),
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down),
-          items: _categories.map((String value) => DropdownMenuItem<String>(value: value, child: Text(value))).toList(),
+          items:
+              _categories
+                  .map(
+                    (String value) => DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    ),
+                  )
+                  .toList(),
           onChanged: (newValue) => setState(() => _selectedCategory = newValue),
         ),
       ),

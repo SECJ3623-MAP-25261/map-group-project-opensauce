@@ -1,12 +1,30 @@
 import 'package:easyrent/core/constants/constants.dart';
 import 'package:easyrent/core/utils/convert_to_frontend_string.dart';
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/cancel_order_widget.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/widgets/report_item_widget.dart';
+import 'package:easyrent/features/rentee/renting_status/presentation/widgets/rentee_qr_dialog.dart';
+import 'package:easyrent/features/rentee/renting_status/services/database.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter/foundation.dart';
 
 class RentalItemCardWidget extends StatefulWidget {
-  final Map<String,dynamic> item;
-  const RentalItemCardWidget({super.key, required this.item});
+  final Item item;
+  final String status;
+  final DateTime returnDate;
+  final int orderDate;
+  final double totalFee;
+
+  const RentalItemCardWidget({
+    super.key,
+    required this.item,
+    required this.returnDate,
+    required this.orderDate,
+    required this.status,
+    required this.totalFee,
+  });
+
   @override
   State<RentalItemCardWidget> createState() => _RentalItemCardWidgetState();
 }
@@ -14,90 +32,203 @@ class RentalItemCardWidget extends StatefulWidget {
 class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
   bool cancelledItem = false;
 
-  // This is the function that simulates the API call to report the item
-  Future<bool> _handleReportSubmission(String reason, Map<String,dynamic> item) async {
-
-    print('Reporting item: with ${item['product_name']} name and ${item['id']} id');
-    print('Reason: $reason');
-    
-    // Simulate a network delay
-    await Future.delayed(const Duration(seconds: 2)); 
-
-    // Simulate a successful submission 80% of the time
-    final isSuccessful = DateTime.now().millisecond % 10 < 8; 
-
-    return isSuccessful;
+  Future<bool> _handleReportSubmission(String reason, Item item) async {
+    await Future.delayed(const Duration(seconds: 2));
+    return true;
   }
 
-  // The function that performs the actual cancellation API call
-  Future<void> _cancelOrderApiCall( Map<String,dynamic> item) async {
-    print('Attempting to cancel order ${item['id']}...');
-    // Simulate API delay
-    await Future.delayed(const Duration(seconds: 2));
-    
-    // Simulate failure 20% of the time for testing the error state
-    if (DateTime.now().millisecond % 10 < 2) {
-      throw Exception('Server error: Could not process cancellation.');
-    }
+  Future<void> _cancelOrderApiCall(String orderId, String newStatus) async {
+    await RentingStatusDatabaseService().updateItemStatus(orderId, newStatus);
     setState(() {
       cancelledItem = true;
     });
-    print('Order ${item['id']} successfully cancelled.');
-    // In a real app, you would typically refresh the order status here
   }
+
+  void _showQRCodeDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder:
+          (context) => RenteeQRDialog(
+            item: widget.item,
+            orderDate: widget.orderDate,
+            totalFee: widget.totalFee,
+            currentStatus: widget.status,
+            onSimulateScan: () => _simulatePickupScan(context),
+            showSimulateButton: kIsWeb,
+          ),
+    );
+  }
+
+  // --- FIXED METHOD START ---
+  Future<void> _simulatePickupScan(BuildContext context) async {
+    // 1. Capture the navigator BEFORE the async gap
+    final navigator = Navigator.of(context);
+
+    try {
+      if (widget.status.toLowerCase() != 'pending') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Cannot pickup ${widget.status} item")),
+        );
+        return;
+      }
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text("Processing pickup verification..."),
+                ],
+              ),
+            ),
+      );
+
+      await Future.delayed(const Duration(seconds: 1));
+
+      // 2. Perform DB Update
+      await RentingStatusDatabaseService().updateItemStatus(
+        widget.item.id,
+        'renting',
+      );
+
+      // 3. Pop the dialog unconditionally using the captured navigator
+      // We do NOT check 'mounted' here, because we must close the dialog
+      // even if this widget is about to be disposed (moved to another tab).
+      navigator.pop();
+
+      // 4. Show success dialog ONLY if widget is still alive (optional)
+      // Since the item moves to another tab, this widget might be unmounted.
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder:
+              (context) => AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                contentPadding: const EdgeInsets.all(20),
+                title: const Column(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 60),
+                    SizedBox(height: 10),
+                    Text(
+                      "Pickup Verified",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                content: const Text(
+                  "Item pickup confirmed!\n\nStatus updated to 'renting'.\n\nItem will now appear in In Renting tab.",
+                  textAlign: TextAlign.center,
+                ),
+                actions: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF8BE17),
+                      foregroundColor: Colors.black,
+                    ),
+                    child: const Text("Done"),
+                  ),
+                ],
+              ),
+        );
+      }
+    } catch (e) {
+      // Ensure loader is popped on error too
+      navigator.pop();
+      print('Error simulating pickup scan: $e');
+
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: const Text("Error"),
+                content: Text("Failed to verify pickup: $e"),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("OK"),
+                  ),
+                ],
+              ),
+        );
+      }
+    }
+  }
+  // --- FIXED METHOD END ---
+
+  String get formattedReturnDate {
+    return DateFormat('dd MMM yyyy').format(widget.returnDate);
+  }
+
   @override
   Widget build(BuildContext context) {
+    bool canShowQR =
+        widget.status.toLowerCase() == 'pending' ||
+        widget.status.toLowerCase() == 'renting';
+
+    String qrButtonText =
+        widget.status.toLowerCase() == 'pending' ? 'Pickup QR' : 'Return QR';
+
     return Card(
       color: Colors.white,
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Padding(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Container(
         padding: const EdgeInsets.all(12.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Left Side: Image
-              ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                widget.item['imageUrl'],
-                width: 80,
-                height: 80,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
+            SizedBox(
+              width: 80,
+              height: 80,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  widget.item.imageUrl,
                   width: 80,
                   height: 80,
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.image, color: Colors.grey),
+                  fit: BoxFit.cover,
+                  errorBuilder:
+                      (context, error, stackTrace) => Container(
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.image, color: Colors.grey),
+                      ),
                 ),
               ),
             ),
             const SizedBox(width: 12),
-            
-            // Right Side: Details and Actions
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Top Row: Title, Item Count, Price
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                       Expanded(
-                         child: Text(
-                          widget.item['product_name'],
-                          style: TextStyle(
+                      Expanded(
+                        child: Text(
+                          widget.item.productName,
+                          style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
-                                               ),
-                       ),
-                      // Item Count (2 Pcs)
+                        ),
+                      ),
                       Text(
-                        '${widget.item['quantity']} Pcs',
-                        style: TextStyle(color: AppColors.primaryRed, fontSize: 13, fontWeight: FontWeight.bold),
+                        '${widget.item.quantity} Pcs',
+                        style: TextStyle(
+                          color: AppColors.primaryRed,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -105,109 +236,120 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                   Row(
                     children: [
                       Text(
-                        'Return Date: ${widget.item['returnDate']}',
-                        style: TextStyle(color: AppColors.primaryRed, fontSize: 12),
-                      )
+                        'Return Date: $formattedReturnDate',
+                        style: TextStyle(
+                          color: AppColors.primaryRed,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  // Rental Rate
                   Row(
                     children: [
                       Text(
-                        'RM ${widget.item['price_per_day']} / day',
+                        'RM ${widget.item.pricePerDay} / day',
                         style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10,),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
-                        SizedBox(
+                      SizedBox(
                         height: 28,
-                        // 1. Replace OutlinedButton with a Container to hold the styling.
                         child: Container(
-                          // 2. Apply styling equivalent to OutlinedButton.styleFrom:
-                          padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
                           decoration: BoxDecoration(
-                            color: Colors.transparent, // Background color (optional, but good practice)
-                            border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
-                            borderRadius: BorderRadius.circular(4), // Shape
+                            color: Colors.transparent,
+                            border: Border.all(color: Colors.grey[400]!),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                          alignment: Alignment.center, // Center the text vertically within the container
-                          // 3. Place the Text widget inside the Container.
+                          alignment: Alignment.center,
                           child: Text(
-                            widget.item['deliveryMethods'],
-                            style: TextStyle(
-                              fontSize: 12, 
+                            widget.item.deliveryMethods,
+                            style: const TextStyle(
+                              fontSize: 12,
                               color: Colors.black,
-                              // Optional: Ensure text height aligns well with the 28px height constraint
-                              // height: 1.0, 
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10,),
-                        SizedBox(
+                      const SizedBox(width: 10),
+                      SizedBox(
                         height: 28,
-                        // 1. Replace OutlinedButton with a Container to hold the styling.
                         child: Container(
-                          // 2. Apply styling equivalent to OutlinedButton.styleFrom:
-                          padding: const EdgeInsets.symmetric(horizontal: 10), // Padding
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
                           decoration: BoxDecoration(
-                            color: Colors.transparent, // Background color (optional, but good practice)
-                            border: Border.all(color: Colors.grey[400]!), // BorderSide (Outline)
-                            borderRadius: BorderRadius.circular(4), // Shape
+                            color: Colors.transparent,
+                            border: Border.all(color: Colors.grey[400]!),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                          alignment: Alignment.center, // Center the text vertically within the container
-                          // 3. Place the Text widget inside the Container.
+                          alignment: Alignment.center,
                           child: Text(
-                            convertToFrontendString(widget.item['status']),
-                            style: TextStyle(
-                              fontSize: 12, 
+                            convertToFrontendString(widget.status),
+                            style: const TextStyle(
+                              fontSize: 12,
                               color: Colors.black,
-                              // Optional: Ensure text height aligns well with the 28px height constraint
-                              // height: 1.0, 
                             ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10,),
-                  // Total Rental Summary (The Yellow Section)
+                  const SizedBox(height: 10),
                   Container(
-                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 4,
+                      horizontal: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.yellow[100], // Light yellow background
+                      color: Colors.yellow[100],
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Total ${widget.item['orderDate']} days: RM 100',
-                          style: TextStyle(
+                          'Total ${widget.orderDate} days: RM ${widget.totalFee.toStringAsFixed(2)}',
+                          style: const TextStyle(
                             color: Colors.black,
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
                           ),
                         ),
                         const SizedBox(height: 4),
-                        // Buttons
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                        Wrap(
+                          alignment: WrapAlignment.end,
+                          spacing: 8.0,
+                          runSpacing: 4.0,
                           children: [
-                            // Cancel Order Button
                             SizedBox(
                               height: 28,
                               child: ElevatedButton(
-                                onPressed: widget.item['status'] == 'cancelled' || cancelledItem == true? null : () {
-                                    showCancelConfirmationModal(context: context, item: widget.item, onConfirm: (item) => _cancelOrderApiCall(widget.item));
-                                },
+                                onPressed:
+                                    widget.status.toLowerCase() ==
+                                                'cancelled' ||
+                                            cancelledItem == true ||
+                                            widget.status.toLowerCase() ==
+                                                'history'
+                                        ? null
+                                        : () {
+                                          showCancelConfirmationModal(
+                                            context: context,
+                                            item: widget.item,
+                                            onConfirm:
+                                                (item) => _cancelOrderApiCall(
+                                                  widget.item.id,
+                                                  "history",
+                                                ),
+                                          );
+                                        },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[300], // Grey color
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  backgroundColor: Colors.grey[300],
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                  ),
                                   elevation: 0,
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(4),
@@ -215,17 +357,58 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                                 ),
                                 child: Text(
                                   'Cancel Order',
-                                  style: TextStyle(fontSize: 12, color: widget.item['status'] == 'cancelled' || cancelledItem == true ? Colors.grey : Colors.black),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color:
+                                        widget.status.toLowerCase() ==
+                                                    'cancelled' ||
+                                                cancelledItem == true ||
+                                                widget.status.toLowerCase() ==
+                                                    'history'
+                                            ? Colors.grey
+                                            : Colors.black,
+                                  ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
-
-                            // Report Button (Red)
                             SizedBox(
                               height: 28,
-                              child: ReportItemWidget(onSubmitReport: _handleReportSubmission, item: widget.item)
+                              child: ReportItemWidget(
+                                onSubmitReport: _handleReportSubmission,
+                                item: widget.item,
+                              ),
                             ),
+                            if (canShowQR)
+                              SizedBox(
+                                height: 28,
+                                child: ElevatedButton(
+                                  onPressed: () => _showQRCodeDialog(context),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFF8BE17),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                    ),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.qr_code, size: 14),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        qrButtonText,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ],

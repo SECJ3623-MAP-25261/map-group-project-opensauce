@@ -1,12 +1,18 @@
 import 'package:easyrent/core/constants/constants.dart';
+import 'package:easyrent/features/models/item.dart';
 import 'package:easyrent/features/rentee/checkout/data/provider/checkout_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class CheckoutCartWidget extends ConsumerStatefulWidget {
-  final Map<String, dynamic> item;
+  const CheckoutCartWidget({
+    super.key,
+    required this.item,
+    required this.duration,
+  });
 
-  const CheckoutCartWidget({super.key, required this.item});
+  final Item item;
+  final int duration;
 
   @override
   ConsumerState<CheckoutCartWidget> createState() => _CheckoutCartWidgetState();
@@ -15,7 +21,7 @@ class CheckoutCartWidget extends ConsumerStatefulWidget {
 class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
   @override
   Widget build(BuildContext context) {
-    final id = widget.item['id'] as String;
+    final id = widget.item.id;
     // Helper function to create the star rating row
     Widget buildRatingRow() {
       return Row(
@@ -24,7 +30,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
           Icon(Icons.star, color: AppColors.primary, size: 16),
           const SizedBox(width: 4),
           Text(
-            '${widget.item['star_rating']}/5.0 (${widget.item['price_per_day']})',
+            '${widget.item.averageRating}/5.0 (${widget.item.pricePerDay})',
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
@@ -44,8 +50,9 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
           children: [
             IconButton(
               onPressed: () {
-                if (ref.watch(checkoutProvider.notifier).getItemQuantity(id) > 0) {
-                  ref.read(checkoutProvider.notifier).decrementItemQuantity(widget.item['id']);
+                if (ref.watch(checkoutProvider.notifier).getItemQuantity(id) >
+                    0) {
+                  ref.read(checkoutProvider.notifier).decrementItemQuantity();
                 }
               },
               icon: const Icon(Icons.remove, size: 16, color: Colors.grey),
@@ -54,13 +61,16 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
             ),
             const SizedBox(width: 4),
             Text(
-              ref.watch(checkoutProvider.notifier).getItemQuantity(id).toString(),
+              ref
+                  .watch(checkoutProvider.notifier)
+                  .getItemQuantity(id)
+                  .toString(),
               style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(width: 4),
             IconButton(
               onPressed: () {
-                ref.read(checkoutProvider.notifier).incrementItemQuantity(widget.item['id']);
+                ref.read(checkoutProvider.notifier).incrementItemQuantity();
               },
               icon: const Icon(Icons.add, size: 16, color: Colors.grey),
               padding: EdgeInsets.zero,
@@ -93,19 +103,20 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              widget.item['imageUrl'],
+              widget.item.imageUrl,
               width: 80,
               height: 80,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 80,
-                height: 80,
-                color: Colors.grey[200],
-                child: const Icon(Icons.image, color: Colors.grey),
-              ),
+              errorBuilder:
+                  (context, error, stackTrace) => Container(
+                    width: 80,
+                    height: 80,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.image, color: Colors.grey),
+                  ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 17),
 
           // Center: Product Details
           Expanded(
@@ -117,7 +128,7 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
                   children: [
                     Expanded(
                       child: Text(
-                        widget.item['product_name'],
+                        widget.item.productName,
                         style: const TextStyle(
                           overflow: TextOverflow.clip,
                           fontWeight: FontWeight.bold,
@@ -125,19 +136,19 @@ class _CheckoutCartWidgetState extends ConsumerState<CheckoutCartWidget> {
                         ),
                       ),
                     ),
-                      IconButton(
-                        onPressed: () {
-                          ref.read(checkoutProvider.notifier).deleteItem(id);
-                        },
-                        icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                    ),
+                    //   IconButton(
+                    //     onPressed: () {
+                    //       ref.read(checkoutProvider.notifier).deleteItem(id);
+                    //     },
+                    //     icon: const Icon(Icons.delete_outline, size: 20, color: Colors.grey),
+                    //     padding: EdgeInsets.zero,
+                    //     constraints: const BoxConstraints(),
+                    // ),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'RM ${widget.item['price_per_day']} per day',
+                  'RM ${widget.item.pricePerDay.toString()} per day',
                   style: TextStyle(
                     color: AppColors.primaryRed,
                     fontWeight: FontWeight.w600,

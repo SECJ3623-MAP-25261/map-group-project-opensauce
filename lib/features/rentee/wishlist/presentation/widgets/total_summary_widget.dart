@@ -140,6 +140,7 @@ class _TotalSummaryWidgetState extends ConsumerState<TotalSummaryWidget> {
                 child: ElevatedButton(
                   onPressed: () {
                     //TODO: SPRINT 3
+                    ref.read(shoppingCartProvider.notifier).checkoutToDatabase();
                     print("direct user to payment page");
                   },
                   style: ElevatedButton.styleFrom(

@@ -178,7 +178,7 @@ packages:
     source: hosted
     version: "1.19.1"
   convert:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: convert
       sha256: b30acd5944035672bc15c6b7a8b47d773e41e2f17de064350988c5d02adb1c68
@@ -345,6 +345,30 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.3.0"
+  firebase_storage:
+    dependency: "direct main"
+    description:
+      name: firebase_storage
+      sha256: "3438f38590186010ce76ece683ebf3b842cd637f31f83a13620917d7438a58fd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "13.0.4"
+  firebase_storage_platform_interface:
+    dependency: transitive
+    description:
+      name: firebase_storage_platform_interface
+      sha256: "5d56021a9d30f7ca89559c96cc4c7250ce6ff8881382ff7238fde64a1f449e39"
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.15"
+  firebase_storage_web:
+    dependency: transitive
+    description:
+      name: firebase_storage_web
+      sha256: a06775d1df6dd90f5fa3fe9e221b988dcbc221e73a0f8951136536e6d5e548e6
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.11.0"
   fixnum:
     dependency: transitive
     description:
@@ -400,6 +424,14 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  foundation:
+    dependency: "direct main"
+    description:
+      name: foundation
+      sha256: "6f1fda07bd2a422145724b0f94ee68fabac95fabff982d5f334fe1a38cbed6a7"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.5"
   frontend_server_client:
     dependency: transitive
     description:
@@ -416,6 +448,38 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.1.1"
+  geocoding:
+    dependency: "direct main"
+    description:
+      name: geocoding
+      sha256: "606be036287842d779d7ec4e2f6c9435fc29bbbd3c6da6589710f981d8852895"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.0"
+  geocoding_android:
+    dependency: transitive
+    description:
+      name: geocoding_android
+      sha256: ba810da90d6633cbb82bbab630e5b4a3b7d23503263c00ae7f1ef0316dcae5b9
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.1"
+  geocoding_ios:
+    dependency: transitive
+    description:
+      name: geocoding_ios
+      sha256: "18ab1c8369e2b0dcb3a8ccc907319334f35ee8cf4cfef4d9c8e23b13c65cb825"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.1.0"
+  geocoding_platform_interface:
+    dependency: transitive
+    description:
+      name: geocoding_platform_interface
+      sha256: "8c2c8226e5c276594c2e18bfe88b19110ed770aeb7c1ab50ede570be8b92229b"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.2.0"
   geolocator:
     dependency: "direct main"
     description:
@@ -760,6 +824,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.0.0"
+  mobile_scanner:
+    dependency: "direct main"
+    description:
+      name: mobile_scanner
+      sha256: d234581c090526676fd8fab4ada92f35c6746e3fb4f05a399665d75a399fb760
+      url: "https://pub.dev"
+    source: hosted
+    version: "5.2.3"
   nested:
     dependency: transitive
     description:
@@ -928,6 +1000,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
+  qr:
+    dependency: transitive
+    description:
+      name: qr
+      sha256: "5a1d2586170e172b8a8c8470bbbffd5eb0cd38a66c0d77155ea138d3af3a4445"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.2"
+  qr_flutter:
+    dependency: "direct main"
+    description:
+      name: qr_flutter
+      sha256: "5095f0fc6e3f71d08adef8feccc8cea4f12eec18a2e31c2e8d82cb6019f4b097"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.1.0"
   riverpod:
     dependency: transitive
     description:

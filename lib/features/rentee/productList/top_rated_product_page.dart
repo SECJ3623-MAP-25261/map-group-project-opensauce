@@ -6,16 +6,15 @@ import '../services/database_service.dart';
 import 'dart:convert';
 import 'dart:typed_data';
 
-class ProductListPage extends ConsumerStatefulWidget {
+class TopRatedProductPage extends ConsumerStatefulWidget {
   final String title;
-
-  const ProductListPage({super.key, required this.title});
+  const TopRatedProductPage({super.key, required this.title});
 
   @override
-  ConsumerState<ProductListPage> createState() => _ProductListPageState();
+  ConsumerState<TopRatedProductPage> createState() => _TopRatedProductPageState();
 }
 
-class _ProductListPageState extends ConsumerState<ProductListPage> {
+class _TopRatedProductPageState extends ConsumerState<TopRatedProductPage> {
   final DatabaseService _dbService = DatabaseService();
 
   Widget _buildGridImage(String imageUrl) {
@@ -101,8 +100,8 @@ class _ProductListPageState extends ConsumerState<ProductListPage> {
         ),
         centerTitle: true,
       ),
-      body: StreamBuilder<List<Item>>(
-        stream: _dbService.getProducts(),
+      body: FutureBuilder<List<Item>>(
+        future: _dbService.getTopRatedProduct(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
@@ -238,14 +237,28 @@ class _ProductListPageState extends ConsumerState<ProductListPage> {
                 ),
                 const SizedBox(height: 6),
 
-                Text(
-                  "RM ${item.pricePerDay.toStringAsFixed(0)}/day",
-                  style: const TextStyle(
-                    color: Color(0xFF5C001F),
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          "RM ${item.pricePerDay.toStringAsFixed(0)}/day",
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          "${item.orderCounts.toStringAsFixed(0)} rented",
+                          style: TextStyle(
+                            color: Colors.red[600],
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                 const SizedBox(height: 6),
 
                 Row(

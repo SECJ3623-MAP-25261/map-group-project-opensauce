@@ -1,8 +1,10 @@
 // Product List (Updated with more items)
 final List<Map<String, dynamic>> dummyProducts = [
   {
-    "title": "TMA-2 HD Wireless",
-    "price": "RM 10 per day",
+    "id": "item1",
+    "quantity":3,
+    "product_name": "TMA-2 HD Wireless",
+    "price": 10, //price per day
     "rating": 4.6,
     "reviewCount": 86,
     "image":
@@ -21,8 +23,10 @@ final List<Map<String, dynamic>> dummyProducts = [
         "The speaker unit contains a diaphragm that is precision-grown from NAC Audio bio-cellulose, making it stiffer, lighter and stronger than regular PET speaker units.",
   },
   {
-    "title": "XLite Mini Mouse",
-    "price": "RM 15 per day",
+    "id": "item2",
+    "quantity":3,
+    "product_name": "XLite Mini Mouse",
+    "price": 10,
     "rating": 4.8,
     "reviewCount": 120,
     "image":
@@ -40,8 +44,10 @@ final List<Map<String, dynamic>> dummyProducts = [
         "Ultralight ergonomic gaming mouse. Designed for speed and precision with a high-performance sensor. Perfect for competitive gaming.",
   },
   {
-    "title": "Sony WH-1000XM4",
-    "price": "RM 25 per day",
+    "id": "item3",
+    "quantity":3,
+    "product_name": "Sony WH-1000XM4",
+    "price": 10,
     "rating": 4.9,
     "reviewCount": 342,
     "image":
@@ -58,8 +64,9 @@ final List<Map<String, dynamic>> dummyProducts = [
         "Industry-leading noise canceling with Dual Noise Sensor technology. Next-level music with Edge-AI, co-developed with Sony Music Studios Tokyo.",
   },
   {
-    "title": "Logitech G Pro X",
-    "price": "RM 20 per day",
+    "product_name": "Logitech G Pro X",
+    "quantity":3,
+    "price": 10,
     "rating": 4.7,
     "reviewCount": 55,
     "image":
@@ -76,8 +83,9 @@ final List<Map<String, dynamic>> dummyProducts = [
         "Pro-grade performance with LIGHTSPEED wireless technology. Ultra-lightweight design for pure performance.",
   },
   {
-    "title": "Canon EOS M50",
-    "price": "RM 45 per day",
+    "product_name": "Canon EOS M50",
+    "price": 10,
+    "quantity":3,
     "rating": 4.8,
     "reviewCount": 210,
     "image":
@@ -94,8 +102,9 @@ final List<Map<String, dynamic>> dummyProducts = [
         "Compact mirrorless camera with 24.1 Megapixel CMOS (APS-C) Sensor and Dual Pixel CMOS AF. Perfect for vlogging and content creation.",
   },
   {
-    "title": "Secretlab Titan",
-    "price": "RM 30 per day",
+    "product_name": "Secretlab Titan",
+    "price": 10,
+    "quantity":3,
     "rating": 4.9,
     "reviewCount": 180,
     "image":

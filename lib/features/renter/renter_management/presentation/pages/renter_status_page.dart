@@ -1,129 +1,157 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import '../../services/notifier/renter_notifier.dart';
+import '../widgets/status_item_card.dart';
 
-class RenterStatusPage extends StatefulWidget {
+class RenterStatusPage extends StatelessWidget {
   const RenterStatusPage({super.key});
 
   @override
-  State<RenterStatusPage> createState() => _RenterStatusPageState();
-}
-
-class _RenterStatusPageState extends State<RenterStatusPage> {
-  String statusText = "On Renting..."; // Initial status
-
-  @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Card(
-          elevation: 2,
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Image.asset("assets/headphone.jpg", height: 80),
+    return Consumer<RenterNotifier>(
+      builder: (context, notifier, _) {
+        final state = notifier.state;
 
-                const SizedBox(height: 10),
+        if (state.loading) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-                const Text(
-                  "TMA-2HD Wireless",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
+        final activeRentals = state.rentalitems.where((item) {
+          return item.status == 'approved' || item.status == 'on_renting';
+        }).toList();
 
-                const SizedBox(height: 10),
+        if (activeRentals.isEmpty) {
+          return const Center(child: Text("No active rentals."));
+        }
 
-                const Text(
-                  "RM 20/ day | 2 days | Total: RM 40",
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                
-                const SizedBox(height: 8),
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: activeRentals.length,
+          itemBuilder: (context, index) {
+            final rentalitem = activeRentals[index];
+            
+            bool isWaitingPickup = (rentalitem.status == 'approved');
 
+            return StatusItemCard(
+              title: rentalitem.name,
+              statusText: isWaitingPickup ? "Ready for Pickup" : "On Renting...",
+              imageUrl: rentalitem.imageUrl,
 
-                // Status row: badge + Stop Rent button
-                Row(
-                  children: [
-                    // Status badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: statusText == "On Renting..."
-                            ? const Color(0xFFFFD700) // Gold
-                            : Colors.grey,             // Grey when stopped
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        statusText,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
+              onStopRent: () {
+                if (!isWaitingPickup) {
+                  _showStopConfirmation(context, notifier, rentalitem.id);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Scan QR code to start renting first!")),
+                  );
+                }
+              },
 
-                    const Spacer(),
-
-                    // Stop Rent button
-                    ElevatedButton(
-                      onPressed: () => _showPauseConfirmation(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                      ),
-                      child: const Text("Stop Rent"),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        )
-      ],
+              // SHOW QR ACTION (Only show if waiting for pickup)
+              onShowQR: isWaitingPickup 
+                  ? () => _showQRCodeDialog(context, rentalitem, notifier)
+                  : null, 
+            );
+          },
+        );
+      },
     );
   }
 
-  // ===========================
-  // CONFIRMATION DIALOG
-  // ===========================
-  void _showPauseConfirmation(BuildContext context) {
+  // --- QR CODE POPUP DIALOG ---
+  void _showQRCodeDialog(BuildContext context, dynamic rentalitem, RenterNotifier notifier) {
+    final String itemID = rentalitem.id;
+    final String qrData = "PICKUP:$itemID";
+    final String displayLocation = (rentalitem.deliveryMethods.isNotEmpty) 
+        ? rentalitem.deliveryMethods 
+        : "Library UTM (Default)";
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(
-          "Confirm to stop rent?",
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: const Text("Pickup Verification", textAlign: TextAlign.center),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Let the rentee scan this to confirm pickup."),
+            const SizedBox(height: 20),
+
+            // GENERATE QR CODE
+            SizedBox(
+              height: 200,
+              width: 200,
+              child: QrImageView(
+                data: qrData, 
+                version: QrVersions.auto,
+                size: 200.0,
+                backgroundColor: Colors.white,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+            const Divider(),
+
+            // DYNAMIC ITEM DETAILS FROM FIREBASE
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.shopping_bag_outlined, color: Color(0xFF800000)),
+              title: Text(rentalitem.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text("Price: RM ${rentalitem.price}/Days \nDuration: ${rentalitem.rentingDuration}"),
+              isThreeLine: true,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.location_on_outlined, color: Color(0xFF800000)),
+              title: const Text("Pickup Location"),
+              subtitle: Text(rentalitem.pickupLocation),
+            ),
+          ],
         ),
-        actionsPadding: const EdgeInsets.only(bottom: 12, right: 12),
         actions: [
-          // YES BUTTON
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close"),
+          ),
+          
+          // SIMULATE SCAN BUTTON (Only for Demo)
+          ElevatedButton(
+            onPressed: () {
+              notifier.startRental(rentalitem.id); // Update Firebase to 'on_renting'
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Pickup Confirmed! Status: On Renting")),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF8BE17),
+              foregroundColor: Colors.black,
+            ),
+            child: const Text("Simulate Scan"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStopConfirmation(BuildContext context, RenterNotifier notifier, String itemId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirm to stop rent?"),
+        content: const Text("This will mark the item as returned."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() {
-                statusText = "Stop Rent..."; // Update status and color
-              });
+              notifier.stopRent(itemId);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("Yes"),
-          ),
-
-          const SizedBox(width: 10),
-
-          // NO BUTTON
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text("No"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Yes, Stop"),
           ),
         ],
       ),
