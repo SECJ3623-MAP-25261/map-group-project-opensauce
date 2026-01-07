@@ -14,7 +14,6 @@ class RenteeprofilePage extends StatefulWidget {
 }
 
 class _RenteeprofilePageState extends State<RenteeprofilePage> {
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -157,9 +156,7 @@ class _RenteeprofilePageState extends State<RenteeprofilePage> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder:
-                                        (context) =>
-                                            const LoginPage(),
+                                    builder: (context) => const LoginPage(),
                                   ),
                                 );
                               },
@@ -178,15 +175,15 @@ class _RenteeprofilePageState extends State<RenteeprofilePage> {
         ),
       ),
 
-// <<<<<<<< HEAD:lib/features/rentee/rentee_profile/presentation/pages/profile_page.dart
-      bottomNavigationBar: RenteeBottomNavBar(),
-// ========
+      // <<<<<<<< HEAD:lib/features/rentee/rentee_profile/presentation/pages/profile_page.dart
+      // bottomNavigationBar: RenteeBottomNavBar(),
+      // ========
       //BOTTOM NAVIGATION BAR
-//       bottomNavigationBar: NavbarWidget(
-//         currentIndex: _selectedIndex,
-//         onTap: _onItemTapped,
-//       ),
-// >>>>>>>> origin/rentee_home_page:lib/features/rentee/profile_page.dart
+      //       bottomNavigationBar: NavbarWidget(
+      //         currentIndex: _selectedIndex,
+      //         onTap: _onItemTapped,
+      //       ),
+      // >>>>>>>> origin/rentee_home_page:lib/features/rentee/profile_page.dart
     );
   }
 }
