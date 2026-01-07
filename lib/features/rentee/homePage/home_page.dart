@@ -1,4 +1,5 @@
 import 'package:easyrent/features/rentee/homePage/rentee_bottom_navbar.dart';
+import 'package:easyrent/features/rentee/homePage/top_rented_list_widget.dart';
 import 'package:easyrent/features/rentee/renting_status/presentation/pages/renting_status_page.dart';
 import 'package:easyrent/features/rentee/services/notifiers.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +31,7 @@ class _HomePageState extends State<HomePage> {
             SizedBox(height: 20),
             BannerWidget(),
             SizedBox(height: 20),
-            ProductSectionWidget(
+            TopRentedListWidget(
               title: "Top Rented Product",
               isYellowBackground: true,
             ),

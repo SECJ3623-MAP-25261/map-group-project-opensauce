@@ -3,17 +3,16 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../features/models/item.dart';
 import 'package:http/http.dart' as http;
-
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Collection References
   CollectionReference get _productsRef => _db.collection('product');
   CollectionReference get _usersRef => _db.collection('user');
-  static const String baseUrl = 'http://127.0.0.1:3000';
+  // static const String baseUrl = AppString.baseUrl;
   // static const String baseUrl = 'http://10.45.57.244';
-  // static const String baseUrl = 'https://api-obf4enbu7a-uc.a.run.app';
-  // static const String baseUrl = 'http://10.203.106.199:5001/opensource-88def/us-central1';
+  static const String baseUrl = 'https://api-obf4enbu7a-uc.a.run.app';
+  // static const String baseUrl = 'http://10.203.110.37:4000/opensource-88def/us-central1';
 
   // --- FETCH PRODUCTS ---
   Stream<List<Item>> getProducts() {
@@ -28,7 +27,7 @@ class DatabaseService {
   try {
     print("------------get top rented product ------------");
     final response = await http.get(
-      Uri.parse('$baseUrl/api/product/top-product'),
+      Uri.parse('$baseUrl/product/top-product'),
     );
 
     print("------------get top rented product ${response.statusCode}------------");

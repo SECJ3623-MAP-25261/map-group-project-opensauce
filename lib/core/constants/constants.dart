@@ -11,6 +11,11 @@ class AppString {
   static const userSampleId= "UAPrpMnRHvfu47xvzh7L";
   // Define text
   static const appName = 'EasyRent';
+  // static const baseUrl = 'http://10.203.106.199:5001/opensource-88def/us-central1';
+  // static const String baseUrl = 'http://127.0.0.1:3000';
+  // static const String baseUrl = 'http://10.45.57.244';
+  // static const String baseUrl = 'https://api-obf4enbu7a-uc.a.run.app';
+  static const String baseUrl = 'http://10.203.106.199:5001/opensource-88def/us-central1';
 }
 
 class AppSize {
@@ -45,6 +50,5 @@ class Space{
   static const largeHorizontal = SizedBox(height: 50.0,);
   static const smallVertical = SizedBox(width: 5.0,);
 }
-
 
 
