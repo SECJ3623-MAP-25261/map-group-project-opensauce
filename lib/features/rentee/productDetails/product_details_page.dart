@@ -9,6 +9,7 @@ import '../../models/item.dart';
 import '../reviewPage/review_page.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:easyrent/connectivity_service.dart';
 
 class ProductDetailsPage extends ConsumerStatefulWidget {
   final Item item;
@@ -134,6 +135,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isOnline = ref.watch(connectivityProvider).value ?? true;
     final List<String> displayImages =
         widget.item.imageUrls.isNotEmpty
             ? widget.item.imageUrls
@@ -300,7 +302,7 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
               ),
               const Spacer(),
               ElevatedButton(
-                onPressed: () {
+                onPressed: isOnline ? () {
                   if (_selectedDateRange == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -338,9 +340,9 @@ class _ProductDetailsPageState extends ConsumerState<ProductDetailsPage> {
                       ),
                     );
                   }
-                },
+                } : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5C001F),
+                  backgroundColor: isOnline ? const Color(0xFF5C001F) : const Color(0xFFBDBDBD),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 50,
                     vertical: 15,

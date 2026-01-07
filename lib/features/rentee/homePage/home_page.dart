@@ -7,6 +7,11 @@ import 'list_widget.dart';
 import '../searchPage/search_page.dart';
 import '../services/database_service.dart';
 
+// --- NEW IMPORTS ---
+//import '../notification/presentation/pages/notification_page.dart';
+// Make sure this file exists (see code block below if you missed it)
+import '../notification/presentation/widgets/notification_icon_badge.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -49,9 +54,15 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: ValueListenableBuilder(valueListenable: selectedPageNotifiers, builder: (context, index, _) {
-        return NavbarWidget(currentIndex: index, onTap: (i) => selectedPageNotifiers.value=i);
-      },),
+      // bottomNavigationBar: ValueListenableBuilder(
+      //   valueListenable: selectedPageNotifiers,
+      //   builder: (context, index, _) {
+      //     return NavbarWidget(
+      //       currentIndex: index,
+      //       onTap: (i) => selectedPageNotifiers.value = i,
+      //     );
+      //   },
+      // ),
     );
   }
 }
@@ -150,7 +161,6 @@ class _CustomAppBarState extends State<CustomAppBar> {
           ),
           child: IconButton(
             onPressed: () {
-              
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -165,30 +175,18 @@ class _CustomAppBarState extends State<CustomAppBar> {
             tooltip: 'Renting Status',
           ),
         ),
-        // Notifications Button
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          decoration: const BoxDecoration(
-            color: Color(0xFFFFC107),
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            onPressed: () {
-              // Notification action
-            },
-            icon: const Icon(
-              Icons.notifications_none,
-              color: Color(0xFF5C001F),
-            ),
-            tooltip: 'Notifications',
-          ),
-        ),
+
+        // --- NEW NOTIFICATION BUTTON (With Red Dot) ---
+        const NotificationIconBadge(),
+
+        // ---------------------------------------------
         const SizedBox(width: 15),
       ],
     );
   }
 }
 
+// ... (Rest of your HomePage widgets: SearchBarWidget, CategoriesWidget, BannerWidget remain unchanged)
 class SearchBarWidget extends StatefulWidget {
   const SearchBarWidget({super.key});
   @override
