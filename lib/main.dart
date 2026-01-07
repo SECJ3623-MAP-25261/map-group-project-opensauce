@@ -66,7 +66,10 @@ class _MyAppState extends State<MyApp> {
       ),
       // --- FIX IS HERE ---
       // We changed ConnectivityService to ConnectivityWrapper
-      home: ConnectivityWrapper(child: const MainScreen()),
+      home: MainScreen(),
+      builder: (context, child) {
+        return ConnectivityWrapper(child: child!);
+      },
     );
   }
 }
