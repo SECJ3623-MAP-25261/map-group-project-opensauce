@@ -8,7 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'features/rentee/presentation/widgets/rentee_bottom_navbar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'features/message/chatpage.dart';
 // Import BOTH the service and the wrapper
 // import 'connectivity_service.dart';
 import 'connectivity_wrapper.dart';
@@ -83,7 +83,7 @@ class _MainScreenState extends State<MainScreen> {
     const HomePage(),
     const WishlistPage(),
     const Center(child: Text("Scan Page")),
-    const Center(child: Text("Messages Page")),
+    const ChatPage(),
     DummySelectRole(),
   ];
 
