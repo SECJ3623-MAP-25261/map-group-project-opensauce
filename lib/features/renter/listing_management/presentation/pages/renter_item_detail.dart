@@ -4,18 +4,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import 'package:easyrent/features/rentee/reviewPage/review_page.dart';
 
-// --- 1. ADD THESE IMPORTS ---
-// Make sure these paths match where you created the files in the previous step
+// ✅ Keep your Package Imports (Assuming 'easyrent' is your package name)
+import 'package:easyrent/features/rentee/reviewPage/review_page.dart';
+import 'package:easyrent/connectivity_service.dart';
+
+// ✅ Analytics & Comparison Imports
 import '../../models/rental_analytics.dart';
 import '../../services/rental_service.dart';
-// -----------------------------
+import 'product_comparison_page.dart'; 
 
+// ✅ Data & Notifier Imports
 import '../../../../models/item.dart';
 import '../../services/notifier/listing_notifier.dart';
 import 'edit_item.dart';
-import 'package:easyrent/connectivity_service.dart';
+
+// Riverpod alias
 import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
 
 class RenterItemDetail extends StatefulWidget {
@@ -31,17 +35,118 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
   int _currentImageIndex = 0;
   final PageController _pageController = PageController();
 
-  // --- 2. INITIALIZE THE SERVICE ---
   final RentalService _rentalService = RentalService();
   late Future<RentalAnalytics> _analyticsFuture;
 
   @override
   void initState() {
     super.initState();
-    // Load the analytics data as soon as the page opens
+    // Fetch analytics for the current item on load
     _analyticsFuture = _rentalService.getRentalAnalytics(widget.item.id);
   }
-  // --------------------------------
+
+  // ---------------------------------------------------------------------------
+  // ✅ UPDATED: Dynamic Comparison Picker (Uses Real Database Data)
+  // ---------------------------------------------------------------------------
+  void _showComparisonPicker(BuildContext context) {
+    // 1. Get the list of items from your ListingNotifier
+    final listingNotifier = Provider.of<ListingNotifier>(context, listen: false);
+    final myItems = listingNotifier.state.myItems;
+
+    // 2. Filter: Exclude the current item so we don't compare it with itself
+    final otherItems = myItems.where((item) => item.id != widget.item.id).toList();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          height: 450, // Height for the list
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Compare with...", 
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+              ),
+              const SizedBox(height: 15),
+              const Text(
+                "Select a product to compare performance:",
+                style: TextStyle(color: Colors.grey),
+              ),
+              const SizedBox(height: 15),
+              
+              // 3. Display the List
+              if (otherItems.isEmpty)
+                const Expanded(
+                  child: Center(
+                    child: Text(
+                      "No other products found to compare.",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
+              else
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: otherItems.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (context, index) {
+                      final item = otherItems[index];
+
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          side: BorderSide(color: Colors.grey.shade200)
+                        ),
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF5C001F).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.inventory_2_outlined, color: Color(0xFF5C001F)),
+                        ),
+                        // Using 'name' from ItemEntity (as used in ListingNotifier)
+                        title: Text(
+                           item.productName, 
+                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                           maxLines: 1,
+                           overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: const Text("Tap to compare stats", style: TextStyle(fontSize: 12)),
+                        trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                        onTap: () {
+                          Navigator.pop(context); // Close the sheet
+                          
+                          // 4. Navigate to Comparison Page with REAL IDs
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ProductComparisonPage(
+                                productId1: widget.item.id,          // Current Product
+                                productName1: widget.item.productName,
+                                productId2: item.id,           // Selected Product ID
+                                productName2: item.productName,       // Selected Product Name
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  // ---------------------------------------------------------------------------
 
   Widget _buildImage(String imageUrl, {BoxFit fit = BoxFit.contain}) {
     if (imageUrl.isEmpty) {
@@ -49,7 +154,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
         child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
       );
     }
-
     if (imageUrl.startsWith('http')) {
       return Image.network(
         imageUrl,
@@ -60,7 +164,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
             ),
       );
     }
-
     try {
       Uint8List bytes = base64Decode(imageUrl);
       return Image.memory(
@@ -78,10 +181,9 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
     }
   }
 
-  // --- 3. ADD THIS HELPER WIDGET FOR THE STAT CARD ---
   Widget _buildStatCard(String title, String value) {
     return Container(
-      width: 100, // Fixed width for uniformity
+      width: 100, 
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -119,7 +221,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
       ),
     );
   }
-  // ---------------------------------------------------
 
   void _openFullScreen(BuildContext context, List<String> images, int index) {
     Navigator.of(context).push(
@@ -338,6 +439,20 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
               ),
             ),
             centerTitle: true,
+            // ---------------------------------------------
+            // ✅ ACTION BUTTON FOR COMPARISON
+            // ---------------------------------------------
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.compare_arrows, color: Colors.black),
+                tooltip: "Compare Analytics",
+                onPressed: () {
+                  _showComparisonPicker(context);
+                },
+              ),
+              const SizedBox(width: 8), 
+            ],
+            // ---------------------------------------------
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(20),
@@ -495,16 +610,15 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                   ),
                 ),
 
-                // --- 4. INSERT ANALYTICS SECTION HERE ---
                 const SizedBox(height: 24),
+                
+                // Analytics Section
                 FutureBuilder<RentalAnalytics>(
                   future: _analyticsFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      // Loading State
                       return const Center(child: CircularProgressIndicator());
                     } else if (snapshot.hasError) {
-                      // Error State (Show 0s or message)
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -514,13 +628,12 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                         ],
                       );
                     } else if (snapshot.hasData) {
-                      // Success State
                       final data = snapshot.data!;
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _buildStatCard(
-                            "Total\nEarnings", // \n for two lines
+                            "Total\nEarnings",
                             "RM ${data.totalEarnings}",
                           ),
                           _buildStatCard(
@@ -538,7 +651,6 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                   },
                 ),
 
-                // ----------------------------------------
                 const SizedBox(height: 24),
                 const Divider(thickness: 1, color: Color(0xFFEEEEEE)),
                 const SizedBox(height: 24),
@@ -736,11 +848,9 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
 
   Widget _buildFullImage(String imageUrl) {
     if (imageUrl.isEmpty) return const SizedBox();
-
     if (imageUrl.startsWith('http')) {
       return Image.network(imageUrl, fit: BoxFit.contain);
     }
-
     try {
       Uint8List bytes = base64Decode(imageUrl);
       return Image.memory(bytes, fit: BoxFit.contain);
