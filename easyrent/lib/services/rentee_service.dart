@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// import 'package:http/http.dart' as http; // <--- ADDED
-// import 'dart:convert'; // <--- ADDED
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/item_model.dart';
 import '../models/cart_model.dart';
 import '../models/booking_model.dart';
@@ -10,22 +10,61 @@ class RenteeService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // --- MARKET LOGIC ---
-  Stream<QuerySnapshot> getNewArrivals() {
-    return _db
-        .collection('items')
-        .where('isAvailable', isEqualTo: true)
-        .orderBy('createdAt', descending: true)
-        .snapshots();
+  final String _baseUrl =
+      "https://us-central1-easyrent-b11f2.cloudfunctions.net/api";
+
+  // Fetch "Most Rented" (Calculated on Server)
+  Future<List<Map<String, dynamic>>> fetchMostRented() async {
+    try {
+      final response = await http.get(Uri.parse("$_baseUrl/items/most-rented"));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((e) => e as Map<String, dynamic>).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print("Error fetching most rented: $e");
+      return [];
+    }
   }
 
-  Stream<QuerySnapshot> getItemsByCategory(String category) {
-    return _db
-        .collection('items')
-        .where('isAvailable', isEqualTo: true)
-        .where('category', isEqualTo: category)
-        .snapshots();
+  // Fetch "New Arrivals" (Sorted on Server)
+  Future<List<Map<String, dynamic>>> fetchNewItems() async {
+    try {
+      final response = await http.get(
+        Uri.parse("$_baseUrl/items/new-arrivals"),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((e) => e as Map<String, dynamic>).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print("Error fetching new items: $e");
+      return [];
+    }
   }
+
+  // // --- MARKET LOGIC ---
+  // Stream<QuerySnapshot> getNewArrivals() {
+  //   return _db
+  //       .collection('items')
+  //       .where('isAvailable', isEqualTo: true)
+  //       .orderBy('createdAt', descending: true)
+  //       .snapshots();
+  // }
+
+  // Stream<QuerySnapshot> getItemsByCategory(String category) {
+  //   return _db
+  //       .collection('items')
+  //       .where('isAvailable', isEqualTo: true)
+  //       .where('category', isEqualTo: category)
+  //       .snapshots();
+  // }
 
   // --- WISHLIST LOGIC ---
   Stream<bool> isItemWishlisted(String itemId) {

@@ -7,15 +7,15 @@ const cors = require("cors");
 const authTriggers = require("./src/auth_triggers");
 const renterApi = require("./src/renter_api");
 const bookingTriggers = require("./src/triggers/booking_triggers");
-// const itemRoutes = require("./src/routes/item_routes");
+const itemRoutes = require("./src/routes/item_routes");
 const dashboardRoutes = require("./src/routes/dashboard_routes"); 
 const notificationTriggers = require("./src/triggers/notification_triggers");
 
 const app = express();
 app.use(cors({ origin: true }));
 
-// Routes
-// app.use("/items", itemRoutes);
+// Routess
+app.use("/items", itemRoutes);
 app.use("/dashboard", dashboardRoutes); 
 
 // --- EXPORTS ---

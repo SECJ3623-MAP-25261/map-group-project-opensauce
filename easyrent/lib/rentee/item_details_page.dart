@@ -120,9 +120,25 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
     setState(() => _isAddingToCart = true);
 
     try {
+      // 1. Handle Locations
       List<dynamic> locations = widget.itemData['pickupLocations'] ?? [];
       if (locations.isEmpty && widget.itemData['address'] != null) {
         locations = [widget.itemData['address']];
+      }
+
+      // 2. CRITICAL FIX: Hunt for the Owner ID
+      // Checks 'ownerId' first (from API), then 'userId' (from old Firestore data)
+      String realOwnerId =
+          widget.itemData['ownerId'] ??
+          widget.itemData['userId'] ??
+          widget.itemData['owner_id'] ??
+          'unknown';
+
+      // Debugging: Print this to your console to be 100% sure
+      print("DEBUG: Adding to cart. Found Owner ID: $realOwnerId");
+
+      if (realOwnerId == 'unknown' || realOwnerId.isEmpty) {
+        throw Exception("Cannot book item: Owner ID is missing.");
       }
 
       await FirebaseFirestore.instance
@@ -137,7 +153,11 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                 ? widget.itemData['images'][0]
                 : '',
             'pricePerDay': widget.itemData['pricePerDay'],
-            'ownerId': widget.itemData['userId'] ?? 'unknown',
+
+            // --- THE FIX ---
+            'ownerId': realOwnerId,
+
+            // ----------------
             'pickupLocations': locations,
             'startDate': Timestamp.fromDate(_selectedDateRange!.start),
             'endDate': Timestamp.fromDate(_selectedDateRange!.end),
@@ -151,9 +171,12 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         Navigator.pop(context);
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      print("Cart Error: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     } finally {
       if (mounted) setState(() => _isAddingToCart = false);
     }

@@ -27,7 +27,7 @@ class RenteeItemCard extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (_) =>
-                  ItemDetailsPage(itemData: item.toMap(), docId: item.id),
+                  ItemDetailsPage(docId: item.id, itemData: item.toMap()),
             ),
           );
         }
