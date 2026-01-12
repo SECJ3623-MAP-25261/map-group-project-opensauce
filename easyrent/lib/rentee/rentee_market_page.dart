@@ -4,6 +4,9 @@ import '../services/notification_service.dart';
 import '../models/item_model.dart';
 import '../widgets/rentee_item_card.dart';
 import 'cart_page.dart';
+import 'dart:async';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../services/offline_queue_service.dart';
 
 class RenteeMarketPage extends StatefulWidget {
   const RenteeMarketPage({super.key});
@@ -15,6 +18,8 @@ class RenteeMarketPage extends StatefulWidget {
 class _RenteeMarketPageState extends State<RenteeMarketPage> {
   final RenteeService _renteeService = RenteeService();
   final TextEditingController _searchController = TextEditingController();
+
+  StreamSubscription? _internetSubscription;
 
   // Futures to hold API data
   late Future<List<Map<String, dynamic>>> _mostRentedFuture;
@@ -28,6 +33,24 @@ class _RenteeMarketPageState extends State<RenteeMarketPage> {
 
     // 2. Load the Data from Cloud Functions
     _loadData();
+
+    _internetSubscription = Connectivity().onConnectivityChanged.listen((
+      result,
+    ) {
+      if (result != ConnectivityResult.none) {
+        // Internet is back! Run the sync.
+        OfflineQueueService().syncPendingItems().then((_) {
+          // Optional: Show a toast like "Offline items uploaded!"
+          print("Sync complete");
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _internetSubscription?.cancel(); // Don't forget this!
+    super.dispose();
   }
 
   void _loadData() {

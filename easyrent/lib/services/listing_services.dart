@@ -1,89 +1,76 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class ListingService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  // 1. UPLOAD IMAGES
-  Future<List<String>> uploadImages(List<File> newFiles) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception("No user");
+  /// Main function to Create or Update an item
+  Future<void> addOrUpdateListing({
+    String? listingId, // If null, we create new. If exists, we update.
+    required String title,
+    required String description,
+    required double price,
+    required String category,
+    required String address,
+    required List<String> existingImageUrls, // Images already in the cloud
+    required List<File> newImageFiles, // Images from phone gallery
+    required String userId,
+  }) async {
+    // 1. Upload NEW images (if any)
+    List<String> newUrls = await _uploadImages(newImageFiles, userId);
 
-    List<String> uploadedUrls = [];
-    for (var file in newFiles) {
-      final ref = _storage
-          .ref()
-          .child('item_images')
-          .child('${user.uid}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+    // 2. Combine with EXISTING images
+    // (This keeps images you didn't delete, and adds the new ones)
+    List<String> finalImageUrls = [...existingImageUrls, ...newUrls];
 
-      await ref.putFile(file);
-      uploadedUrls.add(await ref.getDownloadURL());
+    // 3. Prepare Data
+    Map<String, dynamic> data = {
+      'title': title,
+      'description': description,
+      'pricePerDay': price,
+      'category': category,
+      'address': address,
+      'images': finalImageUrls,
+      'firstImage': finalImageUrls.isNotEmpty ? finalImageUrls.first : '',
+      'ownerId': userId, // CRITICAL for your booking logic
+      'userId': userId, // Keep for legacy support
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    // 4. Save to Firestore
+    if (listingId == null) {
+      // --- CREATE NEW ---
+      data['createdAt'] = FieldValue.serverTimestamp();
+      data['isAvailable'] = true; // Default availability
+
+      await _db.collection('items').add(data);
+    } else {
+      // --- UPDATE EXISTING ---
+      await _db.collection('items').doc(listingId).update(data);
     }
-    return uploadedUrls;
   }
 
-  // 2. ADD LISTING
-  Future<void> addListing({
-    required String title,
-    required String description,
-    required double price,
-    required String category,
-    required String address,
-    required List<String> images,
-  }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw Exception("User not logged in");
+  /// Helper: Uploads a list of Files and returns their download URLs
+  Future<List<String>> _uploadImages(List<File> files, String userId) async {
+    List<String> urls = [];
 
-    await _db.collection('items').add({
-      'ownerId': user.uid,
-      'title': title,
-      'description': description,
-      'pricePerDay': price,
-      'category': category,
-      'address': address,
-      'images': images,
-      'isAvailable': true, // Default to true
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-  }
+    for (var file in files) {
+      // Create a unique filename: items/user_id/timestamp.jpg
+      String fileName =
+          "${DateTime.now().millisecondsSinceEpoch}_${urls.length}.jpg";
+      Reference ref = _storage.ref().child("items/$userId/$fileName");
 
-  // 3. UPDATE LISTING
-  Future<void> updateListing({
-    required String docId,
-    required String title,
-    required String description,
-    required double price,
-    required String category,
-    required String address,
-    required List<String> images,
-    required bool isAvailable,
-  }) async {
-    await _db.collection('items').doc(docId).update({
-      'title': title,
-      'description': description,
-      'pricePerDay': price,
-      'category': category,
-      'address': address,
-      'images': images,
-      'isAvailable': isAvailable,
-    });
-  }
+      // Upload
+      UploadTask task = ref.putFile(file);
+      TaskSnapshot snapshot = await task;
 
-  // 4. DELETE LISTING
-  Future<void> deleteListing(String docId) async {
-    await _db.collection('items').doc(docId).delete();
-  }
+      // Get URL
+      String url = await snapshot.ref.getDownloadURL();
+      urls.add(url);
+    }
 
-  // 5. GET SHOP ADDRESS (Helper)
-  Future<String?> getRenterDefaultAddress() async {
-    final user = _auth.currentUser;
-    if (user == null) return null;
-
-    final doc = await _db.collection('users').doc(user.uid).get();
-    return doc.data()?['pickupAddress'];
+    return urls;
   }
 }

@@ -1,7 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import '../services/listing_services.dart'; // Ensure this matches your file name
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart'; // Add this
+import '../services/listing_services.dart';
+import '../services/offline_queue_service.dart'; // Add this
 
 class AddListingPage extends StatefulWidget {
   final String? listingId;
@@ -14,8 +17,9 @@ class AddListingPage extends StatefulWidget {
 }
 
 class _AddListingPageState extends State<AddListingPage> {
-  // 1. INSTANTIATE SERVICE
+  // Services
   final ListingService _listingService = ListingService();
+  final OfflineQueueService _offlineService = OfflineQueueService();
 
   final _formKey = GlobalKey<FormState>();
   final _picker = ImagePicker();
@@ -38,318 +42,287 @@ class _AddListingPageState extends State<AddListingPage> {
   List<String> _existingImageUrls = [];
   List<File> _newImageFiles = [];
   bool _isLoading = false;
-  bool _isAvailable = true;
 
   @override
   void initState() {
     super.initState();
-    _initializeData();
-  }
-
-  // LOGIC: Setup form
-  Future<void> _initializeData() async {
-    final data = widget.existingData;
-    _titleController = TextEditingController(text: data?['title'] ?? '');
-    _descController = TextEditingController(text: data?['description'] ?? '');
-    _priceController = TextEditingController(
-      text: data?['pricePerDay']?.toString() ?? '',
+    // Initialize Controllers with existing data if editing
+    _titleController = TextEditingController(
+      text: widget.existingData?['title'] ?? '',
     );
-    _addressController = TextEditingController(text: data?['address'] ?? '');
+    _descController = TextEditingController(
+      text: widget.existingData?['description'] ?? '',
+    );
+    _priceController = TextEditingController(
+      text: widget.existingData?['pricePerDay']?.toString() ?? '',
+    );
+    _addressController = TextEditingController(
+      text: widget.existingData?['address'] ?? '',
+    );
 
-    if (data != null) {
-      setState(() {
-        _selectedCategory = data['category'] ?? 'Electronics';
-        _existingImageUrls = List<String>.from(data['images'] ?? []);
-        _isAvailable = data['isAvailable'] ?? true;
-      });
-    } else {
-      // Use Service to get address for NEW items
-      final defaultAddr = await _listingService.getRenterDefaultAddress();
-      if (mounted && defaultAddr != null) {
-        setState(() => _addressController.text = defaultAddr);
-      }
+    if (widget.existingData != null) {
+      _selectedCategory = widget.existingData!['category'] ?? 'Electronics';
+      _existingImageUrls = List<String>.from(
+        widget.existingData!['images'] ?? [],
+      );
     }
   }
 
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descController.dispose();
+    _priceController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  // --- IMAGE PICKING ---
+  Future<void> _pickImages() async {
+    final List<XFile> pickedFiles = await _picker.pickMultiImage();
+    if (pickedFiles.isNotEmpty) {
+      setState(() {
+        _newImageFiles.addAll(pickedFiles.map((e) => File(e.path)));
+      });
+    }
+  }
+
+  void _removeNewImage(int index) {
+    setState(() {
+      _newImageFiles.removeAt(index);
+    });
+  }
+
+  void _removeExistingImage(String url) {
+    setState(() {
+      _existingImageUrls.remove(url);
+    });
+  }
+
+  // --- SUBMIT FORM (OFFLINE + ONLINE LOGIC) ---
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_existingImageUrls.isEmpty && _newImageFiles.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Add at least one image")));
+
+    // Check if images are present
+    if (_newImageFiles.isEmpty && _existingImageUrls.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please add at least one image")),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
     try {
-      // A. Upload Images (Service handles the heavy lifting)
-      final newUrls = await _listingService.uploadImages(_newImageFiles);
+      // 1. Check Connectivity
+      final connectivityResult = await Connectivity().checkConnectivity();
+      bool isOffline = connectivityResult == ConnectivityResult.none;
+      // Note: If using connectivity_plus ^6.0, use: connectivityResult.contains(ConnectivityResult.none)
 
-      final finalImages = [..._existingImageUrls, ...newUrls];
+      // 2. OFFLINE LOGIC (Only for New Items)
+      if (isOffline) {
+        if (widget.listingId != null) {
+          // We generally don't support editing existing items offline
+          // to avoid complex sync conflicts, but you can enable it if you wish.
+          throw Exception("Cannot edit items while offline.");
+        }
 
-      // B. Save/Update Data via Service
-      if (widget.listingId == null) {
-        await _listingService.addListing(
+        // Convert File objects to path Strings for Hive
+        List<String> imagePaths = _newImageFiles
+            .map((file) => file.path)
+            .toList();
+
+        await _offlineService.queueItem(
           title: _titleController.text.trim(),
-          description: _descController.text.trim(),
           price: double.parse(_priceController.text.trim()),
+          description: _descController.text.trim(),
           category: _selectedCategory,
-          address: _addressController.text.trim(),
-          images: finalImages,
+          localImagePaths: imagePaths,
+          userId: user.uid,
         );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("No Internet. Saved to 'Pending Uploads'."),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+          Navigator.pop(context);
+        }
       } else {
-        await _listingService.updateListing(
-          docId: widget.listingId!,
+        // 3. ONLINE LOGIC (Standard Upload)
+
+        // This function should be inside your ListingService
+        // It handles uploading images to Storage & data to Firestore
+        await _listingService.addOrUpdateListing(
+          listingId: widget.listingId,
           title: _titleController.text.trim(),
           description: _descController.text.trim(),
           price: double.parse(_priceController.text.trim()),
           category: _selectedCategory,
           address: _addressController.text.trim(),
-          images: finalImages,
-          isAvailable: _isAvailable,
+          existingImageUrls: _existingImageUrls,
+          newImageFiles: _newImageFiles,
+          userId: user.uid,
         );
-      }
 
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Success!"),
-            backgroundColor: Colors.green,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Listing published successfully!")),
+          );
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _deleteItem() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Delete Item?"),
-        content: const Text("This action cannot be undone."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Delete", style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    setState(() => _isLoading = true);
-    try {
-      await _listingService.deleteListing(widget.listingId!);
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
-      setState(() => _isLoading = false);
-    }
-  }
-
-  // --- UI INTERACTION FUNCTIONS ---
-  Future<void> _pickImages() async {
-    final List<XFile> pickedFiles = await _picker.pickMultiImage();
-    if (pickedFiles.isNotEmpty) {
-      setState(
-        () => _newImageFiles.addAll(pickedFiles.map((x) => File(x.path))),
-      );
-    }
-  }
-
-  void _removeNewImage(int index) =>
-      setState(() => _newImageFiles.removeAt(index));
-  void _removeExistingImage(String url) =>
-      setState(() => _existingImageUrls.remove(url));
-
   @override
   Widget build(BuildContext context) {
-    final isEditing = widget.listingId != null;
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? "Edit Listing" : "List New Item"),
+        title: Text(
+          widget.listingId == null ? "Add New Listing" : "Edit Listing",
+        ),
         backgroundColor: const Color(0xFF800000),
-        actions: [
-          if (isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: _deleteItem,
-              tooltip: "Delete Item",
-            ),
-        ],
+        foregroundColor: Colors.white,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title
+              TextFormField(
+                controller: _titleController,
+                decoration: const InputDecoration(
+                  labelText: "Item Title",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) => val!.isEmpty ? "Enter a title" : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Price
+              TextFormField(
+                controller: _priceController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: "Price per Day (RM)",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) => val!.isEmpty ? "Enter a price" : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Category Dropdown
+              DropdownButtonFormField<String>(
+                value: _selectedCategory,
+                decoration: const InputDecoration(
+                  labelText: "Category",
+                  border: OutlineInputBorder(),
+                ),
+                items: _categories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (val) => setState(() => _selectedCategory = val!),
+              ),
+              const SizedBox(height: 16),
+
+              // Description
+              TextFormField(
+                controller: _descController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: "Description",
+                  border: OutlineInputBorder(),
+                ),
+                validator: (val) => val!.isEmpty ? "Enter a description" : null,
+              ),
+              const SizedBox(height: 16),
+
+              // Images Section
+              Text("Images", style: _headerStyle()),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 100,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
                   children: [
-                    // --- 1. PHOTOS SECTION ---
-                    Text("Photos", style: _headerStyle()),
-                    const SizedBox(height: 10),
-                    SizedBox(
-                      height: 100,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          InkWell(
-                            onTap: _pickImages,
-                            child: Container(
-                              width: 100,
-                              decoration: BoxDecoration(
-                                color: Colors.grey[200],
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.add_a_photo,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                          ..._existingImageUrls.map(
-                            (url) => _buildThumbnail(url: url),
-                          ),
-                          ..._newImageFiles.asMap().entries.map(
-                            (entry) => _buildThumbnail(
-                              file: entry.value,
-                              index: entry.key,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // --- 2. AVAILABILITY SWITCH (EDIT MODE ONLY) ---
-                    if (isEditing) ...[
-                      Container(
+                    // Add Button
+                    GestureDetector(
+                      onTap: _pickImages,
+                      child: Container(
+                        width: 100,
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: SwitchListTile(
-                          title: const Text(
-                            "Available for Rent",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text(
-                            _isAvailable
-                                ? "Item is visible in search"
-                                : "Item is hidden",
-                          ),
-                          value: _isAvailable,
-                          activeColor: const Color(0xFF800000),
-                          onChanged: (val) =>
-                              setState(() => _isAvailable = val),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                    ],
-
-                    // --- 3. FORM FIELDS ---
-                    TextFormField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(labelText: "Item Name"),
-                      validator: (val) => val!.isEmpty ? "Required" : null,
-                    ),
-                    const SizedBox(height: 10),
-
-                    DropdownButtonFormField(
-                      value: _selectedCategory,
-                      items: _categories
-                          .map(
-                            (c) => DropdownMenuItem(value: c, child: Text(c)),
-                          )
-                          .toList(),
-                      onChanged: (val) =>
-                          setState(() => _selectedCategory = val.toString()),
-                      decoration: const InputDecoration(labelText: "Category"),
-                    ),
-                    const SizedBox(height: 10),
-
-                    TextFormField(
-                      controller: _priceController,
-                      decoration: const InputDecoration(
-                        labelText: "Price (RM)",
-                        prefixText: "RM ",
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (val) => val!.isEmpty ? "Required" : null,
-                    ),
-                    const SizedBox(height: 10),
-
-                    TextFormField(
-                      controller: _descController,
-                      decoration: const InputDecoration(
-                        labelText: "Description",
-                        alignLabelWithHint: true,
-                      ),
-                      maxLines: 3,
-                      validator: (val) => val!.isEmpty ? "Required" : null,
-                    ),
-                    const SizedBox(height: 10),
-
-                    TextFormField(
-                      controller: _addressController,
-                      decoration: const InputDecoration(
-                        labelText: "Pickup Address",
-                      ),
-                      validator: (val) => val!.isEmpty ? "Required" : null,
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    // --- 4. SUBMIT BUTTON ---
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _submitForm,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF800000),
-                        ),
-                        child: Text(
-                          isEditing ? "Save Changes" : "Publish Listing",
-                          style: const TextStyle(color: Colors.white),
+                        child: const Icon(
+                          Icons.add_a_photo,
+                          color: Colors.grey,
                         ),
                       ),
                     ),
+                    // Existing Images (From Cloud)
+                    ..._existingImageUrls.map(
+                      (url) => _buildThumbnail(url: url),
+                    ),
+                    // New Images (From Local)
+                    ..._newImageFiles.asMap().entries.map((entry) {
+                      return _buildThumbnail(
+                        file: entry.value,
+                        index: entry.key,
+                      );
+                    }),
                   ],
                 ),
               ),
-            ),
+              const SizedBox(height: 30),
+
+              // Submit Button
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF800000),
+                  ),
+                  onPressed: _isLoading ? null : _submitForm,
+                  child: _isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          widget.listingId == null
+                              ? "Publish Listing"
+                              : "Update Listing",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  // --- HELPER UI WIDGETS ---
-  TextStyle _headerStyle() => const TextStyle(
-    fontSize: 16,
-    fontWeight: FontWeight.bold,
-    color: Color(0xFF800000),
-  );
-
+  // Helper Widget for Thumbnails
   Widget _buildThumbnail({String? url, File? file, int? index}) {
     return Stack(
       children: [
@@ -385,4 +358,10 @@ class _AddListingPageState extends State<AddListingPage> {
       ],
     );
   }
+
+  TextStyle _headerStyle() => const TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.bold,
+    color: Color(0xFF800000),
+  );
 }
