@@ -12,7 +12,20 @@
           "package_name": "com.example.easyrent"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "720292590198-9gfck4jclh99njknps41pn0mmeb6pp4h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.easyrent",
+            "certificate_hash": "377fef9e01b1db8644b2cacbb069fb8b9e8b71d9"
+          }
+        },
+        {
+          "client_id": "720292590198-gua243b9s7vrtashv9e3bt0mp42lqfoo.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyA6caGZTHT84EPyQC7220s1PYYKz4U1-7I"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "720292590198-gua243b9s7vrtashv9e3bt0mp42lqfoo.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
