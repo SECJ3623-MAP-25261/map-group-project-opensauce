@@ -105,13 +105,15 @@ class _RentingStatusPageState extends ConsumerState<RentingStatusPage>
                   if (itemMap == null) {
                     return const SizedBox.shrink();
                   }
-                  final String itemId = item['id']?.toString() ?? '';
+                  final String itemId = item['id']?.toString() ?? ''; //! Error: This will show orderId
+                  final String realProductId  = item['items']['id']?.toString() ?? '';
+                  // print("------------ itemId is ${item['items']['id']?.toString()}");
                   final Item itemDetails = Item.fromMap(itemMap, itemId);
 
                   // comvert string to datetime 
                   final endRenting = parseDate(item['endRenting']);
                   print("-----------${item['totalFee'].runtimeType}------------");
-                  return RentalItemCardWidget(item: itemDetails,orderDate: item['duration'], returnDate: (endRenting!), status: item['status'],totalFee: (item['totalFee'] as num?)?.toDouble() ?? 0.0,);
+                  return RentalItemCardWidget(item: itemDetails,orderDate: item['duration'], returnDate: (endRenting!), status: item['status'],totalFee: (item['totalFee'] as num?)?.toDouble() ?? 0.0,productId: realProductId,);
                   return const SizedBox.shrink();
                 }).toList(),
           );

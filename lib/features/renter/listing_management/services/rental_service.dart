@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:easyrent/core/constants/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/rental_analytics.dart';
 
@@ -7,7 +8,7 @@ class RentalService {
   // If using Android Emulator, use '10.0.2.2'.http://127.0.0.1:3000
   // If using a physical phone, use your laptop's IP address (e.g., 192.168.1.15).
   // static const String baseUrl = 'http://10.45.57.244/api/rental';
-  static const String baseUrl = 'https://api-obf4enbu7a-uc.a.run.app';
+  static const String baseUrl = AppString.baseUrl;
 
   Future<RentalAnalytics> getRentalAnalytics(String productId) async {
     try {

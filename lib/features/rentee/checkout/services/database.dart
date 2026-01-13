@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:easyrent/core/constants/constants.dart';
 import 'package:http/http.dart' as http;
@@ -5,6 +7,7 @@ import 'package:http/http.dart' as http;
 class CheckoutDatabaseServices {
   // 1. Get a reference to the Firestore instance
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const String baseUrl = AppString.baseUrl;
 
   // 2. Define the collection reference
   final String _collectionName = 'orders';
@@ -83,38 +86,40 @@ class CheckoutDatabaseServices {
     }
   }
 
-  Future<bool> updateItemOrderCounts({required String productId}) async {
+  Future<bool> increaseItemOrderCounts({required String productId}) async {
     try {
-      DocumentReference docRef = _firestore
-          .collection('product')
-          .doc(productId);
+      final response = await http.post(
+        Uri.parse('$baseUrl/product/increase-orderCounts'),
+        headers: {
+          'Content-Type' : 'application/json',
+        },
+        body: jsonEncode({
+          'productId':productId
+        })
+      );
 
-      // 1. Check if the document actually exists before updating
-      final docSnapshot = await docRef.get();
-
-      if (!docSnapshot.exists) {
-        print('No document found in Firestore with ID: $productId');
+      if(response.statusCode == 400 ){
+        print(
+          '---------- Failed to  increase orderCounts for: $productId ----------',
+        );
         return false;
       }
 
-      // 2. Perform the atomic increment
-      await docRef.update({'orderCounts': FieldValue.increment(1)});
+      if(response.statusCode == 200 ){
+         print(
+          '---------- Successfully updated orderCounts for: $productId ----------',
+        );
+        return true;
+      }
 
-      print(
-        '---------- Successfully updated orderCounts for: $productId ----------',
-      );
-      return true;
-    } on FirebaseException catch (e) {
-      // Handle specific cases (like the document being deleted mid-process)
-      print('Firebase Update Error: ${e.message}');
-      return false;
+     return false;
+
     } catch (e) {
-      print('General Update Error: $e');
+      // Handle specific cases (like the document being deleted mid-process)
+      print('Firebase Update Error: ${e}');
       return false;
-    }
+    } 
   }
-
-  static const String baseUrl = 'http://10.203.101.6:3000';
 
   Future<String> fetchProducts() async {
     try {

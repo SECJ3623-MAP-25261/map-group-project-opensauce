@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easyrent/core/constants/constants.dart';
 import '../../../features/models/item.dart';
 import 'package:http/http.dart' as http;
 class DatabaseService {
@@ -11,7 +12,7 @@ class DatabaseService {
   CollectionReference get _usersRef => _db.collection('user');
   // static const String baseUrl = AppString.baseUrl;
   // static const String baseUrl = 'http://10.45.57.244';
-  static const String baseUrl = 'https://api-obf4enbu7a-uc.a.run.app';
+  static const String baseUrl = AppString.baseUrl;
   // static const String baseUrl = 'http://10.203.110.37:4000/opensource-88def/us-central1';
 
   // --- FETCH PRODUCTS ---
@@ -25,7 +26,7 @@ class DatabaseService {
 
   Future<List<Item>> getTopRatedProduct() async {
   try {
-    print("------------get top rented product ------------");
+    print("------------get top rented product ${baseUrl}------------");
     final response = await http.get(
       Uri.parse('$baseUrl/product/top-product'),
     );

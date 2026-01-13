@@ -208,7 +208,7 @@ class CheckoutNotifier extends StateNotifier<CheckoutState> {
       final Map<String, dynamic> orderDetails = state.toJson();
       state = state.copyWith(isLoading: true);
       // Assuming you have access to the current user's ID
-      bool isOrderCountsUpdated = await dbService.updateItemOrderCounts(productId: state.items.id);
+      bool isOrderCountsUpdated = await dbService.increaseItemOrderCounts(productId: state.items.id);
   
       if (!isOrderCountsUpdated){
         print("--------orderCounts failed to updated--------");

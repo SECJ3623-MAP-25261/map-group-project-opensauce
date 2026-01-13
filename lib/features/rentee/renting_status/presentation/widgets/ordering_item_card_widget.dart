@@ -15,6 +15,7 @@ class RentalItemCardWidget extends StatefulWidget {
   final DateTime returnDate;
   final int orderDate;
   final double totalFee;
+  final String productId;
 
   const RentalItemCardWidget({
     super.key,
@@ -23,6 +24,7 @@ class RentalItemCardWidget extends StatefulWidget {
     required this.orderDate,
     required this.status,
     required this.totalFee,
+    required this.productId
   });
 
   @override
@@ -37,8 +39,10 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
     return true;
   }
 
-  Future<void> _cancelOrderApiCall(String orderId, String newStatus) async {
+  Future<void> _cancelOrderApiCall(String orderId, String newStatus, String productId) async {
+    print("-----------id: ${productId}");
     await RentingStatusDatabaseService().updateItemStatus(orderId, newStatus);
+    await RentingStatusDatabaseService().decreaseItemOrderCounts(productId: productId);
     setState(() {
       cancelledItem = true;
     });
@@ -342,6 +346,7 @@ class _RentalItemCardWidgetState extends State<RentalItemCardWidget> {
                                                 (item) => _cancelOrderApiCall(
                                                   widget.item.id,
                                                   "history",
+                                                  widget.productId
                                                 ),
                                           );
                                         },
