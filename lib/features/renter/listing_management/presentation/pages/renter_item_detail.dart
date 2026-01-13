@@ -729,9 +729,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                       children: [
                         Expanded(
                           child: OutlinedButton(
-                            onPressed:
-                                isOnline
-                                    ? () {
+                            onPressed:() {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -747,15 +745,11 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                                                   ),
                                         ),
                                       );
-                                    }
-                                    : null,
+                                    },
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               side: BorderSide(
-                                color:
-                                    isOnline
-                                        ? const Color(0xFF5C001F)
-                                        : const Color(0xFFBDBDBD),
+                                color:const Color(0xFF5C001F)
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -764,10 +758,7 @@ class _RenterItemDetailState extends State<RenterItemDetail> {
                             child: Text(
                               "EDIT",
                               style: TextStyle(
-                                color:
-                                    isOnline
-                                        ? const Color(0xFF5C001F)
-                                        : const Color(0xFFBDBDBD),
+                                color:const Color(0xFF5C001F),
                                 fontWeight: FontWeight.bold,
                               ),
                             ),

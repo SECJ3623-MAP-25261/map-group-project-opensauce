@@ -7,17 +7,18 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../../models/item.dart';
 import '../../services/notifier/listing_notifier.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
+import 'package:easyrent/connectivity_service.dart';
 
-class RenterEditItem extends StatefulWidget {
+class RenterEditItem extends rp.ConsumerStatefulWidget {
   final Item item;
-
   const RenterEditItem({super.key, required this.item});
 
   @override
-  State<RenterEditItem> createState() => _RenterEditItemState();
+  rp.ConsumerState<RenterEditItem> createState() => _RenterEditItemState();
 }
 
-class _RenterEditItemState extends State<RenterEditItem> {
+class _RenterEditItemState extends rp.ConsumerState<RenterEditItem> {
   late TextEditingController _nameController;
   late TextEditingController _priceController;
   late TextEditingController _depositController;
@@ -41,7 +42,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
 
   final PageController _pageController = PageController();
 
-
   bool _isSaving = false;
 
   @override
@@ -56,11 +56,6 @@ class _RenterEditItemState extends State<RenterEditItem> {
       text: widget.item.deposit.toString(),
     );
     selectedLocations = widget.item.locationDetails;
-
-    _descriptionController = TextEditingController(
-      text: widget.item.description,
-    );
-    _locationController = TextEditingController(text: widget.item.location);
 
     _descriptionController = TextEditingController(
       text: widget.item.description,
@@ -247,6 +242,15 @@ class _RenterEditItemState extends State<RenterEditItem> {
         }
       }
 
+      final double lat =
+          selectedLocations.isNotEmpty ? selectedLocations.last.latitude : 0.0;
+      final double long =
+          selectedLocations.isNotEmpty ? selectedLocations.last.longitude : 0.0;
+      final String locName =
+          selectedLocations.isNotEmpty
+              ? selectedLocations.last.locationName
+              : "";
+
       final updatedItem = Item(
         ownerRef: widget.item.ownerRef,
         id: widget.item.id,
@@ -259,11 +263,11 @@ class _RenterEditItemState extends State<RenterEditItem> {
         deposit: double.tryParse(_depositController.text) ?? 0.0,
 
         description: _descriptionController.text,
-        location: _locationController.text,
+        location: locName,
 
         // --- ADDED THESE TWO LINES TO FIX THE ERROR ---
-        locationLat: widget.item.locationLat,
-        locationLong: widget.item.locationLong,
+        locationLat: lat,
+        locationLong: long,
 
         // ----------------------------------------------
         category: _selectedCategory ?? "Other",
@@ -281,12 +285,28 @@ class _RenterEditItemState extends State<RenterEditItem> {
       );
 
       if (!mounted) return;
-      await Provider.of<ListingNotifier>(
-        context,
-        listen: false,
-      ).updateItem(updatedItem);
+      await Provider.of<ListingNotifier>(context, listen: false)
+          .updateItem(updatedItem)
+          .timeout(
+            const Duration(seconds: 3),
+            onTimeout: () {
+              return;
+            },
+          );
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+
+        final isOnline = ref.read(connectivityProvider).value ?? true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              isOnline ? "Item updated successfully" : "Updates saved locally.",
+            ),
+            backgroundColor: isOnline ? Colors.green : Colors.orange,
+          ),
+        );
+      }
     } catch (e) {
       print("Error updating: $e");
       if (mounted) {
@@ -662,6 +682,8 @@ class _RenterEditItemState extends State<RenterEditItem> {
   }
 
   Widget _buildAddLocation() {
+    final isOnline = ref.watch(connectivityProvider).value ?? true;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -679,17 +701,38 @@ class _RenterEditItemState extends State<RenterEditItem> {
                 children: [
                   Expanded(
                     child: Text(
-                      '$index: ${location.locationName}}', // Example of using the index
-                      style: const TextStyle(fontSize: 14, color: Colors.black54),softWrap: true, overflow: TextOverflow.visible,
+                      '$index: ${location.locationName}', // Example of using the index
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
+                      softWrap: true,
+                      overflow: TextOverflow.visible,
                     ),
                   ),
                   IconButton(
-                    onPressed: () {
-                      setState(() {
-                        selectedLocations.removeAt(index - 1);
-                      });
-                    },
-                    icon: Icon(Icons.delete, color: Colors.red, size: 18),
+                    onPressed:
+                        isOnline
+                            ? () {
+                              setState(() {
+                                selectedLocations.removeAt(index - 1);
+                              });
+                            }
+                            : () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Cannot edit location while offline.",
+                                  ),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                    icon: Icon(
+                      Icons.delete,
+                      color: isOnline ? Colors.red : Colors.grey,
+                      size: 18,
+                    ),
                   ),
                 ],
               ),
@@ -697,25 +740,31 @@ class _RenterEditItemState extends State<RenterEditItem> {
           }),
         const SizedBox(height: 10),
         ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) {
-                  return GeolocationRenter(
-                    onLocationSelected: _updateLocation,
-                    // location: selectedLocation,
-                    // locationLat: selectedLat,
-                    // locationLong: selectedLong,
-                    latitude: 1.488889,
-                    longitude: 103.761111,
-                  );
-                },
-              ),
-            );
-          },
+          onPressed:
+              isOnline
+                  ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) {
+                          return GeolocationRenter(
+                            onLocationSelected: _updateLocation,
+                            latitude: 1.488889,
+                            longitude: 103.761111,
+                          );
+                        },
+                      ),
+                    );
+                  }
+                  : () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Cannot search locations while offline."),
+                      ),
+                    );
+                  },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5C001F),
+            backgroundColor: isOnline ? const Color(0xFF5C001F) : Colors.grey,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),

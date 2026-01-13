@@ -11,18 +11,29 @@ class ListingNotifier extends ChangeNotifier {
   ListingState state = const ListingState();
 
   // Hidden Memory for Search
-  List<Item> _fullList = []; 
+  List<Item> _fullList = [];
 
   // 1. Load Items
   Future<void> loadMyItems() async {
     state = state.copyWith(isLoading: true);
     notifyListeners();
 
-    final items = await repository.getMyItems();
+    try {
+      final items = await repository.getMyItems().timeout(
+        const Duration(seconds: 3),
+        onTimeout: () {
+          return _fullList;
+        },
+      );
 
-    _fullList = items; 
-    state = state.copyWith(myItems: items, isLoading: false);
-    notifyListeners();
+      _fullList = items;
+      state = state.copyWith(myItems: items);
+    } catch (e) {
+      print("Load Items Error: $e");
+    } finally {
+      state = state.copyWith(isLoading: false);
+      notifyListeners();
+    }
   }
 
   // 2. Search
@@ -30,9 +41,10 @@ class ListingNotifier extends ChangeNotifier {
     if (query.isEmpty) {
       state = state.copyWith(myItems: _fullList);
     } else {
-      final filtered = _fullList.where((item) {
-        return item.productName.toLowerCase().contains(query.toLowerCase());
-      }).toList();
+      final filtered =
+          _fullList.where((item) {
+            return item.productName.toLowerCase().contains(query.toLowerCase());
+          }).toList();
       state = state.copyWith(myItems: filtered);
     }
     notifyListeners();
@@ -43,8 +55,18 @@ class ListingNotifier extends ChangeNotifier {
     state = state.copyWith(isLoading: true);
     notifyListeners();
 
-    await repository.addItem(newItem);
-    await loadMyItems(); 
+    try {
+      await repository
+          .addItem(newItem)
+          .timeout(const Duration(seconds: 3), onTimeout: () {});
+
+      await loadMyItems();
+    } catch (e) {
+      print("Add Item Error: $e");
+    } finally {
+      state = state.copyWith(isLoading: false);
+      notifyListeners();
+    }
   }
 
   // 4. Update
@@ -52,8 +74,18 @@ class ListingNotifier extends ChangeNotifier {
     state = state.copyWith(isLoading: true);
     notifyListeners();
 
-    await repository.updateItem(updatedItem);
-    await loadMyItems();
+    try {
+      await repository
+          .updateItem(updatedItem)
+          .timeout(const Duration(seconds: 3), onTimeout: () {});
+
+      await loadMyItems();
+    } catch (e) {
+      print("Update Item Error: $e");
+    } finally {
+      state = state.copyWith(isLoading: false);
+      notifyListeners();
+    }
   }
 
   // 5. Delete

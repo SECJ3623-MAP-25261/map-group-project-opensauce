@@ -273,27 +273,23 @@ class _RenterListingPageState extends rp.ConsumerState<RenterListingPage> {
         onItemTapped: _onItemTapped,
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed:
-            isOnline
-                ? () {
-                  final existingNotifier = Provider.of<ListingNotifier>(
-                    context,
-                    listen: false,
-                  );
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder:
-                          (context) => ChangeNotifierProvider.value(
-                            value: existingNotifier,
-                            child: const RenterAddItem(),
-                          ),
-                    ),
-                  );
-                }
-                : null,
-        backgroundColor:
-            isOnline ? const Color(0xFF5C001F) : const Color(0xFFBDBDBD),
+        onPressed: () {
+          final existingNotifier = Provider.of<ListingNotifier>(
+            context,
+            listen: false,
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (context) => ChangeNotifierProvider.value(
+                    value: existingNotifier,
+                    child: const RenterAddItem(),
+                  ),
+            ),
+          );
+        },
+        backgroundColor: const Color(0xFF5C001F),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: const Icon(Icons.add, color: Colors.white),
       ),

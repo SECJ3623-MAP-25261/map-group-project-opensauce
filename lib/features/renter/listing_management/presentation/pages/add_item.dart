@@ -8,15 +8,17 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../../../../models/item.dart';
 import '../../services/notifier/listing_notifier.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart' as rp;
+import 'package:easyrent/connectivity_service.dart';
 
-class RenterAddItem extends StatefulWidget {
+class RenterAddItem extends rp.ConsumerStatefulWidget {
   const RenterAddItem({super.key});
 
   @override
-  State<RenterAddItem> createState() => _RenterAddItemState();
+  rp.ConsumerState<RenterAddItem> createState() => _RenterAddItemState();
 }
 
-class _RenterAddItemState extends State<RenterAddItem> {
+class _RenterAddItemState extends rp.ConsumerState<RenterAddItem> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _depositController = TextEditingController();
@@ -173,16 +175,32 @@ class _RenterAddItemState extends State<RenterAddItem> {
   }
 
   Future<void> _saveItem() async {
-    if (_nameController.text.isEmpty ||
+    final isOnline = ref.read(connectivityProvider).value ?? true;
+
+    bool missingBasicFields = _nameController.text.isEmpty ||
         _priceController.text.isEmpty ||
         _depositController.text.isEmpty ||
-        _descriptionController.text.isEmpty ||
-       selectedLocations.isEmpty || selectedLocations.isEmpty) {
+        _descriptionController.text.isEmpty;
+
+    bool missingLocation = isOnline && selectedLocations.isEmpty;
+
+    if (missingBasicFields || missingLocation) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all fields")),
+        const SnackBar(content: Text("Please fill in required fields")),
       );
       return;
     }
+
+    // if (_nameController.text.isEmpty ||
+    //     _priceController.text.isEmpty ||
+    //     _depositController.text.isEmpty ||
+    //     _descriptionController.text.isEmpty ||
+    //    selectedLocations.isEmpty || selectedLocations.isEmpty) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text("Please fill in all fields")),
+    //   );
+    //   return;
+    // }
 
     // if (_selectedImages.isEmpty) {
     //   ScaffoldMessenger.of(context).showSnackBar(
@@ -208,6 +226,10 @@ class _RenterAddItemState extends State<RenterAddItem> {
         additionalImages = base64Images.sublist(1);
       }
 
+      final double lat = selectedLocations.isNotEmpty ? selectedLocations.last.latitude : 0.0;
+      final double long = selectedLocations.isNotEmpty ? selectedLocations.last.longitude : 0.0;
+      final String locName = selectedLocations.isNotEmpty ? selectedLocations.last.locationName : "Pending Location";
+
       final newItem = Item(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         ownerRef: FirebaseFirestore.instance
@@ -231,10 +253,10 @@ class _RenterAddItemState extends State<RenterAddItem> {
         averageRating: 5.0,
         reviews: [],
         currentRenterId: null,
-        locationLat: selectedLocations.last.latitude,
-        locationLong: selectedLocations.last.longitude,
+        locationLat: lat,
+        locationLong: long,
         locationDetails: selectedLocations,
-        location: selectedLocations.last.locationName
+        location: locName,
       );
 
       if (!mounted) return;
@@ -243,7 +265,20 @@ class _RenterAddItemState extends State<RenterAddItem> {
         listen: false,
       ).addItem(newItem);
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+        
+        final isOnline = ref.read(connectivityProvider).value ?? true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isOnline 
+              ? "Item uploaded successfully" 
+              : "Item saved locally (will sync when online)"
+            ),
+            backgroundColor: isOnline ? Colors.green : Colors.orange,
+          ),
+        );
+      }
     } catch (e) {
       print("Error saving: $e");
       if (mounted) {
@@ -559,6 +594,9 @@ class _RenterAddItemState extends State<RenterAddItem> {
   }
 
   Widget _buildAddLocation() {
+
+    final isOnline = ref.watch(connectivityProvider).value ?? true;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -592,6 +630,14 @@ class _RenterAddItemState extends State<RenterAddItem> {
         const SizedBox(height: 10),
         ElevatedButton(
           onPressed: () {
+            if (!isOnline) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Cannot search locations while offline. You can save without it."),
+                ),
+              );
+              return;
+            }
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -609,7 +655,7 @@ class _RenterAddItemState extends State<RenterAddItem> {
             );
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF5C001F),
+            backgroundColor: isOnline ? const Color(0xFF5C001F) : Colors.grey,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             elevation: 0,
