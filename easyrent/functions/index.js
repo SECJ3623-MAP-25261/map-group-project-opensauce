@@ -22,7 +22,7 @@ app.use("/dashboard", dashboardRoutes);
 exports.beforeCreate = authTriggers.beforeCreate;
 exports.enableRenterMode = renterApi.enableRenterMode;
 exports.onBookingCreated = bookingTriggers.onBookingCreated;
-exports.notifyBookingCreated = onDocumentCreated("bookings/{docId}", notificationTriggers.onBookingCreated);
+exports.notifyBookingCreated = onDocumentCreated("bookings/{docId}", onBookingCreated);
 exports.notifyBookingUpdated = onDocumentUpdated("bookings/{docId}", notificationTriggers.onBookingUpdated);
 exports.notifyMessageCreated = onDocumentCreated("chats/{chatId}/messages/{msgId}", notificationTriggers.onMessageCreated);
 
