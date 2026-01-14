@@ -17,7 +17,7 @@ class _CartPageState extends State<CartPage> {
   final Set<String> _selectedCartIds = {};
 
   // Keep track of the actual Model objects for checkout
-  List<CartItemModel> _selectedItems = [];
+  final List<CartItemModel> _selectedItems = [];
 
   double get _currentTotal {
     return _selectedItems.fold(0, (sum, item) => sum + item.totalRentalPrice);
@@ -53,10 +53,11 @@ class _CartPageState extends State<CartPage> {
 
     if (picked != null) {
       await _service.updateCartDates(item.cartDocId, picked.start, picked.end);
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text("Dates updated!")));
+      }
     }
   }
 
@@ -73,8 +74,9 @@ class _CartPageState extends State<CartPage> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null)
+    if (user == null) {
       return const Scaffold(body: Center(child: Text("Please Login")));
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -85,11 +87,13 @@ class _CartPageState extends State<CartPage> {
       body: StreamBuilder<List<CartItemModel>>(
         stream: _service.getCartStream(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
           final items = snapshot.data!;
-          if (items.isEmpty)
+          if (items.isEmpty) {
             return const Center(child: Text("Your cart is empty"));
+          }
 
           return ListView.separated(
             padding: const EdgeInsets.all(12),

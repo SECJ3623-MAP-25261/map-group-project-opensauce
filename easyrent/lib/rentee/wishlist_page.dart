@@ -58,8 +58,9 @@ class _WishlistPageState extends State<WishlistPage> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null)
+    if (user == null) {
       return const Scaffold(body: Center(child: Text("Please Login")));
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -92,8 +93,9 @@ class _WishlistPageState extends State<WishlistPage> {
             .orderBy('addedAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
+          }
           final docs = snapshot.data!.docs;
 
           if (docs.isEmpty) {
