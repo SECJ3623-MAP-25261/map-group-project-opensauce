@@ -335,7 +335,7 @@ class _RenterOrderDetailPageState extends State<RenterOrderDetailPage> {
                             Expanded(
                               child: OutlinedButton(
                                 onPressed: () {
-                                  renterService.declineOrder(booking.bookingId);
+                                  renterService.declineOrder(booking.bookingId,booking.itemId);
                                   Navigator.pop(context);
                                 },
                                 style: OutlinedButton.styleFrom(

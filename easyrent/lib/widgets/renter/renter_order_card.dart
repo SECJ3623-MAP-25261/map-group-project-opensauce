@@ -144,7 +144,7 @@ class RenterOrderCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => service.declineOrder(order.bookingId),
+                      onPressed: () => service.declineOrder(order.bookingId,order.itemId),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
                         side: const BorderSide(color: Colors.red),

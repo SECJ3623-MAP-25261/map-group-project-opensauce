@@ -6,6 +6,7 @@ const router = express.Router();
 // Define the endpoints
 router.get("/most-rented", itemController.getMostRentedItems);
 router.get("/new-arrivals", itemController.getNewItems);
+router.post("/decline-items",itemController.declineOrder)
 
 // Admin route (optional, keep commented out if you want to protect it)
 // router.post("/recalculate-counts", itemController.recalculateRentCounts);

@@ -89,13 +89,33 @@ class RenterService {
     });
   }
 
+  // String localURL = 'http://10.160.34.10/api';
   // 3. DECLINE ORDER
-  Future<void> declineOrder(String bookingId) async {
-    await _db.collection('bookings').doc(bookingId).update({
-      'status': 'declined',
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+  Future<void> declineOrder(String bookingId, String itemId) async {
+  try {
+    print("cancelling product");
+    final response = await http.post(
+      Uri.parse("$_baseUrl/items/decline-items"),
+      headers: {
+        "Content-Type": "application/json", // Tells the server to expect JSON
+      },
+      body: jsonEncode({
+        "bookingId": bookingId,
+        "itemId": itemId,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      print("Order declined successfully");
+    } else {
+      // Handle server-side errors (e.g., 400 or 500)
+      print("Failed to decline order: ${response.body}");
+    }
+  } catch (e) {
+    // Handle network errors
+    print("Error connecting to server: $e");
   }
+}
 
   // 4. GET RENTEE PROFILE (With Caching)
   Future<Map<String, dynamic>> getUserProfile(String userId) async {

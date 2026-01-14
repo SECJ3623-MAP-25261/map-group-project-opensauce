@@ -90,13 +90,18 @@ class CartItemCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      "RM ${item.pricePerDay}/day",
-                      style: const TextStyle(
-                        color: Color(0xFF800000),
-                        fontWeight: FontWeight.w600,
+                    Row(children: [
+                      Text(
+                        "RM ${item.pricePerDay}/day",
+                        style: const TextStyle(
+                          color: Color(0xFF800000),
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
+                      // Text(
+                      //   "${item.rentCount} rents"
+                      // )
+                    ],),
                     const SizedBox(height: 6),
 
                     // Date Edit Row

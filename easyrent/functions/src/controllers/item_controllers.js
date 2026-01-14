@@ -62,6 +62,38 @@ exports.getNewItems = async (req, res) => {
     }
 };
 
+exports.declineOrder = async (req, res) => {
+  // Expecting bookingId and itemId from the request body
+  const { bookingId, itemId } = req.body;
+
+  if (!bookingId || !itemId) {
+    return res.status(400).json({ error: "Missing bookingId or itemId." });
+  }
+
+  try {
+    await db.runTransaction(async (transaction) => {
+      const bookingRef = db.collection("bookings").doc(bookingId);
+      const itemRef = db.collection("items").doc(itemId);
+
+      // 1. Update Booking Status
+      transaction.update(bookingRef, {
+        status: "declined",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // 2. Decrement rentCount on the Item
+      transaction.update(itemRef, {
+        rentCount: admin.firestore.FieldValue.increment(-1),
+      });
+    });
+
+    return res.status(200).json({ message: "Order declined and rent count updated." });
+  } catch (error) {
+    console.error("Error declining order:", error);
+    return res.status(500).json({ error: "Failed to decline order." });
+  }
+};
+
 // 3. ADMIN: Recalculate Counts
 // (Run this manually via Postman if rent counts seem wrong)
 exports.recalculateRentCounts = async (req, res) => {
