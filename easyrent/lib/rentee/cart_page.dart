@@ -1,8 +1,10 @@
+import 'dart:async'; // Needed
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart'; // Import
 import '../services/rentee_service.dart';
 import '../models/cart_model.dart';
-import '../widgets/cart_item_card.dart'; // Ensure this exists
+import '../widgets/cart_item_card.dart';
 import 'payment_page.dart';
 
 class CartPage extends StatefulWidget {
@@ -15,9 +17,43 @@ class CartPage extends StatefulWidget {
 class _CartPageState extends State<CartPage> {
   final RenteeService _service = RenteeService();
   final Set<String> _selectedCartIds = {};
+  final List<CartItemModel> _selectedItems = [];
 
-  // Keep track of the actual Model objects for checkout
-  List<CartItemModel> _selectedItems = [];
+  // --- NEW: Offline State ---
+  bool _isOffline = false;
+  StreamSubscription? _internetSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialInternet();
+    _internetSubscription = Connectivity().onConnectivityChanged.listen((
+      result,
+    ) {
+      _updateConnectionStatus(result);
+    });
+  }
+
+  @override
+  void dispose() {
+    _internetSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _updateConnectionStatus(dynamic result) {
+    bool offline = false;
+    if (result is List) {
+      offline = result.contains(ConnectivityResult.none);
+    } else {
+      offline = result == ConnectivityResult.none;
+    }
+    if (mounted) setState(() => _isOffline = offline);
+  }
+
+  Future<void> _checkInitialInternet() async {
+    var result = await Connectivity().checkConnectivity();
+    _updateConnectionStatus(result);
+  }
 
   double get _currentTotal {
     return _selectedItems.fold(0, (sum, item) => sum + item.totalRentalPrice);
@@ -35,36 +71,28 @@ class _CartPageState extends State<CartPage> {
     });
   }
 
+  // (Keep your existing _handleDateEdit, _handleDelete methods here...)
   Future<void> _handleDateEdit(CartItemModel item) async {
-    final DateTime now = DateTime.now();
-    final DateTimeRange? picked = await showDateRangePicker(
-      context: context,
-      initialDateRange: DateTimeRange(start: item.startDate, end: item.endDate),
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
-      builder: (context, child) => Theme(
-        data: ThemeData.light().copyWith(
-          primaryColor: const Color(0xFF800000),
-          colorScheme: const ColorScheme.light(primary: Color(0xFF800000)),
-        ),
-        child: child!,
-      ),
-    );
+    // ... existing logic ...
+  }
 
-    if (picked != null) {
-      await _service.updateCartDates(item.cartDocId, picked.start, picked.end);
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Dates updated!")));
+  void _handleDelete(String cartId) {
+    _service.removeFromCart(cartId);
+    // Also remove from selection if deleted
+    if (_selectedCartIds.contains(cartId)) {
+      setState(() {
+        _selectedCartIds.remove(cartId);
+        _selectedItems.removeWhere((i) => i.cartDocId == cartId);
+      });
     }
   }
 
   void _checkout() {
+    if (_isOffline) return; // Safety check
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        // PASS LIST OF MODELS
         builder: (context) => PaymentPage(checkoutItems: _selectedItems),
       ),
     );
@@ -83,34 +111,37 @@ class _CartPageState extends State<CartPage> {
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<List<CartItemModel>>(
-        stream: _service.getCartStream(),
+        stream: _service.streamCartItems(user.uid),
         builder: (context, snapshot) {
-          if (!snapshot.hasData)
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
-          final items = snapshot.data!;
-          if (items.isEmpty)
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return const Center(child: Text("Your cart is empty"));
+          }
 
-          return ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: items.length,
-            separatorBuilder: (ctx, i) => const SizedBox(height: 12),
+          final cartItems = snapshot.data!;
+          return ListView.builder(
+            itemCount: cartItems.length,
+            padding: const EdgeInsets.all(16),
             itemBuilder: (context, index) {
-              final item = items[index];
+              final item = cartItems[index];
+              final isSelected = _selectedCartIds.contains(item.cartDocId);
+
+              // Use your existing CartItemCard
               return CartItemCard(
                 item: item,
-                isSelected: _selectedCartIds.contains(item.cartDocId),
-                onSelected: (val) => _toggleSelection(item, val ?? false),
-                onDelete: () {
-                  _service.removeFromCart(item.cartDocId);
-                  _toggleSelection(item, false);
-                },
-                onEditDates: () => _handleDateEdit(item),
+                isSelected: isSelected,
+                onSelected: (val) => _toggleSelection(item, val!),
+                onDelete: () => _handleDelete(item.cartDocId),
+                onEditDate: () => _handleDateEdit(item),
               );
             },
           );
         },
       ),
+
+      // --- BOTTOM CHECKOUT BAR ---
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -140,17 +171,24 @@ class _CartPageState extends State<CartPage> {
                 ),
               ],
             ),
+
+            // --- UPDATED CHECKOUT BUTTON ---
             ElevatedButton(
-              onPressed: _selectedItems.isEmpty ? null : _checkout,
+              // Disable if: No items selected OR Offline
+              onPressed: (_selectedItems.isEmpty || _isOffline)
+                  ? null
+                  : _checkout,
+
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF800000),
+                disabledBackgroundColor: Colors.grey, // Explicit grey
                 padding: const EdgeInsets.symmetric(
                   horizontal: 30,
                   vertical: 12,
                 ),
               ),
               child: Text(
-                "Checkout (${_selectedItems.length})",
+                _isOffline ? "Offline" : "Checkout (${_selectedItems.length})",
                 style: const TextStyle(color: Colors.white),
               ),
             ),

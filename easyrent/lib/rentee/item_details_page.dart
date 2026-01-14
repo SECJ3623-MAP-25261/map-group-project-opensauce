@@ -1,7 +1,9 @@
+import 'dart:async'; // Needed for StreamSubscription
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'item_details_widgets.dart'; // Ensure this file exists from previous steps
+import 'package:connectivity_plus/connectivity_plus.dart'; // Import Connectivity
+import 'item_details_widgets.dart';
 
 class ItemDetailsPage extends StatefulWidget {
   final Map<String, dynamic> itemData;
@@ -21,6 +23,50 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
   DateTimeRange? _selectedDateRange;
   bool _isAddingToCart = false;
 
+  // --- NEW: Offline State ---
+  bool _isOffline = false;
+  StreamSubscription? _internetSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // 1. Check Internet Immediately
+    _checkInitialInternet();
+
+    // 2. Listen for Changes
+    _internetSubscription = Connectivity().onConnectivityChanged.listen((
+      result,
+    ) {
+      _updateConnectionStatus(result);
+    });
+  }
+
+  @override
+  void dispose() {
+    _internetSubscription?.cancel();
+    super.dispose();
+  }
+
+  // Helper to handle connectivity result
+  void _updateConnectionStatus(dynamic result) {
+    bool offline = false;
+    // Handle both List<ConnectivityResult> (new) and single ConnectivityResult (old)
+    if (result is List) {
+      offline = result.contains(ConnectivityResult.none);
+    } else {
+      offline = result == ConnectivityResult.none;
+    }
+
+    if (mounted) {
+      setState(() => _isOffline = offline);
+    }
+  }
+
+  Future<void> _checkInitialInternet() async {
+    var result = await Connectivity().checkConnectivity();
+    _updateConnectionStatus(result);
+  }
+
   // --- CALCULATION ---
   num get _totalPrice {
     if (_selectedDateRange == null) return 0.0;
@@ -37,71 +83,16 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
       context: context,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            primaryColor: const Color(0xFF800000),
-            colorScheme: const ColorScheme.light(primary: Color(0xFF800000)),
-          ),
-          child: child!,
-        );
-      },
     );
-
     if (picked != null) {
       setState(() => _selectedDateRange = picked);
     }
   }
 
-  // --- WISHLIST LOGIC (Toggle) ---
-  Future<void> _toggleWishlist() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Login required")));
-      return;
-    }
-
-    final docRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .collection('wishlist')
-        .doc(widget.docId);
-
-    final docSnapshot = await docRef.get();
-
-    if (docSnapshot.exists) {
-      // Remove from wishlist
-      await docRef.delete();
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Removed from Wishlist")));
-      }
-    } else {
-      // Add to wishlist
-      await docRef.set({
-        'itemId': widget.docId,
-        'title': widget.itemData['title'],
-        'price': widget.itemData['pricePerDay'],
-        'image': (widget.itemData['images'] as List?)?.isNotEmpty == true
-            ? widget.itemData['images'][0]
-            : '',
-        'description': widget.itemData['description'],
-        'ownerId': widget.itemData['userId'] ?? widget.itemData['ownerId'],
-        'addedAt': FieldValue.serverTimestamp(),
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Added to Wishlist!")));
-      }
-    }
-  }
-
   // --- ADD TO CART LOGIC ---
   Future<void> _addToCart() async {
+    if (_isOffline) return; // Double check safety
+
     if (_selectedDateRange == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select rental dates first")),
@@ -120,26 +111,17 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
     setState(() => _isAddingToCart = true);
 
     try {
-      // 1. Handle Locations
       List<dynamic> locations = widget.itemData['pickupLocations'] ?? [];
       if (locations.isEmpty && widget.itemData['address'] != null) {
         locations = [widget.itemData['address']];
       }
 
-      // 2. CRITICAL FIX: Hunt for the Owner ID
-      // Checks 'ownerId' first (from API), then 'userId' (from old Firestore data)
+      // Check Owner ID (The fix we did earlier)
       String realOwnerId =
           widget.itemData['ownerId'] ??
           widget.itemData['userId'] ??
           widget.itemData['owner_id'] ??
           'unknown';
-
-      // Debugging: Print this to your console to be 100% sure
-      print("DEBUG: Adding to cart. Found Owner ID: $realOwnerId");
-
-      if (realOwnerId == 'unknown' || realOwnerId.isEmpty) {
-        throw Exception("Cannot book item: Owner ID is missing.");
-      }
 
       await FirebaseFirestore.instance
           .collection('users')
@@ -153,11 +135,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                 ? widget.itemData['images'][0]
                 : '',
             'pricePerDay': widget.itemData['pricePerDay'],
-
-            // --- THE FIX ---
             'ownerId': realOwnerId,
-
-            // ----------------
             'pickupLocations': locations,
             'startDate': Timestamp.fromDate(_selectedDateRange!.start),
             'endDate': Timestamp.fromDate(_selectedDateRange!.end),
@@ -171,7 +149,6 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         Navigator.pop(context);
       }
     } catch (e) {
-      print("Cart Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -184,71 +161,46 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-    final data = widget.itemData;
-    final List<dynamic> images = data['images'] ?? [];
-
-    final String avgRating = data.containsKey('averageRating')
-        ? "${data['averageRating'].toStringAsFixed(1)}"
-        : "New";
-    final String reviewCount = data.containsKey('reviewCount')
-        ? "(${data['reviewCount']} reviews)"
-        : "";
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(data['title']),
+        title: const Text("Item Details"),
         backgroundColor: const Color(0xFF800000),
         foregroundColor: Colors.white,
-        actions: [
-          // --- HEART ICON (Wishlist) ---
-          if (user != null)
-            StreamBuilder<DocumentSnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .collection('wishlist')
-                  .doc(widget.docId)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                bool isWishlisted = snapshot.hasData && snapshot.data!.exists;
-                return IconButton(
-                  icon: Icon(
-                    isWishlisted ? Icons.favorite : Icons.favorite_border,
-                    color: isWishlisted ? Colors.red : Colors.white,
-                  ),
-                  onPressed: _toggleWishlist,
-                );
-              },
-            ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. IMAGE
-            Container(
-              height: 250,
-              width: double.infinity,
-              color: Colors.grey[200],
-              child: images.isNotEmpty
-                  ? Image.network(images.first, fit: BoxFit.cover)
-                  : const Icon(Icons.inventory_2, size: 80, color: Colors.grey),
-            ),
+            // 1. IMAGE SLIDER
+            if ((widget.itemData['images'] as List?)?.isNotEmpty == true)
+              SizedBox(
+                height: 300,
+                child: PageView.builder(
+                  itemCount: (widget.itemData['images'] as List).length,
+                  itemBuilder: (context, index) {
+                    return Image.network(
+                      widget.itemData['images'][index],
+                      fit: BoxFit.cover,
+                    );
+                  },
+                ),
+              ),
 
-            Padding(
-              padding: const EdgeInsets.all(16.0),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 2. HEADER
+                  // 2. TITLE & PRICE
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Text(
-                          data['title'],
+                          widget.itemData['title'] ?? 'No Title',
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -256,9 +208,9 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                         ),
                       ),
                       Text(
-                        "RM ${data['pricePerDay']}/day",
+                        "RM ${widget.itemData['pricePerDay']}/day",
                         style: const TextStyle(
-                          fontSize: 18,
+                          fontSize: 20,
                           color: Color(0xFF800000),
                           fontWeight: FontWeight.bold,
                         ),
@@ -266,72 +218,55 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                     ],
                   ),
 
-                  // 3. RATING
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: Colors.amber, size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        "$avgRating / 5.0 ",
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        reviewCount,
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // 4. CATEGORY
-                  Chip(label: Text(data['category'] ?? 'General')),
                   const SizedBox(height: 20),
-
-                  // 5. OWNER SECTION (From Widgets File)
-                  OwnerSection(
-                    ownerId: data['ownerId'] ?? data['userId'] ?? '',
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 6. DESCRIPTION
                   const Text(
                     "Description",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: 10),
                   Text(
-                    data['description'] ?? "No description.",
-                    style: const TextStyle(color: Colors.grey),
+                    widget.itemData['description'] ??
+                        "No description provided.",
                   ),
+
                   const SizedBox(height: 20),
-
-                  // 7. LOCATION (From Widgets File)
-                  LocationSection(itemData: data),
-
-                  const SizedBox(height: 30),
                   const Divider(),
 
-                  // 8. DATE SELECTION
+                  // 4. OWNER INFO
+                  OwnerSection(
+                    ownerId:
+                        widget.itemData['ownerId'] ??
+                        widget.itemData['userId'] ??
+                        '',
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // 5. DATE PICKER FIELD
+                  const Text(
+                    "Select Dates",
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                  const SizedBox(height: 10),
                   ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      _selectedDateRange == null
-                          ? "Select Dates"
-                          : "${_selectedDateRange!.start.toString().split(' ')[0]} to ${_selectedDateRange!.end.toString().split(' ')[0]}",
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      side: const BorderSide(color: Colors.grey),
                     ),
-                    subtitle: Text(
-                      _selectedDateRange == null
-                          ? "Tap to choose"
-                          : "${_selectedDateRange!.duration.inDays + 1} Days",
-                    ),
-                    trailing: const Icon(
+                    leading: const Icon(
                       Icons.calendar_today,
                       color: Color(0xFF800000),
                     ),
+                    title: Text(
+                      _selectedDateRange == null
+                          ? "Tap to select dates"
+                          : "${_selectedDateRange!.start.toString().split(' ')[0]} - ${_selectedDateRange!.end.toString().split(' ')[0]}",
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: _pickDateRange,
                   ),
 
-                  // 9. REVIEWS (From Widgets File)
+                  // 6. REVIEWS
                   ReviewsSection(itemId: widget.docId),
                 ],
               ),
@@ -340,13 +275,20 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         ),
       ),
 
+      // --- BOTTOM BAR (Button Logic) ---
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton(
-            onPressed: _isAddingToCart ? null : _addToCart,
+            // --- DISABLE LOGIC: If offline, onPressed is null ---
+            onPressed: (_isAddingToCart || _isOffline) ? null : _addToCart,
+
             style: ElevatedButton.styleFrom(
+              // If disabled (null onPressed), Flutter auto-greys it.
+              // But we can force specific colors if online:
               backgroundColor: const Color(0xFF800000),
+              disabledBackgroundColor:
+                  Colors.grey, // Explicit grey when offline
               padding: const EdgeInsets.symmetric(vertical: 15),
             ),
             child: _isAddingToCart
@@ -359,12 +301,14 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                     ),
                   )
                 : Text(
-                    _selectedDateRange == null
-                        ? "Check Availability"
-                        : "Add to Cart (RM ${_totalPrice.toStringAsFixed(2)})",
+                    _isOffline
+                        ? "Offline - Cannot Book" // Text when offline
+                        : (_selectedDateRange == null
+                              ? "Check Availability"
+                              : "Add to Cart (RM ${_totalPrice.toStringAsFixed(2)})"),
                     style: const TextStyle(
                       fontSize: 18,
-                      color: Colors.white,
+                      color: Colors.white, // Text color
                       fontWeight: FontWeight.bold,
                     ),
                   ),

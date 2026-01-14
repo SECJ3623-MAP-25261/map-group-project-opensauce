@@ -166,7 +166,7 @@ class _AddListingPageState extends State<AddListingPage> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Check if images are present
+    // Check if images are present (Must have at least one image total)
     if (_newImageFiles.isEmpty && _existingImageUrls.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please add at least one image")),
@@ -180,42 +180,43 @@ class _AddListingPageState extends State<AddListingPage> {
 
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
-      // Handle different connectivity_plus versions (some return List, some return single Enum)
-      // Checks if 'none' is present in the result
       bool isOffline = connectivityResult == ConnectivityResult.none;
-      // If you use connectivity_plus ^6.0.0, use: connectivityResult.contains(ConnectivityResult.none)
+      // Compatibility check for connectivity_plus v6:
+      // if (connectivityResult is List && connectivityResult.contains(ConnectivityResult.none)) isOffline = true;
 
       if (isOffline) {
-        // --- OFFLINE MODE ---
-        if (widget.listingId != null) {
-          throw Exception("Cannot edit items while offline.");
-        }
+        // --- OFFLINE MODE (ADD & EDIT) ---
 
+        // 1. Prepare data for the Queue
         List<String> imagePaths = _newImageFiles
             .map((file) => file.path)
             .toList();
 
+        // 2. Queue the Item
         await _offlineService.queueItem(
+          listingId:
+              widget.listingId, // Pass ID. If null = New, If String = Edit
           title: _titleController.text.trim(),
           price: double.parse(_priceController.text.trim()),
           description: _descController.text.trim(),
           category: _selectedCategory,
-          localImagePaths: imagePaths,
+          address: _addressController.text.trim(),
+          localImagePaths: imagePaths, // New photos (files)
+          existingImageUrls: _existingImageUrls, // Old photos (URLs) we kept
           userId: user.uid,
         );
 
         if (mounted) {
-          // --- THIS IS THE MESSAGE YOU WANTED ---
+          // 3. Show Message
+          String action = widget.listingId == null ? "Listing" : "Changes";
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "You are offline. Item is saved to pending uploads.",
-              ),
+            SnackBar(
+              content: Text("Offline: $action saved to pending uploads."),
               backgroundColor: Colors.orange,
-              duration: Duration(seconds: 4),
+              duration: const Duration(seconds: 4),
             ),
           );
-          Navigator.pop(context); // Close the page
+          Navigator.pop(context);
         }
       } else {
         // --- ONLINE MODE ---
@@ -232,13 +233,14 @@ class _AddListingPageState extends State<AddListingPage> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Listing published successfully!")),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("Saved successfully!")));
           Navigator.pop(context);
         }
       }
     } catch (e) {
+      print("Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(
           context,

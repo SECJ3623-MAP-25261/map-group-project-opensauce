@@ -1,57 +1,70 @@
 import 'dart:io';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-// import 'package:firebase_auth/firebase_auth.dart';
+import '../services/listing_services.dart'; // Import your ListingService
 
 class OfflineQueueService {
   static const String _boxName = 'offline_items';
+  final ListingService _listingService =
+      ListingService(); // Use the existing service logic
 
-  // 1. Initialize Hive (Call this in main.dart)
   static Future<void> init() async {
     await Hive.initFlutter();
     await Hive.openBox(_boxName);
   }
 
-  // 2. Save Item for Later (The "Waiting Room")
+  // --- 1. QUEUE ITEM (For both ADD and EDIT) ---
   Future<void> queueItem({
+    String? listingId, // If null, it's a NEW item. If set, it's an EDIT.
     required String title,
     required double price,
     required String description,
     required String category,
-    required List<String> localImagePaths, // Path on phone, not URL!
+    required String address,
+    required List<String> localImagePaths, // New photos from phone gallery
+    required List<String>
+    existingImageUrls, // Old photos (URLs) kept during edit
     required String userId,
   }) async {
     final box = Hive.box(_boxName);
 
     final Map<String, dynamic> offlineItem = {
+      'action': listingId == null ? 'create' : 'update', // Track action type
+      'listingId': listingId,
       'title': title,
       'price': price,
       'description': description,
       'category': category,
+      'address': address,
       'localImagePaths': localImagePaths,
+      'existingImageUrls': existingImageUrls,
       'userId': userId,
-      'createdAt': DateTime.now().toIso8601String(),
+      'timestamp': DateTime.now().toIso8601String(),
     };
 
     await box.add(offlineItem);
-    print("OFFLINE: Item queued! Total pending: ${box.length}");
+    print("OFFLINE: Item queued! Action: ${offlineItem['action']}");
   }
 
-  // 3. The Sync Process (Called when internet returns)
+  // --- 2. SYNC PROCESS ---
   Future<void> syncPendingItems() async {
     final box = Hive.box(_boxName);
     if (box.isEmpty) return;
 
-    // Check internet just to be safe
     final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult == ConnectivityResult.none) return;
+    // Handle connectivity check (support new and old versions)
+    bool hasInternet = connectivityResult != ConnectivityResult.none;
+    if (connectivityResult is List) {
+      hasInternet = !(connectivityResult as List).contains(
+        ConnectivityResult.none,
+      );
+    }
+
+    if (!hasInternet) return;
 
     print("SYNC: Internet found. Syncing ${box.length} items...");
 
-    // Iterate through all queued items
-    // We use a reversed loop or keys to safely delete while iterating
+    // Iterate keys safely
     final keys = box.keys.toList();
 
     for (var key in keys) {
@@ -59,47 +72,38 @@ class OfflineQueueService {
 
       try {
         await _processSingleItem(item);
-        await box.delete(key); // Remove from queue only if successful
-        print("SYNC: Item '$key' uploaded successfully.");
+        await box.delete(key); // Remove from queue on success
+        print("SYNC: Item '$key' synced successfully.");
       } catch (e) {
         print("SYNC ERROR for item $key: $e");
-        // Keep in queue to try again later
       }
     }
   }
 
-  // 4. Helper: Upload Image -> Get URL -> Save to Firestore
+  // --- 3. PROCESS SINGLE ITEM (Reuse ListingService) ---
   Future<void> _processSingleItem(Map item) async {
-    List<String> imageUrls = [];
-    List<String> localPaths = List<String>.from(item['localImagePaths']);
+    // Convert paths back to File objects
+    List<String> paths = List<String>.from(item['localImagePaths'] ?? []);
+    List<File> newImageFiles = paths.map((path) => File(path)).toList();
 
-    // A. Upload Images to Firebase Storage
-    for (String path in localPaths) {
-      File file = File(path);
-      if (await file.exists()) {
-        String fileName = "${DateTime.now().millisecondsSinceEpoch}.jpg";
-        Reference ref = FirebaseStorage.instance.ref().child(
-          'items/${item['userId']}/$fileName',
-        );
+    // Get existing URLs (for edits)
+    List<String> existingUrls = List<String>.from(
+      item['existingImageUrls'] ?? [],
+    );
 
-        await ref.putFile(file);
-        String downloadUrl = await ref.getDownloadURL();
-        imageUrls.add(downloadUrl);
-      }
-    }
-
-    // B. Upload Data to Firestore
-    await FirebaseFirestore.instance.collection('items').add({
-      'title': item['title'],
-      'pricePerDay': item['price'],
-      'description': item['description'],
-      'category': item['category'],
-      'images': imageUrls, // Now we have real URLs
-      'firstImage': imageUrls.isNotEmpty ? imageUrls.first : null,
-      'ownerId': item['userId'],
-      'userId': item['userId'], // Save both for safety
-      'createdAt': FieldValue.serverTimestamp(),
-      'isAvailable': true,
-    });
+    // REUSE your existing ListingService logic!
+    // This handles image uploading + Firestore saving for both Add and Edit.
+    await _listingService.addOrUpdateListing(
+      listingId:
+          item['listingId'], // If null, it creates. If exists, it updates.
+      title: item['title'],
+      description: item['description'],
+      price: (item['price'] as num).toDouble(),
+      category: item['category'],
+      address: item['address'] ?? '',
+      existingImageUrls: existingUrls,
+      newImageFiles: newImageFiles,
+      userId: item['userId'],
+    );
   }
 }
