@@ -162,47 +162,53 @@ class RenteeService {
     required double depositPerItem,
   }) async {
     final user = _auth.currentUser;
-    if (user == null) throw Exception("User not logged in");
-
-    final batch = _db.batch();
-
-    for (var item in items) {
-      DocumentReference bookingRef = _db.collection('bookings').doc();
-      DocumentReference cartRef = _db
-          .collection('users')
-          .doc(user.uid)
-          .collection('cart')
-          .doc(item.cartDocId);
-
-      double rentalTotal = item.totalRentalPrice;
-      double grandTotal = rentalTotal + depositPerItem;
-      String location = selectedLocations[item.cartDocId] ?? "Contact Owner";
-
-      batch.set(bookingRef, {
-        'bookingId': bookingRef.id,
-        'itemId': item.itemId,
-        'ownerId': item.ownerId,
-        'renteeId': user.uid,
-        'startDate': Timestamp.fromDate(item.startDate),
-        'endDate': Timestamp.fromDate(item.endDate),
-        'totalDays': item.days,
-        'rentalPrice': rentalTotal,
-        'depositAmount': depositPerItem,
-        'totalPrice': grandTotal,
-        'status': 'pending',
-        'pickupLocation': location,
-        'itemTitle': item.title,
-        'itemImage': item.image,
-        'paymentMethod': paymentMethod,
-        'isDepositHeldByAdmin': false,
-        'isDepositRefunded': false,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-
-      batch.delete(cartRef);
+    if (user == null) {
+      print("User not logged in");
+      return;
     }
 
-    await batch.commit();
+    try {
+      print("Processing checkout via Cloud Function...");
+
+      final response = await http.post(
+        Uri.parse(
+          "$_baseUrl/items/place-order",
+        ), // Ensure this matches your Function trigger URL
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "userId": user.uid,
+          "paymentMethod": paymentMethod,
+          "depositPerItem": depositPerItem,
+          "selectedLocations": selectedLocations,
+          // Map the list of items to a list of JSON maps
+          "items": items
+              .map(
+                (item) => {
+                  "cartDocId": item.cartDocId,
+                  "itemId": item.itemId,
+                  "ownerId": item.ownerId,
+                  "title": item.title,
+                  "image": item.image,
+                  "totalRentalPrice": item.totalRentalPrice,
+                  "days": item.days,
+                  // Convert DateTime to ISO8601 strings for the backend
+                  "startDate": item.startDate.toIso8601String(),
+                  "endDate": item.endDate.toIso8601String(),
+                },
+              )
+              .toList(),
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        print("Checkout Success: ${data['message']}");
+      } else {
+        print("Checkout Failed: ${response.statusCode} - ${response.body}");
+      }
+    } catch (e) {
+      print("Error connecting to server: $e");
+    }
   }
 
   // --- NEW: ORDERS LOGIC ---
