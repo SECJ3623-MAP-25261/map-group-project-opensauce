@@ -73,4 +73,16 @@ class ListingService {
 
     return urls;
   }
+
+  Future<void> deleteListing(String listingId) async {
+    try {
+      // 1. Delete from Firestore
+      await _db.collection('items').doc(listingId).delete();
+
+      // (Optional) You could also delete images from Storage here
+      // if you want to save space, but it's not strictly required.
+    } catch (e) {
+      throw Exception("Failed to delete item: $e");
+    }
+  }
 }
