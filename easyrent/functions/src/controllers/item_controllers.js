@@ -94,6 +94,75 @@ exports.declineOrder = async (req, res) => {
   }
 };
 
+exports.processCheckout = async (req, res) => {
+  // 1. Destructure the data from the request body
+  const { items, paymentMethod, selectedLocations, depositPerItem, userId } = req.body;
+
+  // Basic Validation
+  if (!items || !userId || !paymentMethod) {
+    return res.status(400).json({ error: "Missing required checkout data." });
+  }
+
+  try {
+    const batch = db.batch();
+
+    // 2. Iterate through items to build the batch
+    items.forEach((item) => {
+      // Create a new reference for the booking
+      const bookingRef = db.collection('bookings').doc();
+      
+      // Reference to the specific cart item to delete it
+      const cartRef = db
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .doc(item.cartDocId);
+
+      const rentalTotal = item.totalRentalPrice;
+      const grandTotal = rentalTotal + depositPerItem;
+      const location = selectedLocations[item.cartDocId] || "Contact Owner";
+
+      // 3. Add 'Set' operation for Booking
+      batch.set(bookingRef, {
+        bookingId: bookingRef.id,
+        itemId: item.itemId,
+        ownerId: item.ownerId,
+        renteeId: userId,
+        // Convert ISO strings back to Timestamps if they were sent as strings
+        startDate: admin.firestore.Timestamp.fromDate(new Date(item.startDate)),
+        endDate: admin.firestore.Timestamp.fromDate(new Date(item.endDate)),
+        totalDays: item.days,
+        rentalPrice: rentalTotal,
+        depositAmount: depositPerItem,
+        totalPrice: grandTotal,
+        status: 'pending',
+        pickupLocation: location,
+        itemTitle: item.title,
+        itemImage: item.image,
+        paymentMethod: paymentMethod,
+        isDepositHeldByAdmin: false,
+        isDepositRefunded: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+      // 4. Add 'Delete' operation for Cart Item
+      batch.delete(cartRef);
+    });
+
+    // 5. Commit all operations together
+    await batch.commit();
+
+    return res.status(200).json({ 
+      success: true, 
+      message: "Checkout processed successfully and cart cleared." 
+    });
+
+  } catch (error) {
+    console.error("Error in processCheckout:", error);
+    return res.status(500).json({ error: "Failed to process checkout." });
+  }
+};
+
 // 3. ADMIN: Recalculate Counts
 // (Run this manually via Postman if rent counts seem wrong)
 exports.recalculateRentCounts = async (req, res) => {
