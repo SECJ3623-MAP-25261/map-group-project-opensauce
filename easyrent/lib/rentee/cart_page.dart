@@ -12,12 +12,24 @@ class CartPage extends StatefulWidget {
   State<CartPage> createState() => _CartPageState();
 }
 
-class _CartPageState extends State<CartPage> {
+class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin {
   final RenteeService _service = RenteeService();
   final Set<String> _selectedCartIds = {};
-
+  late TabController _tabController;
   // Keep track of the actual Model objects for checkout
   final List<CartItemModel> _selectedItems = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   double get _currentTotal {
     return _selectedItems.fold(0, (sum, item) => sum + item.totalRentalPrice);
@@ -83,6 +95,19 @@ class _CartPageState extends State<CartPage> {
         title: const Text("My Cart"),
         backgroundColor: const Color(0xFF800000),
         foregroundColor: Colors.white,
+        bottom: TabBar(
+          controller: _tabController,
+          indicatorColor: Colors.red,
+          labelColor: Colors.black,
+          unselectedLabelColor: Colors.grey,
+          indicatorWeight: 2,
+          tabs: const [
+            Tab(text: "Cart"),
+            Tab(text: "Ordering"),
+            Tab(text: "In Renting"),
+            Tab(text: "History"),
+          ]
+        ),
       ),
       body: StreamBuilder<List<CartItemModel>>(
         stream: _service.getCartStream(),
