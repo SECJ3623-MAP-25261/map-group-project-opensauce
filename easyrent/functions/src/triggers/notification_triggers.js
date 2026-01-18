@@ -41,7 +41,7 @@ exports.onBookingCreated = async (event) => {
   // Ensure we have an ownerId and itemTitle
   if (!data.ownerId) return;
   const itemName = data.itemTitle || "an item";
-  
+
   await notifyUser(
     data.ownerId,
     "New Booking Request 🔔",
@@ -78,6 +78,20 @@ exports.onBookingUpdated = async (event) => {
       "booking",
       event.data.after.id
     );
+  } else if (after.status === 'cancelled') {
+    // Notify Owner if cancelled by Rentee
+    // We can check cancelledBy field if available, or assume generic.
+    // RenteeService sets 'cancelledBy': 'rentee'
+    const ownerId = after.ownerId;
+    if (ownerId) {
+      await notifyUser(
+        ownerId,
+        "Booking Cancelled 🚫",
+        `Booking for ${itemName} has been cancelled by the rentee.`,
+        "booking",
+        event.data.after.id
+      );
+    }
   }
 };
 

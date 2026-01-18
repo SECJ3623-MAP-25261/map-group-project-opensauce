@@ -1,3 +1,5 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/rentee_service.dart';
@@ -18,6 +20,41 @@ class _CartPageState extends State<CartPage> {
 
   // Keep track of the actual Model objects for checkout
   final List<CartItemModel> _selectedItems = [];
+
+  // Connectivity
+  bool _isConnected = true;
+  StreamSubscription<ConnectivityResult>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+
+    // Listen to stream
+    _subscription = Connectivity().onConnectivityChanged.listen((
+      ConnectivityResult result,
+    ) {
+      _updateConnectionStatus(result);
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _checkConnectivity() async {
+    final result = await Connectivity().checkConnectivity();
+    _updateConnectionStatus(result);
+  }
+
+  void _updateConnectionStatus(ConnectivityResult result) {
+    if (!mounted) return;
+    setState(() {
+      _isConnected = result != ConnectivityResult.none;
+    });
+  }
 
   double get _currentTotal {
     return _selectedItems.fold(0, (sum, item) => sum + item.totalRentalPrice);
@@ -145,16 +182,22 @@ class _CartPageState extends State<CartPage> {
               ],
             ),
             ElevatedButton(
-              onPressed: _selectedItems.isEmpty ? null : _checkout,
+              onPressed: (_selectedItems.isEmpty || !_isConnected)
+                  ? null
+                  : _checkout,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF800000),
+                backgroundColor: _isConnected
+                    ? const Color(0xFF800000)
+                    : Colors.grey,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 30,
                   vertical: 12,
                 ),
               ),
               child: Text(
-                "Checkout (${_selectedItems.length})",
+                !_isConnected
+                    ? "Offline"
+                    : "Checkout (${_selectedItems.length})",
                 style: const TextStyle(color: Colors.white),
               ),
             ),

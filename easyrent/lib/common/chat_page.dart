@@ -119,6 +119,8 @@ class _ChatPageState extends State<ChatPage> {
                     return MessageBubble(
                       data: data,
                       isMe: data['senderId'] == currentUserId,
+                      chatId: widget.chatId,
+                      messageId: messages[index].id,
                     );
                   },
                 );

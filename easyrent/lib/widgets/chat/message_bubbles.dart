@@ -1,19 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/chat_service.dart'; // Import ChatService
 
 class MessageBubble extends StatelessWidget {
   final Map<String, dynamic> data;
   final bool isMe;
+  final String chatId;
+  final String messageId;
 
-  const MessageBubble({super.key, required this.data, required this.isMe});
+  const MessageBubble({
+    super.key,
+    required this.data,
+    required this.isMe,
+    required this.chatId,
+    required this.messageId,
+  });
 
   @override
   Widget build(BuildContext context) {
+    Widget bubble;
     if (data['type'] == 'product') {
-      return _ProductMessageCard(data: data, isMe: isMe);
+      bubble = _ProductMessageCard(data: data, isMe: isMe);
+    } else {
+      bubble = _TextMessageBubble(data: data, isMe: isMe);
     }
-    return _TextMessageBubble(data: data, isMe: isMe);
+
+    return _ReactionWrapper(
+      chatId: chatId,
+      messageId: messageId,
+      data: data,
+      isMe: isMe,
+      child: bubble,
+    );
   }
 }
 
@@ -206,4 +225,100 @@ String _formatTime(dynamic timestamp) {
     return DateFormat('h:mm a').format(timestamp.toDate());
   }
   return "";
+}
+
+// WRAPPER FOR GESTURE + REACTION DISPLAY
+class _ReactionWrapper extends StatelessWidget {
+  final String chatId;
+  final String messageId;
+  final Map<String, dynamic> data;
+  final bool isMe;
+  final Widget child;
+
+  const _ReactionWrapper({
+    required this.chatId,
+    required this.messageId,
+    required this.data,
+    required this.isMe,
+    required this.child,
+  });
+
+  void _showReactionPicker(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+          margin: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: const [BoxShadow(blurRadius: 10, color: Colors.black26)],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: ["👍", "❤️", "😂", "😮", "😢", "😡"].map((emoji) {
+              return GestureDetector(
+                onTap: () {
+                  ChatService().toggleReaction(chatId, messageId, emoji);
+                  Navigator.pop(context);
+                },
+                child: Text(emoji, style: const TextStyle(fontSize: 32)),
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Map<String, dynamic> reactions = data['reactions'] != null
+        ? Map<String, dynamic>.from(data['reactions'])
+        : {};
+
+    // Group reactions count
+    final Map<String, int> counts = {};
+    reactions.forEach((uid, emoji) {
+      counts[emoji] = (counts[emoji] ?? 0) + 1;
+    });
+
+    return GestureDetector(
+      onLongPress: () => _showReactionPicker(context),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          child,
+          if (counts.isNotEmpty)
+            Positioned(
+              bottom: -15, // moved up slightly
+              right: isMe ? 10 : null,
+              left: isMe ? null : 10, // Show reactions on correct side
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: const [
+                    BoxShadow(blurRadius: 2, color: Colors.black12),
+                  ],
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: counts.entries.map((e) {
+                    return Text(
+                      "${e.key} ${e.value > 1 ? e.value : ''}",
+                      style: const TextStyle(fontSize: 12),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

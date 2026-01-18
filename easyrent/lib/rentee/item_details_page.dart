@@ -21,6 +21,8 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
   DateTimeRange? _selectedDateRange;
   bool _isAddingToCart = false;
 
+  int _currentImageIndex = 0;
+
   // --- CALCULATION ---
   num get _totalPrice {
     if (_selectedDateRange == null) return 0.0;
@@ -227,14 +229,71 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. IMAGE
+            // 1. IMAGE CAROUSEL
             Container(
-              height: 250,
+              height: 300,
               width: double.infinity,
               color: Colors.grey[200],
               child: images.isNotEmpty
-                  ? Image.network(images.first, fit: BoxFit.cover)
-                  : const Icon(Icons.inventory_2, size: 80, color: Colors.grey),
+                  ? Stack(
+                      children: [
+                        PageView.builder(
+                          itemCount: images.length,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentImageIndex = index;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            return Image.network(
+                              images[index],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            );
+                          },
+                        ),
+                        // Dots Indicator
+                        if (images.length > 1)
+                          Positioned(
+                            bottom: 10,
+                            left: 0,
+                            right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: images.asMap().entries.map((entry) {
+                                return Container(
+                                  width: 8.0,
+                                  height: 8.0,
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 8.0,
+                                    horizontal: 4.0,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color:
+                                        (Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? Colors.white
+                                                : Colors.black)
+                                            .withOpacity(
+                                              _currentImageIndex == entry.key
+                                                  ? 0.9
+                                                  : 0.4,
+                                            ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                      ],
+                    )
+                  : const Center(
+                      child: Icon(
+                        Icons.inventory_2,
+                        size: 80,
+                        color: Colors.grey,
+                      ),
+                    ),
             ),
 
             Padding(

@@ -251,6 +251,27 @@ class RenteeService {
     }
   }
 
+  // --- NEW: CANCEL BOOKING LOGIC ---
+  Future<void> cancelBooking(
+    String bookingId,
+    String ownerId,
+    String itemTitle,
+  ) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception("User not logged in");
+
+    // 1. Update Booking Status
+    await _db.collection('bookings').doc(bookingId).update({
+      'status': 'cancelled',
+      'cancelledAt': FieldValue.serverTimestamp(),
+      'cancelledBy': 'rentee', // Track who cancelled
+    });
+
+    // 2. Notify Owner
+    // Notification is handled by Cloud Functions (onBookingUpdated trigger)
+    // which sends both In-App and Push Notification.
+  }
+
   // --- NEW: PROCESS RETURN HANDSHAKE (SCANNER LOGIC) ---
   Future<void> verifyReturnHandshake(String scannedData) async {
     final currentUser = _auth.currentUser;
