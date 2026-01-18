@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async'; // For StreamSubscription
 import 'item_details_widgets.dart'; // Ensure this file exists from previous steps
 
 class ItemDetailsPage extends StatefulWidget {
@@ -21,7 +23,40 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
   DateTimeRange? _selectedDateRange;
   bool _isAddingToCart = false;
 
+  // Connectivity
+  late StreamSubscription<ConnectivityResult> _subscription;
+  bool _isConnected = true; 
+
   int _currentImageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitialConnectivity();
+    _subscription = Connectivity().onConnectivityChanged.listen((result) {
+      _updateConnectionStatus(result);
+    });
+  }
+
+  Future<void> _checkInitialConnectivity() async {
+    final result = await Connectivity().checkConnectivity();
+    _updateConnectionStatus(result);
+  }
+
+  void _updateConnectionStatus(ConnectivityResult result) {
+     final hasConnection = result != ConnectivityResult.none;
+     if (hasConnection != _isConnected) {
+       setState(() {
+         _isConnected = hasConnection;
+       });
+     }
+  }
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
 
   // --- CALCULATION ---
   num get _totalPrice {
@@ -104,6 +139,13 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
 
   // --- ADD TO CART LOGIC ---
   Future<void> _addToCart() async {
+    if (!_isConnected) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You are offline. Cannot add to cart.")),
+      );
+      return;
+    }
+    
     if (_selectedDateRange == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select rental dates first")),
@@ -403,9 +445,9 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton(
-            onPressed: _isAddingToCart ? null : _addToCart,
+            onPressed: (_isAddingToCart || !_isConnected) ? null : _addToCart,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF800000),
+              backgroundColor: _isConnected ? const Color(0xFF800000) : Colors.grey,
               padding: const EdgeInsets.symmetric(vertical: 15),
             ),
             child: _isAddingToCart
@@ -418,9 +460,11 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                     ),
                   )
                 : Text(
-                    _selectedDateRange == null
-                        ? "Check Availability"
-                        : "Add to Cart (RM ${_totalPrice.toStringAsFixed(2)})",
+                    !_isConnected 
+                        ? "Offline" 
+                        : (_selectedDateRange == null
+                            ? "Check Availability"
+                            : "Add to Cart (RM ${_totalPrice.toStringAsFixed(2)})"),
                     style: const TextStyle(
                       fontSize: 18,
                       color: Colors.white,

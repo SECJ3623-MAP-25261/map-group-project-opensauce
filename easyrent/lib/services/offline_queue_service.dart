@@ -14,29 +14,27 @@ class OfflineQueueService {
     await Hive.openBox(_boxName);
   }
 
-  // 2. Save Item for Later (The "Waiting Room")
+  // 2. Save Item for Later (ADD or UPDATE)
   Future<void> queueItem({
-    required String title,
-    required double price,
-    required String description,
-    required String category,
-    required List<String> localImagePaths, // Path on phone, not URL!
+    required Map<String, dynamic> data,
+    required String action, // 'create' or 'update'
+    String? docId, // Required for 'update'
     required String userId,
+    List<String>? localImagePaths, // For new images
   }) async {
     final box = Hive.box(_boxName);
 
     final Map<String, dynamic> offlineItem = {
-      'title': title,
-      'price': price,
-      'description': description,
-      'category': category,
-      'localImagePaths': localImagePaths,
+      'action': action,
+      'docId': docId,
       'userId': userId,
+      'data': data,
+      'localImagePaths': localImagePaths ?? [],
       'createdAt': DateTime.now().toIso8601String(),
     };
 
     await box.add(offlineItem);
-    print("OFFLINE: Item queued! Total pending: ${box.length}");
+    print("OFFLINE: Item queued ($action)! Total pending: ${box.length}");
   }
 
   // 3. The Sync Process (Called when internet returns)
@@ -46,21 +44,26 @@ class OfflineQueueService {
 
     // Check internet just to be safe
     final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult == ConnectivityResult.none) return;
+    // Support new connectivity_plus list return
+    final hasConnection = connectivityResult != ConnectivityResult.none;
+    if (!hasConnection) return;
 
     print("SYNC: Internet found. Syncing ${box.length} items...");
 
     // Iterate through all queued items
-    // We use a reversed loop or keys to safely delete while iterating
     final keys = box.keys.toList();
 
     for (var key in keys) {
       final item = box.get(key) as Map;
 
       try {
-        await _processSingleItem(item);
+        if (item['action'] == 'update') {
+          await _processUpdateItem(item);
+        } else {
+          await _processCreateItem(item); // Original logic
+        }
         await box.delete(key); // Remove from queue only if successful
-        print("SYNC: Item '$key' uploaded successfully.");
+        print("SYNC: Item '$key' processed successfully.");
       } catch (e) {
         print("SYNC ERROR for item $key: $e");
         // Keep in queue to try again later
@@ -68,38 +71,64 @@ class OfflineQueueService {
     }
   }
 
-  // 4. Helper: Upload Image -> Get URL -> Save to Firestore
-  Future<void> _processSingleItem(Map item) async {
+  // 4a. Helper: Process CREATE
+  Future<void> _processCreateItem(Map item) async {
     List<String> imageUrls = [];
-    List<String> localPaths = List<String>.from(item['localImagePaths']);
+    List<String> localPaths = List<String>.from(item['localImagePaths'] ?? []);
+    Map<String, dynamic> data = Map<String, dynamic>.from(item['data']);
 
-    // A. Upload Images to Firebase Storage
-    for (String path in localPaths) {
+    // Upload Images
+    imageUrls = await _uploadImages(localPaths, item['userId']);
+
+    // Save to Firestore
+    await FirebaseFirestore.instance.collection('items').add({
+      ...data,
+      'images': imageUrls,
+      'firstImage': imageUrls.isNotEmpty ? imageUrls.first : null,
+      'ownerId': item['userId'],
+      'userId': item['userId'],
+      'createdAt': FieldValue.serverTimestamp(),
+      'isAvailable': true,
+    });
+  }
+
+  // 4b. Helper: Process UPDATE
+  Future<void> _processUpdateItem(Map item) async {
+    String docId = item['docId'];
+    List<String> localPaths = List<String>.from(item['localImagePaths'] ?? []);
+    Map<String, dynamic> data = Map<String, dynamic>.from(item['data']);
+
+    // 1. Upload NEW images
+    List<String> newImageUrls = await _uploadImages(localPaths, item['userId']);
+
+    // 2. Merge with existing images (passed in data['images'])
+    List<dynamic> currentImages = List<dynamic>.from(data['images'] ?? []);
+    currentImages.addAll(newImageUrls);
+    
+    // Update data with final image list
+    data['images'] = currentImages;
+    data['firstImage'] = currentImages.isNotEmpty ? currentImages.first : null;
+    data['updatedAt'] = FieldValue.serverTimestamp();
+
+    // 3. Update Firestore
+    await FirebaseFirestore.instance.collection('items').doc(docId).update(data);
+  }
+
+  // 5. Shared Helper: Upload Images
+  Future<List<String>> _uploadImages(List<String> paths, String userId) async {
+    List<String> urls = [];
+    for (String path in paths) {
       File file = File(path);
       if (await file.exists()) {
         String fileName = "${DateTime.now().millisecondsSinceEpoch}.jpg";
         Reference ref = FirebaseStorage.instance.ref().child(
-          'items/${item['userId']}/$fileName',
+          'items/$userId/$fileName',
         );
-
         await ref.putFile(file);
         String downloadUrl = await ref.getDownloadURL();
-        imageUrls.add(downloadUrl);
+        urls.add(downloadUrl);
       }
     }
-
-    // B. Upload Data to Firestore
-    await FirebaseFirestore.instance.collection('items').add({
-      'title': item['title'],
-      'pricePerDay': item['price'],
-      'description': item['description'],
-      'category': item['category'],
-      'images': imageUrls, // Now we have real URLs
-      'firstImage': imageUrls.isNotEmpty ? imageUrls.first : null,
-      'ownerId': item['userId'],
-      'userId': item['userId'], // Save both for safety
-      'createdAt': FieldValue.serverTimestamp(),
-      'isAvailable': true,
-    });
+    return urls;
   }
 }

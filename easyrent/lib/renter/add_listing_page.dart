@@ -186,33 +186,54 @@ class _AddListingPageState extends State<AddListingPage> {
       // If you use connectivity_plus ^6.0.0, use: connectivityResult.contains(ConnectivityResult.none)
 
       if (isOffline) {
-        // --- OFFLINE MODE ---
-        if (widget.listingId != null) {
-          throw Exception("Cannot edit items while offline.");
-        }
-
+        // --- OFFLINE MODE (CREATE & UPDATE) ---
         List<String> imagePaths = _newImageFiles
             .map((file) => file.path)
             .toList();
+            
+        final Map<String, dynamic> itemData = {
+          'title': _titleController.text.trim(),
+          'pricePerDay': double.parse(_priceController.text.trim()), // Match DB field name
+          'description': _descController.text.trim(),
+          'category': _selectedCategory,
+          'address': _addressController.text.trim(),
+          // For updates, we pass existing images so they aren't lost
+          'images': _existingImageUrls, 
+        };
 
-        await _offlineService.queueItem(
-          title: _titleController.text.trim(),
-          price: double.parse(_priceController.text.trim()),
-          description: _descController.text.trim(),
-          category: _selectedCategory,
-          localImagePaths: imagePaths,
-          userId: user.uid,
-        );
+        if (widget.listingId != null) {
+          // UPDATE
+          await _offlineService.queueItem(
+            action: 'update',
+            docId: widget.listingId,
+            data: itemData,
+            userId: user.uid,
+            localImagePaths: imagePaths,
+          );
+        } else {
+          // CREATE
+          // Normalize keys for create helper if needed, but our service uses 'data' map now
+          // We passed 'pricePerDay' above which matches Firestore. 
+          // Offline create helper expects a map to spread into Firestore.
+          
+          await _offlineService.queueItem(
+            action: 'create',
+            data: itemData,
+            userId: user.uid,
+            localImagePaths: imagePaths,
+          );
+        }
 
         if (mounted) {
-          // --- THIS IS THE MESSAGE YOU WANTED ---
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+             SnackBar(
               content: Text(
-                "You are offline. Item is saved to pending uploads.",
+                widget.listingId == null 
+                  ? "You are offline. Item saved to pending uploads." 
+                  : "You are offline. Update saved to pending uploads.",
               ),
               backgroundColor: Colors.orange,
-              duration: Duration(seconds: 4),
+              duration: const Duration(seconds: 4),
             ),
           );
           Navigator.pop(context); // Close the page
