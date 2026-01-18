@@ -49,6 +49,161 @@ class RenteeService {
     }
   }
 
+  Future<ItemModel> getCartItemDetailsById(String id) async {
+    final doc = await _db.collection('items').doc(id).get();
+
+    // 1. Get the data as a map
+    Map<String, dynamic>? data = doc.data();
+
+    if (data != null) {
+      // 2. Create a modifiable copy and remove the problematic timestamps
+      data = Map<String, dynamic>.from(data);
+      data.remove('createdAt');
+      data.remove('updatedAt');
+    }
+
+    print("========== Cleaned data for item: $data ==========");
+
+    // 3. Pass the cleaned map to your fromMap factory instead of fromSnapshot
+    // This prevents the factory from ever seeing the Timestamps
+    return ItemModel.fromMap(data ?? {});
+  }
+
+  Stream<List<Map<String, dynamic>>> getOrderingItems(String userId) {
+    return _db
+        .collection('bookings')
+        .where('renteeId', isEqualTo: userId)
+        .where('status', isEqualTo: 'pending')
+        .snapshots() // 1. Listen for real-time changes
+        .asyncMap((snapshot) async {
+          // 2. Use asyncMap to handle the nested Future
+
+          List<Map<String, dynamic>> results = [];
+
+          for (var doc in snapshot.docs) {
+            Map<String, dynamic> data = doc.data();
+            String itemId = data['itemId'] ?? '';
+
+            try {
+              // 3. Fetch the item details for each booking in the stream
+              final itemDetails = await getCartItemDetailsById(itemId);
+
+              data['id'] = doc.id;
+              data['itemDetails'] = itemDetails;
+              results.add(data);
+            } catch (e) {
+              print("Error fetching details for $itemId: $e");
+              // Optionally add the data without details so the app doesn't crash
+              results.add(data);
+            }
+          }
+
+          return results;
+        });
+  }
+
+  Stream<List<Map<String, dynamic>>> getInRentingItems(String userId) {
+    return _db
+        .collection('bookings')
+        .where('renteeId', isEqualTo: userId)
+        .where('status', isEqualTo: 'approved')
+        .snapshots() // 1. Listen for real-time changes
+        .asyncMap((snapshot) async {
+          // 2. Use asyncMap to handle the nested Future
+
+          List<Map<String, dynamic>> results = [];
+
+          for (var doc in snapshot.docs) {
+            Map<String, dynamic> data = doc.data();
+            String itemId = data['itemId'] ?? '';
+
+            try {
+              // 3. Fetch the item details for each booking in the stream
+              final itemDetails = await getCartItemDetailsById(itemId);
+
+              data['id'] = doc.id;
+              data['itemDetails'] = itemDetails;
+              results.add(data);
+            } catch (e) {
+              print("Error fetching details for $itemId: $e");
+              // Optionally add the data without details so the app doesn't crash
+              results.add(data);
+            }
+          }
+
+          return results;
+        });
+  }
+
+  Stream<List<Map<String, dynamic>>> getHistoryItem(String userId) {
+    return _db
+        .collection('bookings')
+        .where('renteeId', isEqualTo: userId)
+        .where('status', whereIn: ["completed", "declined","approved"])
+        .snapshots() // 1. Listen for real-time changes
+        .asyncMap((snapshot) async {
+          // 2. Use asyncMap to handle the nested Future
+
+          List<Map<String, dynamic>> results = [];
+
+          for (var doc in snapshot.docs) {
+            Map<String, dynamic> data = doc.data();
+            String itemId = data['itemId'] ?? '';
+
+            try {
+              // 3. Fetch the item details for each booking in the stream
+              final itemDetails = await getCartItemDetailsById(itemId);
+
+              data['id'] = doc.id;
+              data['itemDetails'] = itemDetails;
+              results.add(data);
+            } catch (e) {
+              print("Error fetching details for $itemId: $e");
+              // Optionally add the data without details so the app doesn't crash
+              results.add(data);
+            }
+          }
+
+          return results;
+        });
+  }
+
+  Future<void> updateItemStatus(String orderId, String newStatus) async {
+    print("---------- Updating order $orderId to status $newStatus ----------");
+    final orderRef = _db.collection('bookings').doc(orderId);
+
+    await orderRef.update({'status': newStatus});
+  }
+
+  Future<bool> decreaseItemOrderCounts({required String productId}) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/items/decrease-orderCounts'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'itemId': productId}),
+      );
+
+      if (response.statusCode == 400) {
+        print(
+          '---------- Failed to  decrease orderCounts for: $productId ----------',
+        );
+        return false;
+      }
+
+      if (response.statusCode == 200) {
+        print(
+          '---------- Successfully updated orderCounts for: $productId ----------',
+        );
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      // Handle specific cases (like the document being deleted mid-process)
+      print('Firebase Update Error: ${e}');
+      return false;
+    }
+  }
   // // --- MARKET LOGIC ---
   // Stream<QuerySnapshot> getNewArrivals() {
   //   return _db

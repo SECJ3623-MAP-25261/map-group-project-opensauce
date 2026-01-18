@@ -1,3 +1,7 @@
+import 'package:easyrent/widgets/renting_status/history_widget.dart';
+import 'package:easyrent/widgets/renting_status/in_renting_widget.dart';
+import 'package:easyrent/widgets/renting_status/my_cart_widget.dart';
+import 'package:easyrent/widgets/renting_status/ordering_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/rentee_service.dart';
@@ -31,58 +35,6 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  double get _currentTotal {
-    return _selectedItems.fold(0, (sum, item) => sum + item.totalRentalPrice);
-  }
-
-  void _toggleSelection(CartItemModel item, bool selected) {
-    setState(() {
-      if (selected) {
-        _selectedCartIds.add(item.cartDocId);
-        _selectedItems.add(item);
-      } else {
-        _selectedCartIds.remove(item.cartDocId);
-        _selectedItems.removeWhere((i) => i.cartDocId == item.cartDocId);
-      }
-    });
-  }
-
-  Future<void> _handleDateEdit(CartItemModel item) async {
-    final DateTime now = DateTime.now();
-    final DateTimeRange? picked = await showDateRangePicker(
-      context: context,
-      initialDateRange: DateTimeRange(start: item.startDate, end: item.endDate),
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
-      builder: (context, child) => Theme(
-        data: ThemeData.light().copyWith(
-          primaryColor: const Color(0xFF800000),
-          colorScheme: const ColorScheme.light(primary: Color(0xFF800000)),
-        ),
-        child: child!,
-      ),
-    );
-
-    if (picked != null) {
-      await _service.updateCartDates(item.cartDocId, picked.start, picked.end);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Dates updated!")));
-      }
-    }
-  }
-
-  void _checkout() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        // PASS LIST OF MODELS
-        builder: (context) => PaymentPage(checkoutItems: _selectedItems),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
@@ -98,8 +50,8 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.red,
-          labelColor: Colors.black,
-          unselectedLabelColor: Colors.grey,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white,
           indicatorWeight: 2,
           tabs: const [
             Tab(text: "Cart"),
@@ -109,83 +61,161 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
           ]
         ),
       ),
-      body: StreamBuilder<List<CartItemModel>>(
-        stream: _service.getCartStream(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final items = snapshot.data!;
-          if (items.isEmpty) {
-            return const Center(child: Text("Your cart is empty"));
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(12),
-            itemCount: items.length,
-            separatorBuilder: (ctx, i) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final item = items[index];
-              return CartItemCard(
-                item: item,
-                isSelected: _selectedCartIds.contains(item.cartDocId),
-                onSelected: (val) => _toggleSelection(item, val ?? false),
-                onDelete: () {
-                  _service.removeFromCart(item.cartDocId);
-                  _toggleSelection(item, false);
-                },
-                onEditDates: () => _handleDateEdit(item),
-              );
-            },
-          );
-        },
+      body: TabBarView(
+        controller: _tabController,
+        children: 
+        [
+          MyCartWidget(),
+          OrderingWidget(),
+          InRentingWidget(),
+          HistoryWidget(),
+        ],
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(blurRadius: 5, color: Colors.grey.withOpacity(0.2)),
-          ],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Total Estimate:",
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-                Text(
-                  "RM ${_currentTotal.toStringAsFixed(2)}",
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Color(0xFF800000),
-                  ),
-                ),
-              ],
-            ),
-            ElevatedButton(
-              onPressed: _selectedItems.isEmpty ? null : _checkout,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF800000),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 12,
-                ),
-              ),
-              child: Text(
-                "Checkout (${_selectedItems.length})",
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ),
+      
     );
   }
+
+  //   Widget _buildOrderingTabContent() {
+  //   final Stream<List<Map<String, dynamic>>> orderingItemsStream =
+  //       RentingStatusDatabaseService().getOrderingItems(AppString.userSampleId);
+
+  //   return SingleChildScrollView(
+  //     padding: const EdgeInsets.all(16.0),
+  //     child: StreamBuilder<List<Map<String, dynamic>>>(
+  //       stream: orderingItemsStream,
+  //       builder: (context, asyncSnapshot) {
+  //         if (asyncSnapshot.connectionState == ConnectionState.waiting) {
+  //           return const Center(child: CircularProgressIndicator());
+  //         }
+
+  //         if (asyncSnapshot.hasError) {
+  //           return Center(child: Text('Error: ${asyncSnapshot.error}'));
+  //         }
+
+  //         final List<Map<String, dynamic>> orderingItems =
+  //             asyncSnapshot.data ?? [];
+
+  //         if (orderingItems.isEmpty) {
+  //           return const Center(child: Text('No ordering items found.'));
+  //         }
+
+  //         return Column(
+  //           crossAxisAlignment: CrossAxisAlignment.stretch,
+  //           children:
+  //               orderingItems.map((item) {
+                  
+  //                 final Map<String, dynamic>? itemMap = item['items'] as Map<String, dynamic>?;                  // print("the 
+  //                 if (itemMap == null) {
+  //                   return const SizedBox.shrink();
+  //                 }
+  //                 final String itemId = item['id']?.toString() ?? ''; //! Error: This will show orderId
+  //                 final String realProductId  = item['items']['id']?.toString() ?? '';
+  //                 // print("------------ itemId is ${item['items']['id']?.toString()}");
+  //                 final Item itemDetails = Item.fromMap(itemMap, itemId);
+
+  //                 // comvert string to datetime 
+  //                 final endRenting = parseDate(item['endRenting']);
+  //                 print("-----------${item['totalFee'].runtimeType}------------");
+  //                 return RentalItemCardWidget(item: itemDetails,orderDate: item['duration'], returnDate: (endRenting!), status: item['status'],totalFee: (item['totalFee'] as num?)?.toDouble() ?? 0.0,productId: realProductId,);
+  //                 return const SizedBox.shrink();
+  //               }).toList(),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
+
+  // Widget _buildInRentingTabContent() {
+  //   final Stream<List<Map<String, dynamic>>> inRentingItemsStream =
+  //       RentingStatusDatabaseService().getInRentingItems(
+  //         AppString.userSampleId,
+  //       );
+
+  //   return SingleChildScrollView(
+  //     padding: const EdgeInsets.all(16.0),
+  //     child: StreamBuilder<List<Map<String, dynamic>>>(
+  //       stream: inRentingItemsStream,
+  //       builder: (context, asyncSnapshot) {
+  //         if (asyncSnapshot.connectionState == ConnectionState.waiting) {
+  //           return const Center(child: CircularProgressIndicator());
+  //         }
+
+  //         if (asyncSnapshot.hasError) {
+  //           return Center(child: Text('Error: ${asyncSnapshot.error}'));
+  //         }
+
+  //         final List<Map<String, dynamic>> inRentingItems =
+  //             asyncSnapshot.data ?? [];
+
+  //         if (inRentingItems.isEmpty) {
+  //           return const Center(child: Text('No items currently in renting.'));
+  //         }
+
+  //         return Column(
+  //           crossAxisAlignment: CrossAxisAlignment.stretch,
+  //           children: inRentingItems.map((order) {
+  //             final itemMap = order['items'];
+  //             final Item itemDetails = Item.fromMap(itemMap, order['id']);
+
+  //                 final startDate = parseDate(order['startRenting']);
+  //                 final endDate = parseDate(order['endRenting']);
+  //                 return InrentingItemCardWidget(
+  //                   item: itemDetails,
+  //                   status: order['status'],
+  //                   totalPrice: (order['totalFee'] as num?)?.toDouble() ?? 0.0,
+  //                   startDate: startDate!,
+  //                   endDate: endDate!,
+  //                   returnMethods: order['deliveryOption'],
+  //                 );
+
+  //                 // Return an empty widget if the data is corrupted or missing the 'items' field
+  //                 return const SizedBox.shrink();
+  //               }).toList(),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
+
+  // Widget _buildHistoryTabContent() {
+  //   final Stream<List<Map<String, dynamic>>> historyItemsStream =
+  //       RentingStatusDatabaseService().getHistoryItems(AppString.userSampleId);
+
+  //   return SingleChildScrollView(
+  //     padding: const EdgeInsets.all(16.0),
+  //     child: StreamBuilder<List<Map<String, dynamic>>>(
+  //       stream: historyItemsStream,
+  //       builder: (context, asyncSnapshot) {
+  //         if (asyncSnapshot.connectionState == ConnectionState.waiting) {
+  //           return const Center(child: CircularProgressIndicator());
+  //         }
+
+  //         if (asyncSnapshot.hasError) {
+  //           return Center(child: Text('Error: ${asyncSnapshot.error}'));
+  //         }
+
+  //         final List<Map<String, dynamic>> historyItems =
+  //             asyncSnapshot.data ?? [];
+
+  //         if (historyItems.isEmpty) {
+  //           return const Center(child: Text('No order history found.'));
+  //         }
+
+  //         return Column(
+  //           crossAxisAlignment: CrossAxisAlignment.stretch,
+  //           children:
+  //               historyItems.map((order) {
+  //                 final itemMap = order['items'];
+  //                 final Item itemDetails = Item.fromMap(itemMap, order['id']);
+  //                 final endRenting = parseDate(order['endRenting']);
+  //                 final startRenting = parseDate(order['startRenting']);
+  //                 return HistoryItemCardWidgets(item: itemDetails, startDate: startRenting!, endDate: endRenting!, duration: order['duration'], status: order['status'], totalPrice: (order['totalFee'] as num?)?.toDouble() ?? 0.0, );
+                
+  //                 return const SizedBox.shrink();
+  //               }).toList(),
+  //         );
+  //       },
+  //     ),
+  //   );
+  // }
 }

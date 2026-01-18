@@ -1,5 +1,35 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+class locationObject {
+  final String locationName;
+  final double latitude;
+  final double longitude;
+
+  locationObject({
+    required this.locationName,
+    required this.latitude,
+    required this.longitude,
+  });
+
+  // Helper factory method for deserialization
+  factory locationObject.fromMap(Map<String, dynamic> map) {
+    return locationObject(
+      locationName: map['locationName'] as String? ?? '',
+      // Use num to safely handle both int and double from Firestore
+      latitude: (map['latitude'] as num?)?.toDouble() ?? 0.0,
+      longitude: (map['longitude'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  // Helper method for serialization
+  Map<String, dynamic> toMap() {
+    return {
+      'locationName': locationName,
+      'latitude': latitude,
+      'longitude': longitude,
+    };
+  }
+}
 class CartItemModel {
   final String cartDocId;
   final String itemId;
@@ -10,6 +40,13 @@ class CartItemModel {
   final DateTime endDate;
   final List<dynamic> pickupLocations;
   final String ownerId;
+  // added 
+  final List<locationObject> locationDetails; // New field
+  final String location; // Consolidating location
+  final double locationLat; // Consolidating locationLat
+  final double locationLong; // Consolidating locationLong
+
+
 
   CartItemModel({
     required this.cartDocId,
@@ -21,6 +58,10 @@ class CartItemModel {
     required this.endDate,
     required this.pickupLocations,
     required this.ownerId,
+    this.locationDetails = const [],
+    this.location = '',
+    this.locationLat = 0.0,
+    this.locationLong = 0.0,
   });
 
   // Factory: Firestore Document -> CartItemModel Object
@@ -36,6 +77,10 @@ class CartItemModel {
       endDate: (data['endDate'] as Timestamp).toDate(),
       pickupLocations: data['pickupLocations'] ?? [],
       ownerId: data['ownerId'] ?? '',
+      location: '',
+      locationLat: 0.0,
+      locationLong: 0.0,
+      locationDetails: const [],
     );
   }
 

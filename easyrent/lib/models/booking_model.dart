@@ -31,15 +31,24 @@ class BookingModel {
 
   factory BookingModel.fromSnapshot(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    return BookingModel.fromMap(data, id: doc.id);
+  }
+
+  factory BookingModel.fromMap(Map<String, dynamic> data, {String? id}) {
     return BookingModel(
-      bookingId: data['bookingId'] ?? doc.id,
+      bookingId: data['bookingId'] ?? id ?? '',
       itemId: data['itemId'] ?? '',
       itemTitle: data['itemTitle'] ?? 'Unknown Item',
       itemImage: data['itemImage'] ?? '',
       pickupLocation: data['pickupLocation'] ?? 'Contact Owner',
       status: data['status'] ?? 'pending',
-      startDate: (data['startDate'] as Timestamp).toDate(),
-      endDate: (data['endDate'] as Timestamp).toDate(),
+      // Handling both Timestamp (Firestore) and String (ISO8601) for flexibility
+      startDate: data['startDate'] is Timestamp 
+          ? (data['startDate'] as Timestamp).toDate() 
+          : DateTime.tryParse(data['startDate'].toString()) ?? DateTime.now(),
+      endDate: data['endDate'] is Timestamp 
+          ? (data['endDate'] as Timestamp).toDate() 
+          : DateTime.tryParse(data['endDate'].toString()) ?? DateTime.now(),
       totalPrice: double.tryParse(data['totalPrice'].toString()) ?? 0.0,
       ownerId: data['ownerId'] ?? '',
       renteeId: data['renteeId'] ?? '',

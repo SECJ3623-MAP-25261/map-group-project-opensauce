@@ -201,3 +201,20 @@ exports.recalculateRentCounts = async (req, res) => {
     return res.status(500).json({ error: "Failed to recalculate." });
   }
 };
+
+exports.decreaseOrderCount = async (req, res) => {
+  const { itemId } = req.body;
+  if (!itemId) {
+    return res.status(400).json({ error: "Missing itemId." });
+  }
+  try {
+    const itemRef = db.collection("items").doc(itemId);
+    await itemRef.update({
+      rentCount: admin.firestore.FieldValue.increment(-1),
+    });
+    return res.status(200).json({ message: "Rent count decreased." });
+  } catch (error) {
+    console.error("Error decreasing rent count:", error);
+    return res.status(500).json({ error: "Failed to decrease rent count." });
+  } 
+}
