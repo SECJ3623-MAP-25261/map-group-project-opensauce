@@ -42,7 +42,7 @@ class _AddListingPageState extends State<AddListingPage> {
   ];
 
   List<String> _existingImageUrls = [];
-  List<File> _newImageFiles = [];
+  final List<File> _newImageFiles = [];
   bool _isLoading = false;
 
   @override
@@ -300,7 +300,7 @@ class _AddListingPageState extends State<AddListingPage> {
 
               // Category
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 decoration: const InputDecoration(
                   labelText: "Category",
                   border: OutlineInputBorder(),
