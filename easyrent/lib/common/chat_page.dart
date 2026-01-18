@@ -55,8 +55,9 @@ class _ChatPageState extends State<ChatPage> {
         title: FutureBuilder<DocumentSnapshot>(
           future: _getOtherUserProfile(),
           builder: (context, snapshot) {
-            if (!snapshot.hasData)
+            if (!snapshot.hasData) {
               return const Text("Chat", style: TextStyle(color: Colors.white));
+            }
             var data = snapshot.data!.data() as Map<String, dynamic>;
             return Row(
               children: [
@@ -118,6 +119,8 @@ class _ChatPageState extends State<ChatPage> {
                     return MessageBubble(
                       data: data,
                       isMe: data['senderId'] == currentUserId,
+                      chatId: widget.chatId,
+                      messageId: messages[index].id,
                     );
                   },
                 );

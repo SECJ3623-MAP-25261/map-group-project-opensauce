@@ -150,4 +150,32 @@ class ChatService {
         .orderBy('lastTime', descending: true)
         .snapshots();
   }
+  // 6. TOGGLE REACTION
+  Future<void> toggleReaction(String chatId, String messageId, String emoji) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final docRef = _db
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId);
+
+    final doc = await docRef.get();
+    if (!doc.exists) return;
+
+    final data = doc.data();
+    final Map<String, dynamic> reactions = data?['reactions'] != null
+        ? Map<String, dynamic>.from(data!['reactions'])
+        : {};
+
+    // Toggle logic
+    if (reactions[user.uid] == emoji) {
+      reactions.remove(user.uid); // Remove if same emoji tapped
+    } else {
+      reactions[user.uid] = emoji; // Set new emoji
+    }
+
+    await docRef.update({'reactions': reactions});
+  }
 }

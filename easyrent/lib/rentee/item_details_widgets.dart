@@ -338,7 +338,7 @@ class _ReviewsSectionState extends State<ReviewsSection> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
             const SizedBox(height: 80),
           ],
         );

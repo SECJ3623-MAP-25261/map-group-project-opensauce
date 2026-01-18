@@ -53,4 +53,28 @@ class NotificationService {
       debugPrint("Error saving token: $e");
     }
   }
+
+  // 3. Send In-App Notification (Writes to Firestore)
+  Future<void> sendInAppNotification({
+    required String receiverId,
+    required String title,
+    required String body,
+    required String type, // e.g., 'order_update', 'chat'
+  }) async {
+    try {
+      await _db
+          .collection('users')
+          .doc(receiverId)
+          .collection('notifications')
+          .add({
+            'title': title,
+            'body': body,
+            'type': type,
+            'isRead': false,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+    } catch (e) {
+      debugPrint("Error sending in-app notification: $e");
+    }
+  }
 }

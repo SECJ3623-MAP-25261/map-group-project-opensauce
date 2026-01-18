@@ -218,7 +218,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
 
             const SizedBox(height: 20),
             Container(

@@ -2,8 +2,9 @@ import 'dart:async'; // Needed for StreamSubscription
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:connectivity_plus/connectivity_plus.dart'; // Import Connectivity
-import 'item_details_widgets.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import 'dart:async'; // For StreamSubscription
+import 'item_details_widgets.dart'; // Ensure this file exists from previous steps
 
 class ItemDetailsPage extends StatefulWidget {
   final Map<String, dynamic> itemData;
@@ -23,48 +24,39 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
   DateTimeRange? _selectedDateRange;
   bool _isAddingToCart = false;
 
-  // --- NEW: Offline State ---
-  bool _isOffline = false;
-  StreamSubscription? _internetSubscription;
+  // Connectivity
+  late StreamSubscription<ConnectivityResult> _subscription;
+  bool _isConnected = true; 
+
+  int _currentImageIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    // 1. Check Internet Immediately
-    _checkInitialInternet();
-
-    // 2. Listen for Changes
-    _internetSubscription = Connectivity().onConnectivityChanged.listen((
-      result,
-    ) {
+    _checkInitialConnectivity();
+    _subscription = Connectivity().onConnectivityChanged.listen((result) {
       _updateConnectionStatus(result);
     });
   }
 
+  Future<void> _checkInitialConnectivity() async {
+    final result = await Connectivity().checkConnectivity();
+    _updateConnectionStatus(result);
+  }
+
+  void _updateConnectionStatus(ConnectivityResult result) {
+     final hasConnection = result != ConnectivityResult.none;
+     if (hasConnection != _isConnected) {
+       setState(() {
+         _isConnected = hasConnection;
+       });
+     }
+  }
+
   @override
   void dispose() {
-    _internetSubscription?.cancel();
+    _subscription.cancel();
     super.dispose();
-  }
-
-  // Helper to handle connectivity result
-  void _updateConnectionStatus(dynamic result) {
-    bool offline = false;
-    // Handle both List<ConnectivityResult> (new) and single ConnectivityResult (old)
-    if (result is List) {
-      offline = result.contains(ConnectivityResult.none);
-    } else {
-      offline = result == ConnectivityResult.none;
-    }
-
-    if (mounted) {
-      setState(() => _isOffline = offline);
-    }
-  }
-
-  Future<void> _checkInitialInternet() async {
-    var result = await Connectivity().checkConnectivity();
-    _updateConnectionStatus(result);
   }
 
   // --- CALCULATION ---
@@ -91,8 +83,13 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
 
   // --- ADD TO CART LOGIC ---
   Future<void> _addToCart() async {
-    if (_isOffline) return; // Double check safety
-
+    if (!_isConnected) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You are offline. Cannot add to cart.")),
+      );
+      return;
+    }
+    
     if (_selectedDateRange == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select rental dates first")),
@@ -170,27 +167,75 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // 1. IMAGE SLIDER
-            if ((widget.itemData['images'] as List?)?.isNotEmpty == true)
-              SizedBox(
-                height: 300,
-                child: PageView.builder(
-                  itemCount: (widget.itemData['images'] as List).length,
-                  itemBuilder: (context, index) {
-                    return Image.network(
-                      widget.itemData['images'][index],
-                      fit: BoxFit.cover,
-                    );
-                  },
-                ),
-              ),
-
+            // 1. IMAGE CAROUSEL
             Container(
-              padding: const EdgeInsets.all(20),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
+              height: 300,
+              width: double.infinity,
+              color: Colors.grey[200],
+              child: images.isNotEmpty
+                  ? Stack(
+                      children: [
+                        PageView.builder(
+                          itemCount: images.length,
+                          onPageChanged: (index) {
+                            setState(() {
+                              _currentImageIndex = index;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            return Image.network(
+                              images[index],
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                            );
+                          },
+                        ),
+                        // Dots Indicator
+                        if (images.length > 1)
+                          Positioned(
+                            bottom: 10,
+                            left: 0,
+                            right: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: images.asMap().entries.map((entry) {
+                                return Container(
+                                  width: 8.0,
+                                  height: 8.0,
+                                  margin: const EdgeInsets.symmetric(
+                                    vertical: 8.0,
+                                    horizontal: 4.0,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color:
+                                        (Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? Colors.white
+                                                : Colors.black)
+                                            .withOpacity(
+                                              _currentImageIndex == entry.key
+                                                  ? 0.9
+                                                  : 0.4,
+                                            ),
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                      ],
+                    )
+                  : const Center(
+                      child: Icon(
+                        Icons.inventory_2,
+                        size: 80,
+                        color: Colors.grey,
+                      ),
+                    ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -280,15 +325,9 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: ElevatedButton(
-            // --- DISABLE LOGIC: If offline, onPressed is null ---
-            onPressed: (_isAddingToCart || _isOffline) ? null : _addToCart,
-
+            onPressed: (_isAddingToCart || !_isConnected) ? null : _addToCart,
             style: ElevatedButton.styleFrom(
-              // If disabled (null onPressed), Flutter auto-greys it.
-              // But we can force specific colors if online:
-              backgroundColor: const Color(0xFF800000),
-              disabledBackgroundColor:
-                  Colors.grey, // Explicit grey when offline
+              backgroundColor: _isConnected ? const Color(0xFF800000) : Colors.grey,
               padding: const EdgeInsets.symmetric(vertical: 15),
             ),
             child: _isAddingToCart
@@ -301,11 +340,11 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                     ),
                   )
                 : Text(
-                    _isOffline
-                        ? "Offline - Cannot Book" // Text when offline
+                    !_isConnected 
+                        ? "Offline" 
                         : (_selectedDateRange == null
-                              ? "Check Availability"
-                              : "Add to Cart (RM ${_totalPrice.toStringAsFixed(2)})"),
+                            ? "Check Availability"
+                            : "Add to Cart (RM ${_totalPrice.toStringAsFixed(2)})"),
                     style: const TextStyle(
                       fontSize: 18,
                       color: Colors.white, // Text color

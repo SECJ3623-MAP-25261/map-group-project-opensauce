@@ -180,43 +180,65 @@ class _AddListingPageState extends State<AddListingPage> {
 
     try {
       final connectivityResult = await Connectivity().checkConnectivity();
+      // Handle different connectivity_plus versions (some return List, some return single Enum)
+      // Checks if 'none' is present in the result
       bool isOffline = connectivityResult == ConnectivityResult.none;
-      // Compatibility check for connectivity_plus v6:
-      // if (connectivityResult is List && connectivityResult.contains(ConnectivityResult.none)) isOffline = true;
+      // If you use connectivity_plus ^6.0.0, use: connectivityResult.contains(ConnectivityResult.none)
 
       if (isOffline) {
-        // --- OFFLINE MODE (ADD & EDIT) ---
-
-        // 1. Prepare data for the Queue
+        // --- OFFLINE MODE (CREATE & UPDATE) ---
         List<String> imagePaths = _newImageFiles
             .map((file) => file.path)
             .toList();
+            
+        final Map<String, dynamic> itemData = {
+          'title': _titleController.text.trim(),
+          'pricePerDay': double.parse(_priceController.text.trim()), // Match DB field name
+          'description': _descController.text.trim(),
+          'category': _selectedCategory,
+          'address': _addressController.text.trim(),
+          // For updates, we pass existing images so they aren't lost
+          'images': _existingImageUrls, 
+        };
 
-        // 2. Queue the Item
-        await _offlineService.queueItem(
-          listingId:
-              widget.listingId, // Pass ID. If null = New, If String = Edit
-          title: _titleController.text.trim(),
-          price: double.parse(_priceController.text.trim()),
-          description: _descController.text.trim(),
-          category: _selectedCategory,
-          address: _addressController.text.trim(),
-          localImagePaths: imagePaths, // New photos (files)
-          existingImageUrls: _existingImageUrls, // Old photos (URLs) we kept
-          userId: user.uid,
-        );
+        if (widget.listingId != null) {
+          // UPDATE
+          await _offlineService.queueItem(
+            action: 'update',
+            docId: widget.listingId,
+            data: itemData,
+            userId: user.uid,
+            localImagePaths: imagePaths,
+          );
+        } else {
+          // CREATE
+          // Normalize keys for create helper if needed, but our service uses 'data' map now
+          // We passed 'pricePerDay' above which matches Firestore. 
+          // Offline create helper expects a map to spread into Firestore.
+          
+          await _offlineService.queueItem(
+            action: 'create',
+            data: itemData,
+            userId: user.uid,
+            localImagePaths: imagePaths,
+          );
+        }
 
         if (mounted) {
           // 3. Show Message
           String action = widget.listingId == null ? "Listing" : "Changes";
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Offline: $action saved to pending uploads."),
+             SnackBar(
+              content: Text(
+                widget.listingId == null 
+                  ? "You are offline. Item saved to pending uploads." 
+                  : "You are offline. Update saved to pending uploads.",
+              ),
               backgroundColor: Colors.orange,
               duration: const Duration(seconds: 4),
             ),
           );
-          Navigator.pop(context);
+          Navigator.pop(context); // Close the page
         }
       } else {
         // --- ONLINE MODE ---

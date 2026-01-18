@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../models/booking_model.dart';
 import '../../services/chat_service.dart';
+import '../../services/rentee_service.dart'; // Import RenteeService
 import '../common/chat_page.dart';
 import '../../widgets/orders/order_status_badge.dart'; // Import the badge widget
 
@@ -104,8 +105,93 @@ class _OrderDetailsPageState extends State<OrderDetailsPage> {
           label: const Text("Show Pickup QR Code"),
         ),
       );
+    } else if (widget.order.status == 'pending') {
+      // CANCEL BUTTON FOR PENDING ORDERS
+      return Container(
+        padding: const EdgeInsets.all(16),
+        color: Colors.white,
+        child: ElevatedButton.icon(
+          onPressed: () => _confirmCancellation(context),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red, // Red for danger/cancel
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            foregroundColor: Colors.white,
+          ),
+          icon: const Icon(Icons.cancel),
+          label: const Text("Cancel Booking"),
+        ),
+      );
     }
     return null;
+  }
+
+  void _confirmCancellation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Cancel Booking?"),
+        content: const Text(
+          "Are you sure you want to cancel this booking? This action cannot be undone.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("No, Keep it"),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Close dialog
+              await _cancelBooking();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Yes, Cancel"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _cancelBooking() async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      // Use RenteeService to cancel
+      // We need to instantiate it or use a provider.
+      // Since it's not injected in the state yet (only ChatService is), let's instantiate.
+      // Ideally move this to a provider or state management.
+      // Importing RenteeService is required.
+      // Assuming RenteeService is available/imported in this file.
+      // Checking imports... yes, need to import if not already.
+      // Wait, let's check top of file.
+      // Import needed: import '../../services/rentee_service.dart';
+
+      final RenteeService renteeService = RenteeService();
+      await renteeService.cancelBooking(
+        widget.order.bookingId,
+        widget.order.ownerId,
+        widget.order.itemTitle,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context); // Pop loading
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Booking Cancelled Successfully")),
+      );
+
+      Navigator.pop(context); // Return to previous screen (Order list)
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Pop loading
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error cancelling: $e")));
+    }
   }
 
   void _showQRDialog(BuildContext context) {
