@@ -1,13 +1,14 @@
 import 'dart:io';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import '../services/listing_services.dart'; // Import your ListingService
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:firebase_auth/firebase_auth.dart';
 
 class OfflineQueueService {
   static const String _boxName = 'offline_items';
-  final ListingService _listingService =
-      ListingService(); // Use the existing service logic
 
+  // 1. Initialize Hive (Call this in main.dart)
   static Future<void> init() async {
     await Hive.initFlutter();
     await Hive.openBox(_boxName);
@@ -36,11 +37,12 @@ class OfflineQueueService {
     print("OFFLINE: Item queued ($action)! Total pending: ${box.length}");
   }
 
-  // --- 2. SYNC PROCESS ---
+  // 3. The Sync Process (Called when internet returns)
   Future<void> syncPendingItems() async {
     final box = Hive.box(_boxName);
     if (box.isEmpty) return;
 
+    // Check internet just to be safe
     final connectivityResult = await Connectivity().checkConnectivity();
     // Support new connectivity_plus list return
     final hasConnection = connectivityResult != ConnectivityResult.none;
@@ -64,6 +66,7 @@ class OfflineQueueService {
         print("SYNC: Item '$key' processed successfully.");
       } catch (e) {
         print("SYNC ERROR for item $key: $e");
+        // Keep in queue to try again later
       }
     }
   }

@@ -29,25 +29,6 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
   bool _isConnected = true;
   StreamSubscription<ConnectivityResult>? _subscription;
 
-  @override
-  void initState() {
-    super.initState();
-    _checkConnectivity();
-
-    // Listen to stream
-    _subscription = Connectivity().onConnectivityChanged.listen((
-      ConnectivityResult result,
-    ) {
-      _updateConnectionStatus(result);
-    });
-  }
-
-  @override
-  void dispose() {
-    _subscription?.cancel();
-    super.dispose();
-  }
-
   Future<void> _checkConnectivity() async {
     final result = await Connectivity().checkConnectivity();
     _updateConnectionStatus(result);
@@ -70,56 +51,9 @@ class _CartPageState extends State<CartPage> with SingleTickerProviderStateMixin
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
   double get _currentTotal {
     return _selectedItems.fold(0, (sum, item) => sum + item.totalRentalPrice);
-  }
-
-  void _toggleSelection(CartItemModel item, bool selected) {
-    setState(() {
-      if (selected) {
-        _selectedCartIds.add(item.cartDocId);
-        _selectedItems.add(item);
-      } else {
-        _selectedCartIds.remove(item.cartDocId);
-        _selectedItems.removeWhere((i) => i.cartDocId == item.cartDocId);
-      }
-    });
-  }
-
-  Future<void> _handleDateEdit(CartItemModel item) async {
-    final DateTime now = DateTime.now();
-    final DateTimeRange? picked = await showDateRangePicker(
-      context: context,
-      initialDateRange: DateTimeRange(start: item.startDate, end: item.endDate),
-      firstDate: now,
-      lastDate: now.add(const Duration(days: 365)),
-      builder: (context, child) => Theme(
-        data: ThemeData.light().copyWith(
-          primaryColor: const Color(0xFF800000),
-          colorScheme: const ColorScheme.light(primary: Color(0xFF800000)),
-        ),
-        child: child!,
-      ),
-    );
-
-    if (picked != null) {
-      await _service.updateCartDates(item.cartDocId, picked.start, picked.end);
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Dates updated!")));
-      }
-    }
-  }
-
-  void _checkout() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        // PASS LIST OF MODELS
-        builder: (context) => PaymentPage(checkoutItems: _selectedItems),
-      ),
-    );
   }
 
   @override

@@ -1,8 +1,11 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:easyrent/models/cart_model.dart';
 import 'package:easyrent/rentee/payment_page.dart';
 import 'package:easyrent/services/rentee_service.dart';
 import 'package:easyrent/widgets/cart_item_card.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class MyCartWidget extends StatefulWidget {
   const MyCartWidget({super.key});
@@ -14,14 +17,50 @@ class MyCartWidget extends StatefulWidget {
 class _MyCartWidgetState extends State<MyCartWidget> {
   final RenteeService _service = RenteeService();
   final Set<String> _selectedCartIds = {};
-  late TabController _tabController;
+
   // Keep track of the actual Model objects for checkout
   final List<CartItemModel> _selectedItems = [];
+
+  // Connectivity
+  bool _isConnected = true;
+  StreamSubscription<ConnectivityResult>? _subscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+
+    // Listen to stream
+    _subscription = Connectivity().onConnectivityChanged.listen((
+      ConnectivityResult result,
+    ) {
+      _updateConnectionStatus(result);
+    });
+  }
+
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _checkConnectivity() async {
+    final result = await Connectivity().checkConnectivity();
+    _updateConnectionStatus(result);
+  }
+
+  void _updateConnectionStatus(ConnectivityResult result) {
+    if (!mounted) return;
+    setState(() {
+      _isConnected = result != ConnectivityResult.none;
+    });
+  }
 
   double get _currentTotal {
     return _selectedItems.fold(0, (sum, item) => sum + item.totalRentalPrice);
   }
-    void _toggleSelection(CartItemModel item, bool selected) {
+
+  void _toggleSelection(CartItemModel item, bool selected) {
     setState(() {
       if (selected) {
         _selectedCartIds.add(item.cartDocId);
@@ -59,7 +98,7 @@ class _MyCartWidgetState extends State<MyCartWidget> {
     }
   }
 
-    void _checkout() {
+  void _checkout() {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -71,7 +110,13 @@ class _MyCartWidgetState extends State<MyCartWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return const Scaffold(body: Center(child: Text("Please Login")));
+    }
+
     return Scaffold(
+    
       body: StreamBuilder<List<CartItemModel>>(
         stream: _service.getCartStream(),
         builder: (context, snapshot) {
@@ -133,16 +178,22 @@ class _MyCartWidgetState extends State<MyCartWidget> {
               ],
             ),
             ElevatedButton(
-              onPressed: _selectedItems.isEmpty ? null : _checkout,
+              onPressed: (_selectedItems.isEmpty || !_isConnected)
+                  ? null
+                  : _checkout,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF800000),
+                backgroundColor: _isConnected
+                    ? const Color(0xFF800000)
+                    : Colors.grey,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 30,
                   vertical: 12,
                 ),
               ),
               child: Text(
-                "Checkout (${_selectedItems.length})",
+                !_isConnected
+                    ? "Offline"
+                    : "Checkout (${_selectedItems.length})",
                 style: const TextStyle(color: Colors.white),
               ),
             ),
