@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:easyrent/models/cart_model.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class ListingService {
@@ -17,6 +18,7 @@ class ListingService {
     required List<String> existingImageUrls, // Images already in the cloud
     required List<File> newImageFiles, // Images from phone gallery
     required String userId,
+    required List<locationObject> locationDetails,
   }) async {
     // 1. Upload NEW images (if any)
     List<String> newUrls = await _uploadImages(newImageFiles, userId);
@@ -31,11 +33,18 @@ class ListingService {
       'description': description,
       'pricePerDay': price,
       'category': category,
-      'address': address,
+      'address': "N/A",
       'images': finalImageUrls,
       'firstImage': finalImageUrls.isNotEmpty ? finalImageUrls.first : '',
       'ownerId': userId, // CRITICAL for your booking logic
       'userId': userId, // Keep for legacy support
+      'locationDetails': locationDetails
+          .map((loc) => {
+                'locationName': loc.locationName,
+                'latitude': loc.latitude,
+                'longitude': loc.longitude,
+              })
+          .toList(),
       'updatedAt': FieldValue.serverTimestamp(),
     };
 

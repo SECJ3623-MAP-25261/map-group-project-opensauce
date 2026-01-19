@@ -1,4 +1,3 @@
-import 'package:easyrent/models/cart_model.dart';
 import 'package:easyrent/models/item_model.dart';
 import 'package:flutter/material.dart';
 

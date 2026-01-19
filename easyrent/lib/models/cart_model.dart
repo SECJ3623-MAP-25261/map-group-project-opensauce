@@ -67,6 +67,15 @@ class CartItemModel {
   // Factory: Firestore Document -> CartItemModel Object
   factory CartItemModel.fromSnapshot(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    List<locationObject> parsedLocations = [];
+    if (data['locationDetails'] != null && data['locationDetails'] is List) {
+      parsedLocations = (data['locationDetails'] as List)
+          .map(
+            (locData) =>
+                locationObject.fromMap(locData as Map<String, dynamic>),
+          )
+          .toList();
+    }
     return CartItemModel(
       cartDocId: doc.id,
       itemId: data['itemId'] ?? '',
@@ -80,7 +89,7 @@ class CartItemModel {
       location: '',
       locationLat: 0.0,
       locationLong: 0.0,
-      locationDetails: const [],
+      locationDetails: parsedLocations,
     );
   }
 

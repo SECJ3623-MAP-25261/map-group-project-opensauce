@@ -1,12 +1,9 @@
 import 'package:easyrent/models/booking_model.dart';
-import 'package:easyrent/models/cart_model.dart';
 import 'package:easyrent/models/item_model.dart';
 import 'package:easyrent/services/rentee_service.dart';
 import 'package:easyrent/widgets/renting_status/cancel_order_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter/foundation.dart';
-import 'package:easyrent/core/convert_to_frontend_string.dart';
 
 class OrderingCardWidget extends StatefulWidget {
   final ItemModel item;

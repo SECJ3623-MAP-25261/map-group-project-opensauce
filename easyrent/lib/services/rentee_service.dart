@@ -200,7 +200,7 @@ class RenteeService {
       return false;
     } catch (e) {
       // Handle specific cases (like the document being deleted mid-process)
-      print('Firebase Update Error: ${e}');
+      print('Firebase Update Error: $e');
       return false;
     }
   }
@@ -313,7 +313,7 @@ class RenteeService {
   Future<void> processCheckout({
     required List<CartItemModel> items,
     required String paymentMethod,
-    required Map<String, String?> selectedLocations,
+    // required Map<String, String?> selectedLocations,
     required double depositPerItem,
   }) async {
     final user = _auth.currentUser;
@@ -334,7 +334,7 @@ class RenteeService {
           "userId": user.uid,
           "paymentMethod": paymentMethod,
           "depositPerItem": depositPerItem,
-          "selectedLocations": selectedLocations,
+          // "selectedLocations": selectedLocations,
           // Map the list of items to a list of JSON maps
           "items": items
               .map(
@@ -349,6 +349,16 @@ class RenteeService {
                   // Convert DateTime to ISO8601 strings for the backend
                   "startDate": item.startDate.toIso8601String(),
                   "endDate": item.endDate.toIso8601String(),
+                  "locationDetails": item.locationDetails
+                      .map(
+                        (loc) => {
+                          'locationName': loc.locationName,
+                          'latitude': loc.latitude,
+                          'longitude': loc.longitude,
+                        },
+                      )
+                      .toList(),
+                  "selectedLocation": item.locationDetails[0]?.locationName ?? "Contact Owner",
                 },
               )
               .toList(),

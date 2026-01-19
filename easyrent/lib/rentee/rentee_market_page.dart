@@ -238,6 +238,7 @@ class _RenteeMarketPageState extends State<RenteeMarketPage> {
           itemBuilder: (context, index) {
             final data = filteredItems[index];
             final itemModel = ItemModel.fromMap(data);
+            // print("================renteeMarketPage: ${itemModel.locationDetails}=================");
             return RenteeItemCard(item: itemModel);
           },
         );

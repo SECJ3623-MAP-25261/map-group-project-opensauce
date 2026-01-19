@@ -1,3 +1,4 @@
+import 'package:easyrent/models/cart_model.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,6 +30,18 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
 
   int _currentImageIndex = 0;
 
+  locationObject? _selectedLocation;
+
+  void _onLocationSelected(
+    locationObject selectedLocation,
+  ) {
+    print("============onLocationSelected called=============");
+    setState(() {
+      _selectedLocation = selectedLocation;
+    });
+    print("============selected location from itemDetailsPage=============: ${selectedLocation.locationName}");
+  }
+  
   @override
   void initState() {
     super.initState();
@@ -137,6 +150,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
     }
   }
 
+
   // --- ADD TO CART LOGIC ---
   Future<void> _addToCart() async {
     if (!_isConnected) {
@@ -203,6 +217,15 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
 
             // ----------------
             'pickupLocations': locations,
+            'locationDetails': _selectedLocation != null
+                ? [
+                    {
+                      'locationName': _selectedLocation!.locationName,
+                      'latitude': _selectedLocation!.latitude,
+                      'longitude': _selectedLocation!.longitude,
+                    }
+                  ]
+                : [],
             'startDate': Timestamp.fromDate(_selectedDateRange!.start),
             'endDate': Timestamp.fromDate(_selectedDateRange!.end),
             'addedAt': FieldValue.serverTimestamp(),
@@ -231,7 +254,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
     final user = FirebaseAuth.instance.currentUser;
     final data = widget.itemData;
     final List<dynamic> images = data['images'] ?? [];
-
+   
     final String avgRating = data.containsKey('averageRating')
         ? "${data['averageRating'].toStringAsFixed(1)}"
         : "New";
@@ -407,7 +430,7 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                   const SizedBox(height: 20),
 
                   // 7. LOCATION (From Widgets File)
-                  LocationSection(itemData: data),
+                  LocationSection(itemData: data,onLocationSelected:_onLocationSelected,selectedLocationName: _selectedLocation?.locationName,),
 
                   const SizedBox(height: 30),
                   const Divider(),

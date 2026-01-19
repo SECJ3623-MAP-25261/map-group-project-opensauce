@@ -120,8 +120,8 @@ exports.processCheckout = async (req, res) => {
 
       const rentalTotal = item.totalRentalPrice;
       const grandTotal = rentalTotal + depositPerItem;
-      const location = selectedLocations[item.cartDocId] || "Contact Owner";
-
+      const location = item.selectedLocation || "Contact Owner";
+      const allLocations = item.locationDetails || []; // Capture the full list
       // 3. Add 'Set' operation for Booking
       batch.set(bookingRef, {
         bookingId: bookingRef.id,
@@ -137,6 +137,7 @@ exports.processCheckout = async (req, res) => {
         totalPrice: grandTotal,
         status: 'pending',
         pickupLocation: location,
+        locationDetails: allLocations,
         itemTitle: item.title,
         itemImage: item.image,
         paymentMethod: paymentMethod,

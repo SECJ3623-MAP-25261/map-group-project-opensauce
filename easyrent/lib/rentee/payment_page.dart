@@ -1,3 +1,5 @@
+import 'package:easyrent/models/latLng.dart';
+import 'package:easyrent/rentee/map_location/map_screen_page.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/cart_model.dart';
@@ -16,6 +18,7 @@ class PaymentPage extends StatefulWidget {
 class _PaymentPageState extends State<PaymentPage> {
   final RenteeService _service = RenteeService();
   String _paymentMethod = 'Cash';
+  LatLng? _selectedLocation;
   bool _isLoading = false;
   final double _depositPerItem = 50.00;
   final Map<String, String?> _selectedLocations = {};
@@ -68,7 +71,7 @@ class _PaymentPageState extends State<PaymentPage> {
       await _service.processCheckout(
         items: widget.checkoutItems,
         paymentMethod: _paymentMethod,
-        selectedLocations: _selectedLocations,
+        // selectedLocations: _selectedLocations,
         depositPerItem: _depositPerItem,
       );
 
@@ -188,31 +191,34 @@ class _PaymentPageState extends State<PaymentPage> {
                           "Pickup At:",
                           style: TextStyle(color: Colors.grey),
                         ),
-                        DropdownButton<String>(
-                          value: _selectedLocations[item.cartDocId],
-                          isDense: true,
-                          underline: const SizedBox(),
-                          items:
-                              (item.pickupLocations.isNotEmpty
-                                      ? item.pickupLocations
-                                      : ["Contact Owner"])
-                                  .map<DropdownMenuItem<String>>((loc) {
-                                    return DropdownMenuItem(
-                                      value: loc.toString(),
-                                      child: Text(
-                                        loc.toString(),
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    );
-                                  })
-                                  .toList(),
-                          onChanged: (val) => setState(
-                            () => _selectedLocations[item.cartDocId] = val,
-                          ),
-                        ),
+                        Text(
+                          "${item.locationDetails.isNotEmpty ? item.locationDetails[0].locationName : 'Contact Owner'}",
+                        )
+                        // DropdownButton<String>(
+                        //   value: _selectedLocations[item.cartDocId],
+                        //   isDense: true,
+                        //   underline: const SizedBox(),
+                        //   items:
+                        //       (item.pickupLocations.isNotEmpty
+                        //               ? item.pickupLocations
+                        //               : ["Contact Owner"])
+                        //           .map<DropdownMenuItem<String>>((loc) {
+                        //             return DropdownMenuItem(
+                        //               value: loc.toString(),
+                        //               child: Text(
+                        //                 loc.toString(),
+                        //                 style: const TextStyle(
+                        //                   fontSize: 14,
+                        //                   fontWeight: FontWeight.bold,
+                        //                 ),
+                        //               ),
+                        //             );
+                        //           })
+                        //           .toList(),
+                        //   onChanged: (val) => setState(
+                        //     () => _selectedLocations[item.cartDocId] = val,
+                        //   ),
+                        // ),
                       ],
                     ),
                   ],
@@ -315,6 +321,25 @@ class _PaymentPageState extends State<PaymentPage> {
             ),
 
             const SizedBox(height: 20),
+            // Row(
+            //   children: [
+            //     const Text("Please choose a pickup location: "),
+            //     ElevatedButton(onPressed: 
+            //     () {
+            //       // Navigate to map screen to select location
+            //       Navigator.push(
+            //         context,
+            //         MaterialPageRoute(
+            //           builder: (context) => const MapScreenPage(
+            //             // onLocationSelected: (location, lat, lng) {
+            //             //   // Handle selected location
+            //             // },
+            //           ),
+            //         ),
+            //       );
+            //     }, child: const Text("Select Location"))
+            //   ],
+            // ),
             SizedBox(
               width: double.infinity,
               height: 50,

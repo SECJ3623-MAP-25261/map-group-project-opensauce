@@ -1,8 +1,6 @@
 import 'package:easyrent/models/booking_model.dart';
-import 'package:easyrent/models/cart_model.dart';
 import 'package:easyrent/models/item_model.dart';
 import 'package:easyrent/services/rentee_service.dart';
-import 'package:easyrent/widgets/cart_item_card.dart';
 import 'package:easyrent/widgets/renting_status/ordering_card_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';

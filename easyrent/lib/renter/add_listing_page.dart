@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:easyrent/models/cart_model.dart';
+import 'package:easyrent/rentee/map_location/map_screen_page.dart';
+import 'package:easyrent/renter/map_location/map_screen_page.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -30,7 +33,8 @@ class _AddListingPageState extends State<AddListingPage> {
   late TextEditingController _descController;
   late TextEditingController _priceController;
   late TextEditingController _addressController;
-
+  List<locationObject> selectedLocations = [];
+  
   String _selectedCategory = 'Electronics';
   final List<String> _categories = [
     'Electronics',
@@ -61,6 +65,14 @@ class _AddListingPageState extends State<AddListingPage> {
     _addressController = TextEditingController(
       text: widget.existingData?['address'] ?? '',
     );
+    selectedLocations = (widget.existingData?['locationDetails'] as List<dynamic>?)
+            ?.map((loc) => locationObject(
+                  locationName: loc['locationName'] ?? '',
+                  latitude: loc['latitude']?.toDouble() ?? 0.0,
+                  longitude: loc['longitude']?.toDouble() ?? 0.0,
+                ))
+            .toList() ??
+        [];
 
     if (widget.existingData != null) {
       _selectedCategory = widget.existingData!['category'] ?? 'Electronics';
@@ -76,6 +88,7 @@ class _AddListingPageState extends State<AddListingPage> {
     _descController.dispose();
     _priceController.dispose();
     _addressController.dispose();
+    selectedLocations.clear();
     super.dispose();
   }
 
@@ -190,15 +203,24 @@ class _AddListingPageState extends State<AddListingPage> {
         List<String> imagePaths = _newImageFiles
             .map((file) => file.path)
             .toList();
-            
+
         final Map<String, dynamic> itemData = {
           'title': _titleController.text.trim(),
-          'pricePerDay': double.parse(_priceController.text.trim()), // Match DB field name
+          'pricePerDay': double.parse(
+            _priceController.text.trim(),
+          ), // Match DB field name
           'description': _descController.text.trim(),
           'category': _selectedCategory,
           'address': _addressController.text.trim(),
           // For updates, we pass existing images so they aren't lost
-          'images': _existingImageUrls, 
+          'images': _existingImageUrls,
+          'locationDetails':selectedLocations
+              .map((loc) => {
+                    'locationName': loc.locationName,
+                    'latitude': loc.latitude,
+                    'longitude': loc.longitude,
+                  })
+              .toList(),
         };
 
         if (widget.listingId != null) {
@@ -213,9 +235,9 @@ class _AddListingPageState extends State<AddListingPage> {
         } else {
           // CREATE
           // Normalize keys for create helper if needed, but our service uses 'data' map now
-          // We passed 'pricePerDay' above which matches Firestore. 
+          // We passed 'pricePerDay' above which matches Firestore.
           // Offline create helper expects a map to spread into Firestore.
-          
+
           await _offlineService.queueItem(
             action: 'create',
             data: itemData,
@@ -228,11 +250,11 @@ class _AddListingPageState extends State<AddListingPage> {
           // 3. Show Message
           String action = widget.listingId == null ? "Listing" : "Changes";
           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
+            SnackBar(
               content: Text(
-                widget.listingId == null 
-                  ? "You are offline. Item saved to pending uploads." 
-                  : "You are offline. Update saved to pending uploads.",
+                widget.listingId == null
+                    ? "You are offline. Item saved to pending uploads."
+                    : "You are offline. Update saved to pending uploads.",
               ),
               backgroundColor: Colors.orange,
               duration: const Duration(seconds: 4),
@@ -252,6 +274,7 @@ class _AddListingPageState extends State<AddListingPage> {
           existingImageUrls: _existingImageUrls,
           newImageFiles: _newImageFiles,
           userId: user.uid,
+          locationDetails: selectedLocations,
         );
 
         if (mounted) {
@@ -271,6 +294,20 @@ class _AddListingPageState extends State<AddListingPage> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _updateLocation(String location, double lat, double long) {
+    print(
+      "==========Received location: $location, lat: $lat, long: $long==========",
+    );
+    setState(() {
+      selectedLocations.add(
+        locationObject(locationName: location, latitude: lat, longitude: long),
+      );
+    });
+    print(
+      "---------the locations: ${selectedLocations.last.locationName} lat: ${selectedLocations.last.latitude} long: ${selectedLocations.last.longitude}----------",
+    );
   }
 
   @override
@@ -336,15 +373,15 @@ class _AddListingPageState extends State<AddListingPage> {
               ),
               const SizedBox(height: 16),
 
-              // Address (Added based on your previous file)
-              TextFormField(
-                controller: _addressController,
-                decoration: const InputDecoration(
-                  labelText: "Pickup Address",
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
+              // // Address (Added based on your previous file)
+              // TextFormField(
+              //   controller: _addressController,
+              //   decoration: const InputDecoration(
+              //     labelText: "Pickup Address",
+              //     border: OutlineInputBorder(),
+              //   ),
+              // ),
+              // const SizedBox(height: 16),
 
               // Description
               TextFormField(
@@ -358,6 +395,85 @@ class _AddListingPageState extends State<AddListingPage> {
               ),
               const SizedBox(height: 16),
 
+              // Address
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Selected Locations:",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+
+                      // Use 'if' inside the list instead of a ternary with spread
+                      if (selectedLocations.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8.0),
+                          child: Text(
+                            "No location selected",
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ),
+
+                      if (selectedLocations.isNotEmpty)
+                        ...selectedLocations.indexed.map((indexedItem) {
+                        // Destructure the tuple to get index and location
+                        final index = indexedItem.$1 + 1;
+                        final location = indexedItem.$2;
+
+                        return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4.0),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    '$index: ${location.locationName}', // Example of using the index
+                                    style: const TextStyle(fontSize: 14, color: Colors.black54), softWrap: true, overflow: TextOverflow.visible
+                                  ),
+                                ),
+                                IconButton(onPressed: () {
+                                  setState(() {
+                                    selectedLocations.removeAt(index - 1);
+                                  });
+                                }, icon: Icon(Icons.delete, color: Colors.red, size: 18)),
+                              ],
+                            ),
+                          );
+                        })
+                    ],
+                  ),
+                  // const SizedBox(width: 10),
+                  Row(
+                    children: [
+                      Text('Add Location', style: _headerStyle()),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.my_location,
+                          color: Color(0xFF800000),
+                        ),
+                        tooltip: "Use Current Location",
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) {
+                                return MapScreenRenterPage(
+                                  latitude: 1.488889,
+                                  longitude: 103.761111,
+                                  onLocationSelected: _updateLocation,
+                                );
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(height: 16),
               // Images
               Text("Images", style: _headerStyle()),
               const SizedBox(height: 10),

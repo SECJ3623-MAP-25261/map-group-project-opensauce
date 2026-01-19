@@ -8,8 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/rentee_service.dart';
 import '../models/cart_model.dart';
-import '../widgets/cart_item_card.dart'; // Ensure this exists
-import 'payment_page.dart';
+// Ensure this exists
 
 class CartPage extends StatefulWidget {
   const CartPage({super.key});

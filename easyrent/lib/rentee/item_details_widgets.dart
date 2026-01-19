@@ -1,3 +1,4 @@
+import 'package:easyrent/models/cart_model.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -67,16 +68,26 @@ class OwnerSection extends StatelessWidget {
 // --- 2. LOCATION CHIPS WIDGET ---
 class LocationSection extends StatelessWidget {
   final Map<String, dynamic> itemData;
+  final Function(locationObject) onLocationSelected;
+  // ADD THIS: Keep track of which one is selected
+  final String? selectedLocationName; 
 
-  const LocationSection({super.key, required this.itemData});
+  const LocationSection({
+    super.key,
+    required this.itemData,
+    required this.onLocationSelected,
+    this.selectedLocationName, // Initialize it
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Logic: Use list if available, fallback to single address
-    List<dynamic> locations = itemData['pickupLocations'] ?? [];
-    if (locations.isEmpty && itemData['address'] != null) {
-      locations = [itemData['address']];
-    }
+    final List<dynamic> rawLocations = itemData['locationDetails'] is List
+        ? itemData['locationDetails']
+        : [];
+
+    final List<locationObject> locations = rawLocations.map((loc) {
+      return locationObject.fromMap(loc as Map<String, dynamic>);
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,10 +106,31 @@ class LocationSection extends StatelessWidget {
         Wrap(
           spacing: 8.0,
           children: locations.map((loc) {
-            return Chip(
-              label: Text(loc.toString(), style: const TextStyle(fontSize: 12)),
-              backgroundColor: Colors.grey[100],
-              padding: EdgeInsets.zero,
+            // CHECK: Is this specific chip the one selected?
+            final bool isSelected = selectedLocationName == loc.locationName;
+
+            return ActionChip(
+              avatar: Icon(
+                Icons.map, 
+                size: 14, 
+                color: isSelected ? Colors.white : const Color(0xFF800000)
+              ),
+              label: Text(
+                loc.locationName,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isSelected ? Colors.white : Colors.black,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              // CHANGE COLOR based on selection
+              backgroundColor: isSelected ? const Color(0xFF800000) : Colors.grey[100],
+              shape: StadiumBorder(
+                side: BorderSide(
+                  color: isSelected ? const Color(0xFF800000) : Colors.transparent,
+                ),
+              ),
+              onPressed: () => onLocationSelected(loc),
             );
           }).toList(),
         ),
