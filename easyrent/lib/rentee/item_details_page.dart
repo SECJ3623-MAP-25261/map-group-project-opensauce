@@ -310,10 +310,61 @@ class _ItemDetailsPageState extends State<ItemDetailsPage> {
                             });
                           },
                           itemBuilder: (context, index) {
-                            return Image.network(
-                              images[index],
-                              fit: BoxFit.cover,
-                              width: double.infinity,
+                            return GestureDetector(
+                              onTap: () {
+                                showDialog(
+                                  context: context,
+                                  barrierColor: Colors.black.withOpacity(0.85), // Dimmed background
+                                  builder: (context) {
+                                    final PageController dialogPageController =
+                                        PageController(initialPage: index);
+                                    return Dialog(
+                                      backgroundColor: Colors.transparent,
+                                      insetPadding: EdgeInsets.zero,
+                                      child: Stack(
+                                        children: [
+                                          // Full Screen Image Carousel
+                                          PageView.builder(
+                                            controller: dialogPageController,
+                                            itemCount: images.length,
+                                            itemBuilder: (context, i) {
+                                              return InteractiveViewer(
+                                                minScale: 0.5,
+                                                maxScale: 4.0,
+                                                child: Image.network(
+                                                  images[i],
+                                                  fit: BoxFit.contain,
+                                                ),
+                                              );
+                                            },
+                                          ),
+                                          // Close Button
+                                          Positioned(
+                                            top: 40,
+                                            right: 20,
+                                            child: CircleAvatar(
+                                              backgroundColor: Colors.black54,
+                                              child: IconButton(
+                                                icon: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                ),
+                                                onPressed: () =>
+                                                    Navigator.of(context).pop(),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              child: Image.network(
+                                images[index],
+                                fit: BoxFit.cover,
+                                width: double.infinity,
+                              ),
                             );
                           },
                         ),
