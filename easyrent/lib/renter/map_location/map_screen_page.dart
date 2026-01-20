@@ -1,9 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
-
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 class MapScreenRenterPage extends StatefulWidget {
   const MapScreenRenterPage({
     required this.latitude,
@@ -47,13 +49,13 @@ class _MapScreenRenterPageState extends State<MapScreenRenterPage> {
     super.initState();
     _getCurrentUserLocation();
   }
-  
+
   @override
   void dispose() {
     _mapController?.dispose();
     super.dispose();
   }
-  
+
   // (Include your _getCurrentUserLocation function here)
 
   Future<void> _getCurrentUserLocation() async {
@@ -94,106 +96,136 @@ class _MapScreenRenterPageState extends State<MapScreenRenterPage> {
     });
 
     if (_mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLngZoom(newLatLng, 18),
-      );
+      _mapController!.animateCamera(CameraUpdate.newLatLngZoom(newLatLng, 18));
     }
   }
-
 
   /// Reverse geocoding
+  // Future<void> _getAddressFromLatLng(LatLng latLng) async {
+  //   String newLocation = "";
+
+  //   // Animate camera to the tapped location for better UX
+  //   if (_mapController != null) {
+  //     _mapController!.animateCamera(CameraUpdate.newLatLng(latLng));
+  //   }
+
+  //   try {
+  //     final placemarks = await placemarkFromCoordinates(
+  //       latLng.latitude,
+  //       latLng.longitude,
+  //     );
+
+  //     if (placemarks.isNotEmpty) {
+  //       final place = placemarks.first;
+
+  //       // newLocation =
+  //       //     "${place.name}, ${place.street}, ${place.locality}, "
+  //       //     "${place.postalCode}, ${place.country}";
+  //       newLocation =
+  //       "${place.name}, ${place.locality}, ${place.country}\n"
+  //       "Lat: ${latLng.latitude.toStringAsFixed(6)}, "
+  //       "Lng: ${latLng.longitude.toStringAsFixed(6)}";
+  //     } else {
+  //       // FIX 1: If no placemark found, set a descriptive message
+  //       newLocation =
+  //           "Location selected: Lat: ${latLng.latitude.toStringAsFixed(4)}, Long: ${latLng.longitude.toStringAsFixed(4)} (Address not found)";
+  //     }
+  //   } catch (e) {
+  //     // FIX 2: If an error occurs (e.g., network), set an error message
+  //     debugPrint("Geocoding error: $e");
+  //     newLocation = "Error retrieving address. Please try again.";
+  //   }
+
+  //   setState(() {
+  //     selectedLatLng = latLng; // Update LatLng regardless of address success
+  //     selectedLocation = newLocation;
+  //   });
+  // }
+
   Future<void> _getAddressFromLatLng(LatLng latLng) async {
-    String newLocation = "";
-    
-    // Animate camera to the tapped location for better UX
-    if (_mapController != null) {
-      _mapController!.animateCamera(
-        CameraUpdate.newLatLng(latLng),
-      );
-    }
+  // Move camera
+  _mapController?.animateCamera(CameraUpdate.newLatLng(latLng));
 
-    try {
-      final placemarks = await placemarkFromCoordinates(
-        latLng.latitude,
-        latLng.longitude,
-      );
+  // TODO: Replace with your actual API Key from Google Cloud Console
+  final String googleApiKey = ''; // API KEY HERE
+  
+  final url = Uri.parse(
+    'https://maps.googleapis.com/maps/api/geocode/json?latlng=${latLng.latitude},${latLng.longitude}&key=$googleApiKey'
+  );
 
-      if (placemarks.isNotEmpty) {
-        final place = placemarks.first;
-
-        newLocation =
-            "${place.name}, ${place.street}, ${place.locality}, "
-            "${place.postalCode}, ${place.country}";
+  try {
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      
+      if (data['status'] == 'OK' && data['results'].isNotEmpty) {
+        // results[0] is the most specific address (Building/Street level)
+        final String formattedAddress = data['results'][0]['formatted_address'];
+        
+        setState(() {
+          selectedLatLng = latLng;
+          selectedLocation = formattedAddress;
+        });
       } else {
-        // FIX 1: If no placemark found, set a descriptive message
-        newLocation = "Location selected: Lat: ${latLng.latitude.toStringAsFixed(4)}, Long: ${latLng.longitude.toStringAsFixed(4)} (Address not found)";
+        setState(() {
+          selectedLatLng = latLng;
+          selectedLocation = "Address not found (${data['status']})";
+        });
       }
-    } catch (e) {
-      // FIX 2: If an error occurs (e.g., network), set an error message
-      debugPrint("Geocoding error: $e");
-      newLocation = "Error retrieving address. Please try again.";
     }
-
+  } catch (e) {
+    debugPrint("Error: $e");
     setState(() {
-      selectedLatLng = latLng; // Update LatLng regardless of address success
-      selectedLocation = newLocation;
+      selectedLocation = "Error connecting to Geocoding service.";
     });
   }
+}
 
-  /// Build markers (blue = suggested, red = selected)
+  /// Build markers (Green = current, Red = selected)
   Set<Marker> _buildMarkers() {
-    final Set<Marker> markers =
-        suggestedPlaces.map((latLng) {
+    final Set<Marker> markers = {};
 
-          final isSelected = selectedLatLng == latLng;
-
-          return Marker(
-            markerId: MarkerId(
-              'suggested_${latLng.toString()}',
-            ), // Unique ID for suggested
-            position: latLng,
-            icon:
-                isSelected
-                    ? BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueRed,
-                      )
-                    : BitmapDescriptor.defaultMarkerWithHue(
-                          BitmapDescriptor.hueAzure,
-                      ),
-            onTap: () => _getAddressFromLatLng(latLng),
-          );
-        }).toSet();
-    
-    // 2. Add the Current User Location Marker (if available)
+    // 1. Add the Current User Location Marker (Green)
     if (_currentLocation != null) {
       markers.add(
         Marker(
-          markerId: const MarkerId('current_user_location'), // Unique ID
-          position: _currentLocation!, // Use the non-null value
-          infoWindow: const InfoWindow(
-            title: 'Your Location',
-          ), // Optional title
+          markerId: const MarkerId('current_user_location'),
+          position: _currentLocation!,
+          infoWindow: const InfoWindow(title: 'Your Location'),
           icon: BitmapDescriptor.defaultMarkerWithHue(
             BitmapDescriptor.hueGreen,
           ),
-          onTap: () => _getAddressFromLatLng(_currentLocation!), // Allow selection of current location
+          onTap: () => _getAddressFromLatLng(_currentLocation!),
         ),
       );
     }
-    
-    // If a location is selected by tapping the map, and it's not the user's current location,
-    // ensure a red marker is placed there if it's not one of the suggested places.
-    if (selectedLatLng != null && !suggestedPlaces.contains(selectedLatLng) && selectedLatLng != _currentLocation) {
-        markers.add(
-          Marker(
-            markerId: const MarkerId('selected_tap_location'),
-            position: selectedLatLng!,
-            icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueRed,
-            ),
-            onTap: () => _getAddressFromLatLng(selectedLatLng!),
-          ),
-        );
+
+    // 2. Add the Selected Location Marker (Red)
+    // This logic ensures that if the user taps the map, a red marker appears
+    if (selectedLatLng != null && selectedLatLng != _currentLocation) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('selected_tap_location'),
+          position: selectedLatLng!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          onTap: () => _getAddressFromLatLng(selectedLatLng!),
+        ),
+      );
+    }
+
+    // 3. Logic: If the user selects their current location, we change its color to Red
+    // to show it is the active selection.
+    if (selectedLatLng == _currentLocation && _currentLocation != null) {
+      // We update the existing current location marker to red
+      markers.removeWhere((m) => m.markerId.value == 'current_user_location');
+      markers.add(
+        Marker(
+          markerId: const MarkerId('current_user_location'),
+          position: _currentLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          onTap: () => _getAddressFromLatLng(_currentLocation!),
+        ),
+      );
     }
 
     return markers;
@@ -222,9 +254,9 @@ class _MapScreenRenterPageState extends State<MapScreenRenterPage> {
                 _mapController = controller;
                 // Optional: If _currentLocation is ready, move camera immediately after map is created
                 if (_currentLocation != null) {
-                   _mapController!.animateCamera(
-                     CameraUpdate.newLatLngZoom(_currentLocation!, 18),
-                   );
+                  _mapController!.animateCamera(
+                    CameraUpdate.newLatLngZoom(_currentLocation!, 18),
+                  );
                 }
               },
               // The initial position is now only for the very first render
@@ -262,21 +294,27 @@ class _MapScreenRenterPageState extends State<MapScreenRenterPage> {
               height: 48,
               child: ElevatedButton(
                 onPressed:
-                    selectedLocation.isNotEmpty && selectedLatLng != null && !selectedLocation.contains("Error")
-                        ? () {
-                            widget.onLocationSelected(
-                              selectedLocation,
-                              selectedLatLng!.latitude,
-                              selectedLatLng!.longitude,
-                            );
-                            Navigator.pop(context);
-                          }
-                        : null,
+                    selectedLocation.isNotEmpty &&
+                        selectedLatLng != null &&
+                        !selectedLocation.contains("Error")
+                    ? () {
+                        widget.onLocationSelected(
+                          selectedLocation,
+                          selectedLatLng!.latitude,
+                          selectedLatLng!.longitude,
+                        );
+                        Navigator.pop(context);
+                      }
+                    : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: selectedLocation.isNotEmpty && !selectedLocation.contains("Error")
-                      ? Colors.red 
+                  backgroundColor:
+                      selectedLocation.isNotEmpty &&
+                          !selectedLocation.contains("Error")
+                      ? Colors.red
                       : Colors.grey.shade400,
-                  foregroundColor: selectedLocation.isNotEmpty && !selectedLocation.contains("Error")
+                  foregroundColor:
+                      selectedLocation.isNotEmpty &&
+                          !selectedLocation.contains("Error")
                       ? Colors.white
                       : Colors.grey.shade700,
                 ),

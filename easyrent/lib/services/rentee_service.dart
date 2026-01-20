@@ -106,7 +106,7 @@ class RenteeService {
     return _db
         .collection('bookings')
         .where('renteeId', isEqualTo: userId)
-        .where('status', isEqualTo: 'approved')
+        .where('status', isEqualTo: 'ongoing')
         .snapshots() // 1. Listen for real-time changes
         .asyncMap((snapshot) async {
           // 2. Use asyncMap to handle the nested Future

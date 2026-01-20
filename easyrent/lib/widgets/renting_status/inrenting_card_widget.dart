@@ -196,6 +196,7 @@ class _InrentingCardWidgetState extends State<InrentingCardWidget> {
                   ),
                   const SizedBox(height: 10),
                   Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.symmetric(
                       vertical: 4,
                       horizontal: 8,
@@ -215,7 +216,7 @@ class _InrentingCardWidgetState extends State<InrentingCardWidget> {
                             fontSize: 12,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 10),
                         Wrap(
                           alignment: WrapAlignment.end,
                           spacing: 8.0,
