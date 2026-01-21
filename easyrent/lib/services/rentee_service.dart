@@ -74,6 +74,7 @@ class RenteeService {
         .collection('bookings')
         .where('renteeId', isEqualTo: userId)
         .where('status', isEqualTo: 'pending')
+        .orderBy('createdAt', descending: true)
         .snapshots() // 1. Listen for real-time changes
         .asyncMap((snapshot) async {
           // 2. Use asyncMap to handle the nested Future
@@ -107,6 +108,7 @@ class RenteeService {
         .collection('bookings')
         .where('renteeId', isEqualTo: userId)
         .where('status', isEqualTo: 'ongoing')
+        .orderBy('createdAt', descending: true)
         .snapshots() // 1. Listen for real-time changes
         .asyncMap((snapshot) async {
           // 2. Use asyncMap to handle the nested Future
@@ -140,6 +142,7 @@ class RenteeService {
         .collection('bookings')
         .where('renteeId', isEqualTo: userId)
         .where('status', whereIn: ["completed", "declined","approved"])
+        .orderBy('createdAt', descending: true)
         .snapshots() // 1. Listen for real-time changes
         .asyncMap((snapshot) async {
           // 2. Use asyncMap to handle the nested Future
