@@ -172,6 +172,7 @@ class _PaymentPageState extends State<PaymentPage> {
                     const Divider(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
                           "Dates:",
@@ -184,6 +185,7 @@ class _PaymentPageState extends State<PaymentPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
+                    const SizedBox(width: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -191,9 +193,13 @@ class _PaymentPageState extends State<PaymentPage> {
                           "Pickup At:",
                           style: TextStyle(color: Colors.grey),
                         ),
-                        Text(
-                          "${item.locationDetails.isNotEmpty ? item.locationDetails[0].locationName : 'Contact Owner'}",
-                        )
+                        Expanded(
+                          child: Text(
+                            "${item.locationDetails.isNotEmpty ? item.locationDetails[0].locationName : 'Contact Owner'}",
+                            textAlign: TextAlign.end, // Keeps the text aligned to the right
+                            softWrap: true,
+                          ),
+                        ),
                         // DropdownButton<String>(
                         //   value: _selectedLocations[item.cartDocId],
                         //   isDense: true,
